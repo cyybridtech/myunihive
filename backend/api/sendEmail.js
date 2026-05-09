@@ -10,6 +10,20 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
+    },
+    // Add these settings to improve deliverability
+    secure: true,
+    tls: {
+        rejectUnauthorized: false
+    }
+});
+
+// Test email connection on startup
+transporter.verify((error, success) => {
+    if (error) {
+        console.error('[EMAIL] SMTP connection failed:', error.message);
+    } else {
+        console.log('[EMAIL] SMTP connection successful');
     }
 });
 
@@ -107,6 +121,11 @@ async function sendOtpEmail(email, full_name, otp_code) {
         console.log(`[EMAIL-SKIP] OTP email to ${email} (No EMAIL_USER configured)`);
         return false;
     }
+
+    if (!process.env.EMAIL_PASS) {
+        console.log(`[EMAIL-SKIP] OTP email to ${email} (No EMAIL_PASS configured)`);
+        return false;
+    }
     
     const subject = 'Your UniHive Verification Code';
     const text = `Hi ${full_name},\n\nYour email verification code is: ${otp_code}\n\nIt expires in 15 minutes.\n\nBest,\nUniHive Team`;
@@ -128,6 +147,7 @@ async function sendOtpEmail(email, full_name, otp_code) {
     `;
 
     try {
+        console.log(`[EMAIL] Attempting to send OTP email to ${email} from ${process.env.EMAIL_USER}`);
         const info = await transporter.sendMail({
             from: `"UniHive" <${process.env.EMAIL_USER}>`,
             to: email,
@@ -135,10 +155,16 @@ async function sendOtpEmail(email, full_name, otp_code) {
             text,
             html
         });
-        console.log(`[EMAIL] OTP email sent to ${email}`);
+        console.log(`[EMAIL] OTP email sent successfully to ${email}. Message ID: ${info.messageId}`);
         return true;
     } catch (error) {
-        console.error(`[EMAIL] Failed to send OTP email:`, error.message);
+        console.error(`[EMAIL] Failed to send OTP email to ${email}:`, {
+            error: error.message,
+            code: error.code,
+            command: error.command,
+            response: error.response,
+            responseCode: error.responseCode
+        });
         return false;
     }
 }
