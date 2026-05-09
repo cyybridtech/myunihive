@@ -8,7 +8,7 @@ export default function HomePage() {
   const [searchUni, setSearchUni] = useState(selectedUniversity);
   const navigate = useNavigate();
 
-  const featuredHostels = filteredHostels.filter(h => h.rating >= 4.5).slice(0, 4);
+  const featuredHostels = [...filteredHostels].sort((a, b) => b.rating - a.rating).slice(0, 4);
   const stats = { students: '12,500+', hostels: filteredHostels.length.toString(), universities: universities.length.toString(), bookings: '8,200+' };
 
   const handleSearch = () => {

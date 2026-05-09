@@ -21,7 +21,10 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-gray-900">Agreement and Account Eligibility</h2>
             <p className="mt-3 text-sm text-gray-600 leading-7">
-              By using UniHive, you agree to follow these terms and policies. Your account must represent a real student or authorized manager, and you must be truthful when providing personal details.
+              By using UniHive, you agree to follow these terms and policies. Your account must represent a real student or authorized hostel manager, and you must be truthful when providing personal details.
+            </p>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              Identity fraud, false representation, or creating an account on behalf of another person is strictly prohibited. UniHive reserves the right to suspend or terminate accounts that violate these requirements.
             </p>
           </section>
 
@@ -29,6 +32,9 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-gray-900">Booking and Payment Responsibilities</h2>
             <p className="mt-3 text-sm text-gray-600 leading-7">
               All bookings, payments, and cancellations are governed by UniHive rules. You must provide accurate payment information, complete bookings in good faith, and communicate promptly if there are any issues.
+            </p>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              Refunds and booking cancellations are subject to the policy published on the UniHive platform. Late cancellations, no-shows, or false booking claims may incur penalties and limit future booking privileges.
             </p>
           </section>
 

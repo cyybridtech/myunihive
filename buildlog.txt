@@ -1,0 +1,23 @@
+
+> react-vite-tailwind@0.0.0 build
+> vite build
+
+[36mvite v7.3.2 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 1775 modules transformed.
+rendering chunks...
+[plugin vite:singlefile] 
+
+[plugin vite:singlefile] Inlining: index-H3rmGHmH.js
+[plugin vite:singlefile] Inlining: style-BNIY8u4W.css
+computing gzip size...
+[2mdist/[22m[32mmanifest.webmanifest  [39m[1m[2m  0.46 kB[22m[1m[22m
+[2mdist/[22m[32mindex.html            [39m[1m[2m465.32 kB[22m[1m[22m[2m │ gzip: 121.78 kB[22m
+[32m✓ built in 24.20s[39m
+
+PWA v1.2.0
+mode      generateSW
+precache  4 entries (454.41 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-8c29f6e4.js

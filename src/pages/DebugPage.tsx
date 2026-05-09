@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { Shield, Building2, CheckCircle, Info } from 'lucide-react';
+import { Shield, Building2, Info } from 'lucide-react';
 
 export default function DebugPage() {
   const auth = useAuth();

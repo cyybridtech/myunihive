@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Hexagon, User, Phone, GraduationCap, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Hexagon, User, Phone, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUniversities } from '../api/api.js';
 
@@ -155,16 +155,6 @@ export default function RegisterPage() {
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
-
-          <div className="mt-5 bg-amber-50 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Referral Bonus</p>
-                <p className="text-xs text-gray-500">Have a referral code? You can add it later in your dashboard to earn rewards.</p>
-              </div>
-            </div>
-          </div>
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Already have an account? <Link to="/login" className="text-amber-600 hover:text-amber-700 font-semibold">Sign In</Link>

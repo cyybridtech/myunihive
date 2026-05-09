@@ -1,0 +1,17 @@
+# Deny access to sensitive files
+<FilesMatch "^\.env$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "^\.env\.example$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Also protect common config/log files
+<FilesMatch "\.(log|sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+

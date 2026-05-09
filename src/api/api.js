@@ -1,5 +1,49 @@
-const BASE_URL = "/backend/api";
+// Use proxy path by default - Vite forwards /api requests to the Express server.
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "/api";
+const normalizeBaseUrl = (value) => {
+  let url = String(value || '').trim();
+  if (!url) return '/api';
+  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+    url = '/' + url;
+  }
+  return url.replace(/\/$/, '');
+};
+const BASE_URL = normalizeBaseUrl(RAW_BASE_URL);
 const defaultFetchOptions = { credentials: 'include' };
+
+const normalizeHeaders = (headers) => {
+  if (!headers) return {};
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return { ...headers };
+};
+
+const getAuthToken = () => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      if (parsed?.token) {
+        return parsed.token;
+      }
+    }
+
+    const storedAuth = localStorage.getItem('auth');
+    if (storedAuth) {
+      const parsedAuth = JSON.parse(storedAuth);
+      return parsedAuth?.token || '';
+    }
+
+    return '';
+  } catch (error) {
+    console.warn('Failed to read auth token from localStorage', error);
+    return '';
+  }
+};
 
 const parseJsonResponse = async (res) => {
   const text = await res.text();
@@ -27,52 +71,42 @@ const parseJsonResponse = async (res) => {
   throw new Error(`Unexpected response content type from ${res.url}: ${contentType || 'unknown'}\n${text.slice(0, 200)}`);
 };
 
+const buildApiUrl = (url) => {
+  if (typeof url !== 'string') return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (!url.startsWith('/')) {
+    url = '/' + url;
+  }
+
+  if (BASE_URL.startsWith('http://') || BASE_URL.startsWith('https://')) {
+    return url.startsWith(BASE_URL) ? url : `${BASE_URL}${url}`;
+  }
+
+  return url.startsWith(BASE_URL) ? url : `${BASE_URL}${url}`;
+};
+
 const fetchJson = async (url, options = {}) => {
-  const res = await fetch(url, { ...defaultFetchOptions, ...options });
-  return parseJsonResponse(res);
-};
+  const token = getAuthToken();
+  if (!token) {
+    console.warn('API request without auth token', { url, options });
+  }
 
-export const loginUser = async (email, password) => {
-  const res = await fetch(`${BASE_URL}/login.php`, {
-    ...defaultFetchOptions,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  });
+  const headers = {
+    ...normalizeHeaders(options.headers),
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
 
-  return parseJsonResponse(res);
-};
+  const fullUrl = buildApiUrl(url);
+  const res = await fetch(fullUrl, { ...defaultFetchOptions, ...options, headers });
 
-export const registerUser = async (userData) => {
-  const res = await fetch(`${BASE_URL}/register.php`, {
-    ...defaultFetchOptions,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(userData),
-  });
+  if (res.status === 401) {
+    localStorage.removeItem('user');
+  }
 
   return parseJsonResponse(res);
 };
 
-// Create booking API
-export const createBooking = async (userId, roomId, hostelId, bookingDate) => {
-  const res = await fetch(`${BASE_URL}/bookings.php`, {
-    ...defaultFetchOptions,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ user_id: userId, room_id: roomId, hostel_id: hostelId, booking_date: bookingDate }),
-  });
-
-  return parseJsonResponse(res);
-};
-
-// Get user bookings
+// Get user ID from localStorage
 const getUserId = () => {
   try {
     const userStr = localStorage.getItem('user');
@@ -82,155 +116,255 @@ const getUserId = () => {
   }
 };
 
-export const getUserBookings = async () => {
-  const userId = getUserId();
-  const url = userId ? `${BASE_URL}/getUserBookings.php?user_id=${userId}` : `${BASE_URL}/getUserBookings.php`;
-  const res = await fetch(url, {
-    ...defaultFetchOptions,
+// ============ AUTH APIS ============
+
+export const loginUser = async (email, password) => {
+  return fetchJson(`${BASE_URL}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
-  return parseJsonResponse(res);
 };
 
-// Get user notifications
-export const getNotifications = async () => {
-  const userId = getUserId();
-  const url = userId ? `${BASE_URL}/getNotifications.php?user_id=${userId}` : `${BASE_URL}/getNotifications.php`;
-  const res = await fetch(url, {
-    ...defaultFetchOptions,
+export const requestOtp = async (email, fullName) => {
+  return fetchJson(`${BASE_URL}/request-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, full_name: fullName }),
   });
-  return parseJsonResponse(res);
 };
 
-// Admin APIs
+export const registerUser = async (userData) => {
+  return fetchJson(`${BASE_URL}/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+};
+
+export const forgotPassword = async (email) => {
+  return fetchJson(`${BASE_URL}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+};
+
+export const resetPassword = async (email, otp, newPassword) => {
+  return fetchJson(`${BASE_URL}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp, new_password: newPassword }),
+  });
+};
+
+export const logoutUser = async () => {
+  return fetchJson(`${BASE_URL}/logout`, {
+    method: "POST",
+  });
+};
+
+// ============ HOSTEL APIS ============
+
+export const getHostels = async () => {
+  return fetchJson(`${BASE_URL}/getHostels`);
+};
+
 export const createHostel = async (hostelData) => {
-  const res = await fetch(`${BASE_URL}/createHostel.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/createHostel`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(hostelData)
   });
-  return parseJsonResponse(res);
 };
 
 export const deleteHostel = async (hostelId) => {
-  const res = await fetch(`${BASE_URL}/deleteHostel.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/deleteHostel`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ hostel_id: hostelId })
   });
-  return parseJsonResponse(res);
+};
+
+// ============ ROOM APIS ============
+
+export const getRooms = async () => {
+  return fetchJson(`${BASE_URL}/getRooms`);
 };
 
 export const createRoom = async (roomData) => {
-  const res = await fetch(`${BASE_URL}/createRoom.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/createRoom`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(roomData)
   });
-  return parseJsonResponse(res);
 };
 
 export const updateRoomStatus = async (roomId, available) => {
-  const res = await fetch(`${BASE_URL}/updateRoomStatus.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/updateRoomStatus`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ room_id: roomId, available })
   });
-  return parseJsonResponse(res);
 };
 
-// Get all bookings (admin)
+export const updateRoomOccupancy = async (roomId, action) => {
+  return fetchJson(`${BASE_URL}/updateRoomOccupancy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ room_id: roomId, action })
+  });
+};
+
+export const deleteRoom = async (roomId) => {
+  return fetchJson(`${BASE_URL}/deleteRoom`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ room_id: roomId })
+  });
+};
+
+export const updateRoom = async (roomId, roomData) => {
+  return fetchJson(`${BASE_URL}/updateRoom`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ room_id: roomId, ...roomData })
+  });
+};
+
+export const updateHostel = async (hostelId, hostelData) => {
+  return fetchJson(`${BASE_URL}/updateHostel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hostel_id: hostelId, ...hostelData })
+  });
+};
+
+export const deleteUniversity = async (universityId) => {
+  return fetchJson(`${BASE_URL}/deleteUniversity`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ university_id: universityId })
+  });
+};
+
+// ============ BOOKING APIS ============
+
+export const createBooking = async (roomId, hostelId, bookingDate) => {
+  if (!roomId || !hostelId) {
+    throw new Error('Booking requires a selected room and hostel.');
+  }
+
+  const normalizedBookingDate = bookingDate || new Date().toISOString().split('T')[0];
+
+  return fetchJson(`${BASE_URL}/bookings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      room_id: String(roomId),
+      hostel_id: String(hostelId),
+      booking_date: normalizedBookingDate,
+    }),
+  });
+};
+
+export const getUserBookings = async () => {
+  return fetchJson(`${BASE_URL}/getUserBookings`, {
+    method: 'GET'
+  });
+};
+
 export const getAllBookings = async () => {
-  const res = await fetch(`${BASE_URL}/getAllBookings.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/getAllBookings`, {
+    method: 'GET'
   });
-  return parseJsonResponse(res);
 };
 
-// Universities
-export const getUniversities = async () => {
-  const res = await fetch(`${BASE_URL}/getUniversities.php`, {
-    ...defaultFetchOptions,
-  });
-  return parseJsonResponse(res);
-};
-
-export const createUniversity = async (uniData) => {
-  const res = await fetch(`${BASE_URL}/createUniversity.php`, {
-    ...defaultFetchOptions,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(uniData)
-  });
-  return parseJsonResponse(res);
-};
-
-// Hostels and Rooms
-export const getHostels = async () => {
-  const res = await fetch(`${BASE_URL}/getHostels.php`, {
-    ...defaultFetchOptions,
-  });
-  return parseJsonResponse(res);
-};
-
-export const getRooms = async () => {
-  const res = await fetch(`${BASE_URL}/getRooms.php`, {
-    ...defaultFetchOptions,
-  });
-  return parseJsonResponse(res);
-};
-
-export const verifyPayment = async (reference, bookingId) => {
-  const res = await fetch(`${BASE_URL}/verifyPayment.php`, {
-    ...defaultFetchOptions,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reference, booking_id: bookingId })
-  });
-  return parseJsonResponse(res);
-};
-
-// Approve/Reject booking (admin)
 export const approveBooking = async (bookingId, status) => {
-  const res = await fetch(`${BASE_URL}/approveBooking.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/approveBooking`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ booking_id: bookingId, status })
   });
-  return parseJsonResponse(res);
 };
 
-// Reviews API
-export const getReviewsForHostel = async (hostelId) => {
-  const res = await fetch(`${BASE_URL}/reviews.php?hostel_id=${hostelId}`, {
-    ...defaultFetchOptions,
+export const verifyPayment = async (reference, bookingId) => {
+  return fetchJson(`${BASE_URL}/verifyPayment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reference, booking_id: bookingId })
   });
-  return parseJsonResponse(res);
+};
+
+export const deleteBooking = async (bookingId) => {
+  return fetchJson(`${BASE_URL}/deleteBooking`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ booking_id: bookingId })
+  });
+};
+
+// ============ UNIVERSITY APIS ============
+
+export const getUniversities = async () => {
+  return fetchJson(`${BASE_URL}/getUniversities`);
+};
+
+export const createUniversity = async (uniData) => {
+  return fetchJson(`${BASE_URL}/createUniversity`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(uniData)
+  });
+};
+
+// ============ REVIEW APIS ============
+
+export const getReviewsForHostel = async (hostelId) => {
+  return fetchJson(`${BASE_URL}/reviews?hostel_id=${hostelId}`);
 };
 
 export const submitReview = async (reviewData) => {
-  const res = await fetch(`${BASE_URL}/reviews.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/reviews`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(reviewData)
   });
-  return parseJsonResponse(res);
 };
 
-// Image Upload
+// ============ NOTIFICATION APIS ============
+
+export const getNotifications = async () => {
+  return fetchJson(`${BASE_URL}/getNotifications`, {
+    method: 'GET'
+  });
+};
+
+export const markNotificationRead = async (notificationId) => {
+  const dbId = typeof notificationId === 'string' && notificationId.startsWith('db_')
+    ? notificationId.slice(3)
+    : notificationId;
+
+  if (!dbId) {
+    throw new Error('Invalid notification identifier');
+  }
+
+  return fetchJson(`${BASE_URL}/markNotificationRead`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ db_id: dbId })
+  });
+};
+
+// ============ IMAGE UPLOAD (if needed) ============
+
 export const uploadImage = async (file) => {
   const formData = new FormData();
   formData.append('image', file);
-  
-  const res = await fetch(`${BASE_URL}/uploadImage.php`, {
-    ...defaultFetchOptions,
+  return fetchJson(`${BASE_URL}/uploadImage`, {
     method: 'POST',
     body: formData
   });
-  return parseJsonResponse(res);
 };

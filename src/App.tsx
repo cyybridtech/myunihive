@@ -5,14 +5,18 @@ import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import HostelListingPage from './pages/HostelListingPage';
 import HostelDetailsPage from './pages/HostelDetailsPage';
+import RoomDetailsPage from './pages/RoomDetailsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import TermsPage from './pages/TermsPage';
 import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import DebugPage from './pages/DebugPage';
 import MessagingPage from './pages/MessagingPage';
+import AddHostelPage from './pages/AddHostelPage';
+import AddRoomPage from './pages/AddRoomPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useEffect, type ReactNode } from 'react';
 
@@ -32,7 +36,7 @@ function DashboardRouter() {
     return <AdminDashboard />;
   }
 
-  if (user.role === 'manager') {
+  if (user.role === 'manager' || user.role === 'hostel_manager') {
     return <ManagerDashboard />;
   }
 
@@ -63,7 +67,7 @@ function RoleProtectedRoute({ children, allowedRoles, fallbackPath }: { children
 
 function AppLayout() {
   const { pathname } = useLocation();
-  const hideNavbar = pathname === '/login' || pathname === '/register';
+  const hideNavbar = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -76,9 +80,11 @@ function AppLayout() {
 
         <Route path="/hostels" element={<HostelListingPage />} />
         <Route path="/hostels/:id" element={<HostelDetailsPage />} />
+        <Route path="/rooms/:id" element={<RoomDetailsPage />} />
 
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/terms" element={<TermsPage />} />
 
         {/* ✅ FIXED DASHBOARD ROUTE */}
@@ -118,7 +124,7 @@ function AppLayout() {
           path="/manager"
           element={
             <ProtectedRoute>
-              <RoleProtectedRoute allowedRoles={['manager']} fallbackPath="/dashboard">
+              <RoleProtectedRoute allowedRoles={['manager', 'hostel_manager']} fallbackPath="/dashboard">
                 <ManagerDashboard />
               </RoleProtectedRoute>
             </ProtectedRoute>
@@ -130,6 +136,27 @@ function AppLayout() {
           element={
             <ProtectedRoute>
               <MessagingPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/add-hostel"
+          element={
+            <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']} fallbackPath="/dashboard">
+                <AddHostelPage />
+              </RoleProtectedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-room"
+          element={
+            <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin', 'manager', 'hostel_manager']} fallbackPath="/dashboard">
+                <AddRoomPage />
+              </RoleProtectedRoute>
             </ProtectedRoute>
           }
         />

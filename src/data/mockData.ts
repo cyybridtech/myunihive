@@ -34,9 +34,12 @@ export interface Room {
   capacity: number;
   price: number;
   available: boolean;
+  occupancy?: number;
+  manualOccupancy?: number;
   gender?: 'male' | 'female' | 'unisex';
   description: string;
   image: string;
+  gallery?: (string | {url: string, desc: string})[];
   type: string;
 }
 
@@ -86,6 +89,7 @@ export interface Notification {
   type: 'booking' | 'payment' | 'info' | 'hostel';
   read: boolean;
   date: string;
+  dbId?: number;
 }
 
 export interface User {
@@ -94,10 +98,9 @@ export interface User {
   email: string;
   phone: string;
   universityId: string;
-  role: 'student' | 'admin' | 'manager';
+  role: 'student' | 'admin' | 'manager' | 'hostel_manager';
   gender?: 'male' | 'female';
   avatar: string;
-  referralCode: string;
   credits: number;
   joinDate: string;
 }
@@ -124,7 +127,6 @@ export const currentUser: User = {
   universityId: 'u1',
   role: 'student',
   avatar: 'AM',
-  referralCode: 'UNIHIVE-AMA2026',
   credits: 25,
   joinDate: '2026-01-01',
 };
@@ -137,7 +139,6 @@ export const adminUser: User = {
   universityId: '',
   role: 'admin',
   avatar: 'UA',
-  referralCode: '',
   credits: 0,
   joinDate: '2025-01-01',
 };

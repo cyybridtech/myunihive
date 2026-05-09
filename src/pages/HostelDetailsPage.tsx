@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { createBooking, verifyPayment, submitReview } from '../api/api.js';
+import { createBooking, verifyPayment, submitReview, deleteBooking } from '../api/api.js';
+
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
 
 export default function HostelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { filteredHostels, filteredRooms, reviews, universities, isAuthenticated, savedHostels, toggleSaveHostel, addBooking, user, addReview } = useApp();
+  const { filteredHostels, filteredRooms, reviews, universities, isAuthenticated, savedHostels, toggleSaveHostel, addBooking, removeBooking, user, addReview, refreshBookings, refreshData, refreshNotifications } = useApp();
 
   const hostel = filteredHostels.find(h => h.id === id);
   const hostelRooms = filteredRooms.filter(r => r.hostelId === id);
@@ -54,94 +56,125 @@ export default function HostelDetailsPage() {
   const facilityIcons: Record<string, typeof Wifi> = { WiFi: Wifi, Security: Shield, Generator: Zap, 'Water Tank': Droplets, 'Study Room': BookOpen };
   const isSaved = savedHostels.includes(hostel.id);
 
+  const cleanupPendingBooking = async (bookingId: string) => {
+    try {
+      const response = await deleteBooking(bookingId);
+      if (response.status === 'success') {
+        removeBooking(bookingId);
+      }
+    } catch (error) {
+      console.warn('Unable to cleanup pending booking', error);
+    }
+  };
+
   const handleBookRoom = async () => {
-    if (!isAuthenticated) { 
-      navigate('/login'); 
-      return; 
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
     }
     if (!selectedRoom) return;
     const room = selectedRoomData;
     if (!room) return;
 
     const bookingDate = new Date().toISOString().split('T')[0];
-    
+    let bookingId: string | null = null;
+
     try {
-      const response = await createBooking(user!.id, selectedRoom, hostel.id, bookingDate);
-      
-      if (response.status === 'success') {
-        const bookingId = response.booking_id;
+      const response = await createBooking(selectedRoom, hostel.id, bookingDate);
+      if (response.status !== 'success' || !response.booking_id) {
+        throw new Error(response.message || 'Booking failed');
+      }
 
-        // Ensure Paystack SDK is securely loaded before calling it
-        if (!(window as any).PaystackPop) {
-           alert("Payment system initializing... Please fully refresh your page once and try again to load the Paystack security scripts.");
-           return;
-        }
+      bookingId = response.booking_id;
 
-        const handler = (window as any).PaystackPop.setup({
-          key: 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee',
-          email: user?.email,
-          amount: room.price * 100, // Full rent in pesewas
-          currency: 'GHS',
-          ...(hostel.subaccountCode ? { subaccount: hostel.subaccountCode } : {}),
-          reference: 'BK_' + Math.floor((Math.random() * 1000000000) + 1).toString(), // Generate a random reference
-          callback: function(paystackResponse: any) {
-            (async () => {
-              const verification = await verifyPayment(paystackResponse.reference, bookingId);
+      if (!(window as any).PaystackPop) {
+        throw new Error('Payment system initializing... Please refresh the page once and try again.');
+      }
+
+      const PLATFORM_FEE_PERCENTAGE = 0.05; // 5% markup
+      const platformFee = Math.round(room.price * PLATFORM_FEE_PERCENTAGE);
+      const totalAmount = room.price + platformFee;
+
+      const handler = (window as any).PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: user?.email,
+        amount: totalAmount * 100,
+        currency: 'GHS',
+        ...(hostel.subaccountCode ? { 
+          subaccount: hostel.subaccountCode,
+          transaction_charge: platformFee * 100, // Admin takes this exact fee
+          bearer: 'account' // Admin bears Paystack processing fees so manager gets exactly the room price
+        } : {}),
+        reference: 'BK_' + Math.floor((Math.random() * 1000000000) + 1).toString(),
+        callback: function(paystackResponse: any) {
+          verifyPayment(paystackResponse.reference, bookingId as string)
+            .then(verification => {
               if (verification.status === 'success') {
-                // Add booking to local state with 'paid' status (it was just created in DB)
                 addBooking({
-                  id: bookingId,
+                  id: bookingId as string,
                   userId: user!.id,
                   roomId: selectedRoom,
                   hostelId: hostel.id,
                   bookingDate,
-                  status: 'pending',
+                  status: 'approved',
                   paymentStatus: 'paid',
-                  reservationFee: room.price,
-                  totalPrice: room.price,
+                  reservationFee: totalAmount,
+                  totalPrice: totalAmount,
                 });
+                refreshBookings();
+                refreshNotifications();
+                refreshData();
                 setBookingSuccess(true);
               } else {
-                // Booking already exists in DB as 'unpaid'.
-                // Add it to local state so user can retry from the dashboard.
                 addBooking({
-                  id: bookingId,
+                  id: bookingId as string,
                   userId: user!.id,
                   roomId: selectedRoom,
                   hostelId: hostel.id,
                   bookingDate,
                   status: 'pending',
                   paymentStatus: 'unpaid',
-                  reservationFee: room.price,
-                  totalPrice: room.price,
+                  reservationFee: totalAmount,
+                  totalPrice: totalAmount,
                 });
-                alert('Payment could not be confirmed: ' + verification.message + '\nYou can retry payment from your dashboard.');
+                alert('Payment could not be confirmed: ' + (verification.message || 'Please retry from your dashboard.'));
                 setBookingSuccess(true);
               }
-            })();
-          },
-          onClose: function() {
-            alert('Payment window closed. You can pay your rent later from your dashboard.');
-            addBooking({
-              id: bookingId,
-              userId: user!.id,
-              roomId: selectedRoom,
-              hostelId: hostel.id,
-              bookingDate,
-              status: 'pending',
-              paymentStatus: 'unpaid',
-              reservationFee: room.price,
-              totalPrice: room.price,
+            })
+            .catch((error: any) => {
+              console.error('Payment verification failed:', error);
+              addBooking({
+                id: bookingId as string,
+                userId: user!.id,
+                roomId: selectedRoom,
+                hostelId: hostel.id,
+                bookingDate,
+                status: 'pending',
+                paymentStatus: 'unpaid',
+                reservationFee: totalAmount,
+                totalPrice: totalAmount,
+              });
+              refreshBookings();
+              refreshNotifications();
+              refreshData();
+              alert('Payment was completed but verification failed. Please refresh and check your bookings dashboard.');
+              setBookingSuccess(true);
             });
-            setBookingSuccess(true);
+        },
+        onClose: function() {
+          if (bookingId) {
+            cleanupPendingBooking(bookingId);
           }
-        });
-        handler.openIframe();
-      } else {
-        alert(response.message || 'Booking failed');
-      }
+          alert('Payment window closed. You can pay your rent later from your dashboard.');
+          setBookingSuccess(true);
+        }
+      });
+      handler.openIframe();
     } catch (error: any) {
       console.error('Booking error:', error);
+      if (bookingId) {
+        cleanupPendingBooking(bookingId);
+      }
       alert('System Error: ' + (error.message || 'Unknown crash') + '. Please try refreshing the page.');
     }
   };
@@ -151,7 +184,6 @@ export default function HostelDetailsPage() {
     setLoadingReview(true);
     try {
       const response = await submitReview({
-        user_id: user.id,
         hostel_id: hostel.id,
         rating: reviewRating,
         comment: reviewComment
@@ -190,7 +222,12 @@ export default function HostelDetailsPage() {
         </button>
         <div className="max-w-7xl mx-auto">
           <div className="relative h-[300px] md:h-[450px] overflow-hidden cursor-pointer" onClick={() => setShowGallery(true)}>
-            <img src={hostel.gallery[activeImage]} alt={hostel.name} className="w-full h-full object-cover" />
+            <img src={typeof hostel.gallery[activeImage] === 'string' ? hostel.gallery[activeImage] : (hostel.gallery[activeImage] as any)?.url} alt={hostel.name} className="w-full h-full object-cover" />
+            {(typeof hostel.gallery[activeImage] === 'object' && (hostel.gallery[activeImage] as any)?.desc) && (
+              <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm shadow-lg z-10">
+                {(hostel.gallery[activeImage] as any).desc}
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             <div className="absolute bottom-4 right-4 flex gap-2">
               <button aria-label="Previous image" onClick={e => { e.stopPropagation(); setActiveImage(prev => (prev - 1 + hostel.gallery.length) % hostel.gallery.length); }} className="bg-white/90 p-2 rounded-full shadow hover:bg-white"><ChevronLeft className="w-5 h-5" /></button>
@@ -202,8 +239,13 @@ export default function HostelDetailsPage() {
           </div>
           <div className="flex gap-2 p-2 bg-gray-900 overflow-x-auto">
             {hostel.gallery.map((img, i) => (
-              <button key={i} aria-label={`View image ${i + 1}`} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-colors ${i === activeImage ? 'border-amber-500' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                <img src={img} alt={`Gallery image ${i + 1}`} className="w-full h-full object-cover" />
+              <button key={i} aria-label={`View image ${i + 1}`} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-colors relative group ${i === activeImage ? 'border-amber-500' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                <img src={typeof img === 'string' ? img : (img as any).url} alt={`Gallery image ${i + 1}`} className="w-full h-full object-cover" />
+                {(typeof img === 'object' && (img as any).desc) && (
+                  <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-[10px] py-0.5 px-1 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                    {(img as any).desc}
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -296,7 +338,7 @@ export default function HostelDetailsPage() {
                 )}
                 {filteredHostelRooms.length > 0 ? filteredHostelRooms.map(room => (
                   <div key={room.id} className={`border rounded-xl p-4 transition-all ${selectedRoom === room.id ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' : 'border-gray-200 hover:border-gray-300'} ${!room.available ? 'opacity-50' : 'cursor-pointer'}`}
-                    onClick={() => { if (room.available) setSelectedRoom(room.id); }}>
+                    onClick={() => { if (room.available) navigate(`/rooms/${room.id}`); }}>
                     <div className="flex flex-col sm:flex-row gap-4">
                       <img src={room.image} alt={room.type} className="w-full sm:w-32 h-24 object-cover rounded-lg" />
                       <div className="flex-1">
@@ -315,7 +357,7 @@ export default function HostelDetailsPage() {
                           <span className="flex items-center gap-1 text-xs text-gray-500"><Users className="w-3.5 h-3.5" /> {room.capacity} {room.capacity === 1 ? 'person' : 'people'}</span>
                           <span className="flex items-center gap-1 text-xs text-gray-500"><DoorOpen className="w-3.5 h-3.5" /> Room {room.roomNumber}</span>
                           <span className={`text-xs font-semibold ${room.available ? 'text-green-600' : 'text-red-500'}`}>
-                            {room.available ? 'Available' : 'Occupied'}
+                            {room.available ? `Available • ${room.occupancy || 0}/${room.capacity} booked` : `Occupied • ${room.capacity}/${room.capacity} booked`}
                           </span>
                         </div>
                       </div>
@@ -386,7 +428,10 @@ export default function HostelDetailsPage() {
                   <div className="bg-amber-50 rounded-xl p-3 mb-4">
                     <p className="text-xs text-amber-600 font-medium mb-1">Selected Room</p>
                     <p className="font-bold text-gray-800">{selectedRoomData?.type} - Room {selectedRoomData?.roomNumber}</p>
-                    <p className="text-amber-600 font-bold">GH₵{selectedRoomData?.price.toLocaleString()}/semester</p>
+                    <p className="text-amber-600 font-bold mb-1">GH₵{selectedRoomData?.price.toLocaleString()}/semester</p>
+                    <p className="text-xs font-semibold text-gray-600 bg-amber-100/50 inline-block px-2 py-1 rounded">
+                      {selectedRoomData ? (selectedRoomData.capacity - (selectedRoomData.occupancy || 0)) : 0} bed(s) remaining out of {selectedRoomData?.capacity}
+                    </p>
                   </div>
                 ) : (
                   <p className="text-center text-sm text-gray-400 mb-4">Select a room above to book</p>
@@ -428,7 +473,8 @@ export default function HostelDetailsPage() {
                 <div className="bg-gray-50 rounded-xl p-4 mb-5 space-y-2">
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Hostel</span><span className="font-medium">{hostel.name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Room</span><span className="font-medium">{selectedRoomData?.type} ({selectedRoomData?.roomNumber})</span></div>
-                  <div className="border-t border-gray-200 pt-2 flex justify-between text-sm"><span className="text-gray-500">Total Rent</span><span className="font-bold text-amber-600">GH₵{selectedRoomData?.price.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-500">Platform Fee</span><span className="font-medium">GH₵{selectedRoomData ? Math.round(selectedRoomData.price * 0.05).toLocaleString() : 0}</span></div>
+                  <div className="border-t border-gray-200 pt-2 flex justify-between text-sm"><span className="text-gray-500">Total Rent & Fees</span><span className="font-bold text-amber-600">GH₵{selectedRoomData ? (selectedRoomData.price + Math.round(selectedRoomData.price * 0.05)).toLocaleString() : 0}</span></div>
                 </div>
                 <p className="text-xs text-gray-500 mb-5">By confirming, you will be prompted to securely pay your full rent via Paystack. Funds are safely held.</p>
                 <div className="flex gap-3">
@@ -487,7 +533,12 @@ export default function HostelDetailsPage() {
         <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
           <button aria-label="Close gallery" onClick={() => setShowGallery(false)} className="absolute top-4 right-4 bg-white/20 p-2 rounded-full hover:bg-white/30 z-10"><X className="w-6 h-6 text-white" /></button>
           <button aria-label="Previous gallery image" onClick={() => setActiveImage(prev => (prev - 1 + hostel.gallery.length) % hostel.gallery.length)} className="absolute left-4 bg-white/20 p-3 rounded-full hover:bg-white/30"><ChevronLeft className="w-6 h-6 text-white" /></button>
-          <img src={hostel.gallery[activeImage]} alt="Hostel gallery" className="max-w-full max-h-full object-contain" />
+          <img src={typeof hostel.gallery[activeImage] === 'string' ? hostel.gallery[activeImage] : (hostel.gallery[activeImage] as any)?.url} alt="Hostel gallery" className="max-w-full max-h-full object-contain" />
+          {(typeof hostel.gallery[activeImage] === 'object' && (hostel.gallery[activeImage] as any)?.desc) && (
+            <div className="absolute bottom-12 text-white bg-black/60 px-4 py-2 rounded-xl text-lg font-medium shadow-lg">
+              {(hostel.gallery[activeImage] as any).desc}
+            </div>
+          )}
           <button aria-label="Next gallery image" onClick={() => setActiveImage(prev => (prev + 1) % hostel.gallery.length)} className="absolute right-4 bg-white/20 p-3 rounded-full hover:bg-white/30"><ChevronRight className="w-6 h-6 text-white" /></button>
           <div className="absolute bottom-4 text-white text-sm">{activeImage + 1} / {hostel.gallery.length}</div>
         </div>

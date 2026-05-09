@@ -3,16 +3,16 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { createRoom, updateRoomStatus, approveBooking } from '../api/api.js';
+import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking } from '../api/api.js';
 import { Booking } from '../data/mockData';
 
 type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews';
 
 export default function ManagerDashboard() {
   const auth = useAuth();
-  const { hostels, rooms, bookings, reviews, universities, refreshBookings, addRoom, updateRoom } = useApp();
+  const { hostels, rooms, bookings, reviews, universities, refreshBookings, refreshData, addRoom, updateRoom } = useApp();
   const navigate = useNavigate();
-  const isManager = auth.user?.role === 'manager';
+  const isManager = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
 
   if (!auth.user) {
     return <Navigate to="/login" replace />;
@@ -29,21 +29,12 @@ export default function ManagerDashboard() {
   const visibleReviews = reviews.filter(r => managerHostelIds.includes(String(r.hostelId)));
 
   const [activeTab, setActiveTab] = useState<ManagerTab>('overview');
-  const [showAddRoom, setShowAddRoom] = useState(false);
-  const [selectedHostelForRoom, setSelectedHostelForRoom] = useState('');
-  const [newRoom, setNewRoom] = useState<{ roomNumber: string; capacity: string; price: string; description: string; type: string; gender: 'male' | 'female' }>(
-    { roomNumber: '', capacity: '1', price: '', description: '', type: 'Standard', gender: 'male' }
-  );
   const [roomSearch, setRoomSearch] = useState('');
   const [bookingSearch, setBookingSearch] = useState('');
   const [isSubmittingRoom, setIsSubmittingRoom] = useState(false);
   const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
+  const [roomViewMode, setRoomViewMode] = useState<'card' | 'list'>('card');
 
-  useEffect(() => {
-    if (managerHostels.length > 0 && !selectedHostelForRoom) {
-      setSelectedHostelForRoom(managerHostels[0].id);
-    }
-  }, [managerHostels, selectedHostelForRoom]);
 
   const managerName = auth.user?.full_name || 'Manager';
   const filteredRooms = visibleRooms.filter(room => {
@@ -69,50 +60,26 @@ export default function ManagerDashboard() {
   };
 
   const openAddRoom = () => {
-    if (managerHostels.length > 0) {
-      setSelectedHostelForRoom(managerHostels[0].id);
-    }
-    setShowAddRoom(true);
+    navigate('/add-room');
   };
 
-  const handleAddRoom = async () => {
-    if (!selectedHostelForRoom || !newRoom.roomNumber || !newRoom.price) {
-      alert('Please select a hostel and fill in room number and price.');
-      return;
-    }
-
-    setIsSubmittingRoom(true);
-
+  const handleUpdateOccupancy = async (roomId: string, action: 'increment' | 'decrement') => {
     try {
-      const response: any = await createRoom({
-        hostel_id: selectedHostelForRoom,
-        room_number: newRoom.roomNumber,
-        capacity: Number(newRoom.capacity),
-        price: Number(newRoom.price),
-        gender: newRoom.gender,
-        type: newRoom.type,
-        description: newRoom.description,
-        image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80'
-      });
-
-      addRoom({
-        id: response.id,
-        hostelId: selectedHostelForRoom,
-        roomNumber: newRoom.roomNumber,
-        capacity: Number(newRoom.capacity),
-        price: Number(newRoom.price),
-        description: newRoom.description,
-        type: newRoom.type,
-        gender: newRoom.gender,
-        available: true,
-        image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80'
-      });
-      setShowAddRoom(false);
-      setNewRoom({ roomNumber: '', capacity: '1', price: '', description: '', type: 'Standard', gender: 'male' });
+      const response: any = await updateRoomOccupancy(roomId, action);
+      if (response.status === 'success') {
+        const room = rooms.find(r => r.id === roomId);
+        if (room) {
+          const manualOccupancy = room.manualOccupancy || 0;
+          const newManualOccupancy = action === 'increment' ? manualOccupancy + 1 : Math.max(0, manualOccupancy - 1);
+          const currentOccupancy = room.occupancy || 0;
+          const newOccupancy = action === 'increment' ? currentOccupancy + 1 : Math.max(0, currentOccupancy - 1);
+          const newAvailable = newOccupancy < room.capacity;
+          updateRoom({ ...room, manualOccupancy: newManualOccupancy, occupancy: newOccupancy, available: newAvailable });
+        }
+        refreshData();
+      }
     } catch (error: any) {
-      alert(error.message || 'Failed to add room.');
-    } finally {
-      setIsSubmittingRoom(false);
+      alert(error.message || 'Could not update room occupancy.');
     }
   };
 
@@ -121,6 +88,7 @@ export default function ManagerDashboard() {
       const response: any = await updateRoomStatus(roomId, !currentAvailable);
       if (response.status === 'success') {
         updateRoom({ ...rooms.find(r => r.id === roomId)!, available: !currentAvailable });
+        refreshData();
       }
     } catch (error: any) {
       alert(error.message || 'Could not update room status.');
@@ -170,8 +138,8 @@ export default function ManagerDashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold">Manager Dashboard</h1>
-          <p className="text-gray-400 text-sm">Welcome back, {managerName}. Manage your assigned hostel and rooms from one place.</p>
+          <h1 className="text-2xl font-bold">Hostel Manager Dashboard</h1>
+          <p className="text-gray-400 text-sm">Welcome back, {managerName}. Manage your assigned hostel, rooms, walk-in reservations, and availability from one place.</p>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-1 overflow-x-auto pb-px">
@@ -314,11 +282,23 @@ export default function ManagerDashboard() {
               </button>
             </div>
 
-            <div className="mb-6 max-w-md">
-              <label htmlFor="roomSearch" className="sr-only">Search rooms</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input id="roomSearch" type="text" value={roomSearch} onChange={e => setRoomSearch(e.target.value)} placeholder="Search rooms by number, type, or hostel..." className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" />
+            <div className="mb-6 max-w-2xl">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="w-full md:max-w-md">
+                  <label htmlFor="roomSearch" className="sr-only">Search rooms</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input id="roomSearch" type="text" value={roomSearch} onChange={e => setRoomSearch(e.target.value)} placeholder="Search rooms by number, type, or hostel..." className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button onClick={() => setRoomViewMode('card')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${roomViewMode === 'card' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                    Box view
+                  </button>
+                  <button onClick={() => setRoomViewMode('list')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${roomViewMode === 'list' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+                    List view
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -327,103 +307,98 @@ export default function ManagerDashboard() {
                 No rooms match your search. Add a new room or change the query.
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Room</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Hostel</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Gender</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Capacity</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Price</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                        <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {filteredRooms.map(room => {
-                        const hostel = hostels.find(h => h.id === room.hostelId);
-                        const occupancy = visibleBookings.filter(b => b.roomId === room.id && b.status === 'approved').length;
-                        return (
-                          <tr key={room.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm font-medium text-gray-800">Room {room.roomNumber}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{hostel?.name}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600 capitalize">{room.gender}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{room.type}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{room.capacity}</td>
-                            <td className="px-6 py-4 text-sm font-semibold text-amber-600">GH₵{room.price.toLocaleString()}</td>
-                            <td className="px-6 py-4">
-                              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${room.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                {room.available ? 'Available' : 'Occupied'}{room.capacity > 1 ? ` • ${occupancy}/${room.capacity}` : ''}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <button onClick={() => handleToggleAvailability(room.id, room.available)} className="px-3 py-2 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200">
-                                {room.available ? 'Mark occupied' : 'Mark available'}
+              <>
+                {roomViewMode === 'card' ? (
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {filteredRooms.map(room => {
+                      const hostel = hostels.find(h => h.id === room.hostelId);
+                      const occupancy = room.occupancy || 0;
+                      return (
+                        <div key={room.id} className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm hover:shadow-lg transition-all duration-200">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-2">{hostel?.name || 'Hostel'}</p>
+                              <h3 className="text-xl font-semibold text-gray-900 mb-2">Room {room.roomNumber}</h3>
+                              <p className="text-sm text-gray-600">{room.type || 'Standard'} • {room.gender}</p>
+                            </div>
+                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${room.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {room.available ? 'Available' : 'Occupied'}
+                            </span>
+                          </div>
+                          <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-gray-600">
+                            <div>Capacity: {room.capacity}</div>
+                            <div>Price: GH₵{room.price.toLocaleString()}</div>
+                            <div className="col-span-2 text-gray-500">{room.capacity > 1 ? `${occupancy} boarded / ${room.capacity} capacity` : 'Single occupancy room'}</div>
+                          </div>
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            <button onClick={() => handleUpdateOccupancy(room.id, 'increment')} disabled={occupancy >= room.capacity} className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${occupancy < room.capacity ? 'bg-amber-500 text-white hover:bg-amber-600' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}>
+                              Reserve bed
+                            </button>
+                            {(room.manualOccupancy || 0) > 0 && (
+                              <button onClick={() => handleUpdateOccupancy(room.id, 'decrement')} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition">
+                                Free manual bed
                               </button>
-                            </td>
+                            )}
+                            <button onClick={() => navigate(`/hostels/${room.hostelId}`)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+                              View hostel
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Room</th>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Hostel</th>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Gender</th>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Capacity</th>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Price</th>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                            <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {showAddRoom && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-5">Add New Room</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="managerHostelSelect" className="text-sm font-medium text-gray-700 mb-1 block">Hostel *</label>
-                      <select id="managerHostelSelect" value={selectedHostelForRoom} onChange={e => setSelectedHostelForRoom(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                        {managerHostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="managerRoomNumber" className="text-sm font-medium text-gray-700 mb-1 block">Room Number *</label>
-                        <input id="managerRoomNumber" value={newRoom.roomNumber} onChange={e => setNewRoom({ ...newRoom, roomNumber: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="101" />
-                      </div>
-                      <div>
-                        <label htmlFor="managerRoomPrice" className="text-sm font-medium text-gray-700 mb-1 block">Price *</label>
-                        <input id="managerRoomPrice" type="number" value={newRoom.price} onChange={e => setNewRoom({ ...newRoom, price: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="1500" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="managerRoomCapacity" className="text-sm font-medium text-gray-700 mb-1 block">Capacity</label>
-                        <input id="managerRoomCapacity" type="number" value={newRoom.capacity} onChange={e => setNewRoom({ ...newRoom, capacity: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="1" />
-                      </div>
-                      <div>
-                        <label htmlFor="managerRoomGender" className="text-sm font-medium text-gray-700 mb-1 block">Gender</label>
-                        <select id="managerRoomGender" value={newRoom.gender} onChange={e => setNewRoom({ ...newRoom, gender: e.target.value as 'male' | 'female' })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="managerRoomType" className="text-sm font-medium text-gray-700 mb-1 block">Room Type</label>
-                      <input id="managerRoomType" value={newRoom.type} onChange={e => setNewRoom({ ...newRoom, type: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="Single" />
-                    </div>
-                    <div>
-                      <label htmlFor="managerRoomDescription" className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
-                      <textarea id="managerRoomDescription" value={newRoom.description} onChange={e => setNewRoom({ ...newRoom, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none resize-none" placeholder="Describe the room..." />
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {filteredRooms.map(room => {
+                            const hostel = hostels.find(h => h.id === room.hostelId);
+                            const occupancy = room.occupancy || 0;
+                            return (
+                              <tr key={room.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-sm font-medium text-gray-800">Room {room.roomNumber}</td>
+                                <td className="px-6 py-4 text-sm text-gray-600">{hostel?.name}</td>
+                                <td className="px-6 py-4 text-sm text-gray-600 capitalize">{room.gender}</td>
+                                <td className="px-6 py-4 text-sm text-gray-600">{room.type}</td>
+                                <td className="px-6 py-4 text-sm text-gray-600">{room.capacity}</td>
+                                <td className="px-6 py-4 text-sm font-semibold text-amber-600">GH₵{room.price.toLocaleString()}</td>
+                                <td className="px-6 py-4">
+                                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${room.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    {room.available ? 'Available' : 'Occupied'}{room.capacity > 1 ? ` • ${occupancy}/${room.capacity}` : ''}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 flex flex-wrap gap-2">
+                                  <button onClick={() => handleUpdateOccupancy(room.id, 'increment')} disabled={occupancy >= room.capacity} className="px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50">
+                                    Reserve bed
+                                  </button>
+                                  {(room.manualOccupancy || 0) > 0 && (
+                                    <button onClick={() => handleUpdateOccupancy(room.id, 'decrement')} className="px-3 py-2 rounded-lg text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200">
+                                      Free bed
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                  <div className="flex gap-3 mt-6">
-                    <button onClick={() => setShowAddRoom(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button onClick={handleAddRoom} disabled={isSubmittingRoom} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-60">
-                      {isSubmittingRoom ? 'Adding...' : 'Add Room'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
           </div>
         )}

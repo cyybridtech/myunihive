@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { getUserBookings, getNotifications, getAllBookings, getUniversities, getHostels, getRooms, submitReview } from '../api/api.js';
+import { getUserBookings, getNotifications, getAllBookings, getUniversities, getHostels, getRooms, submitReview, deleteBooking as deleteBookingApi, markNotificationRead as markNotificationReadApi } from '../api/api.js';
 import {
   User, Booking, Notification, Message, Hostel, Room, Review, University,
   sampleBookings, sampleNotifications, sampleMessages, reviews as initialReviews,
@@ -28,16 +28,23 @@ interface AppState {
   addBooking: (booking: Booking) => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   updatePaymentStatus: (id: string, status: Booking['paymentStatus']) => void;
+  removeBooking: (id: string) => void;
+  cancelBooking: (bookingId: string) => Promise<void>;
   refreshBookings: () => Promise<void>;
   refreshData: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
   addReview: (review: Review) => void;
   sendMessage: (msg: Message) => void;
-  markNotificationRead: (id: string) => void;
+  markNotificationRead: (notification: Notification) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
   toggleSaveHostel: (id: string) => void;
   addHostel: (hostel: Hostel) => void;
   addRoom: (room: Room) => void;
   deleteHostel: (id: string) => void;
+  deleteRoom: (id: string) => void;
+  deleteUniversity: (id: string) => void;
   updateRoom: (room: Room) => void;
+  updateHostel: (hostel: Hostel) => void;
 }
 
 const AppContext = createContext<AppState>({} as AppState);
@@ -67,16 +74,16 @@ function mapBooking(b: any): Booking {
 
 // Helper: map raw Auth user → typed mockData User
 function mapAuthUser(authUser: any): User {
+  const isManagerRole = authUser.role === 'manager' || authUser.role === 'hostel_manager';
   return {
     id: String(authUser.id),
     name: authUser.full_name || authUser.name || '',
     email: authUser.email || '',
     phone: authUser.phone || '',
     universityId: authUser.university_id || authUser.universityId || 'u1',
-    role: authUser.role === 'admin' ? 'admin' : authUser.role === 'manager' ? 'manager' : 'student',
+    role: authUser.role === 'admin' ? 'admin' : isManagerRole ? 'manager' : 'student',
     gender: authUser.gender || authUser.user_gender || undefined,
     avatar: authUser.avatar || (authUser.email?.[0]?.toUpperCase() ?? '?'),
-    referralCode: authUser.referral_code || authUser.referralCode || '',
     credits: Number(authUser.credits) || 0,
     joinDate: (authUser.created_at ?? authUser.joinDate ?? new Date().toISOString()).split('T')[0],
   };
@@ -125,8 +132,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loadNotifications = async () => {
+    try {
+      const res: any = await getNotifications();
+      if (res.status === 'success' && res.notifications) setNotifications(res.notifications);
+    } catch (e: any) {
+      console.error('Failed to load notifications', e);
+      setNotifications(sampleNotifications);
+    }
+  };
+
   const refreshData = async (): Promise<void> => {
     await Promise.all([loadHostels(), loadRooms()]);
+  };
+
+  const refreshNotifications = async (): Promise<void> => {
+    await loadNotifications();
   };
 
   // Load static data (universities, hostels, rooms)
@@ -137,7 +158,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (auth.user?.role === 'manager') {
+    const isManagerRole = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
+    if (isManagerRole) {
       const interval = window.setInterval(() => {
         loadHostels();
         loadRooms();
@@ -149,6 +171,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Sync user + bookings + notifications whenever auth.user changes
   useEffect(() => {
+    if (auth.user && !auth.user.token) {
+      console.warn('Auth user exists without token; clearing login state');
+      auth.logout();
+      return;
+    }
+
     if (auth.user) {
       setUser(mapAuthUser(auth.user));
 
@@ -167,7 +195,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setBookings(sampleBookings);
         });
 
-      if (auth.user && (auth.user.role === 'admin' || auth.user.role === 'manager')) {
+      const isManagerRole = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
+      if (auth.user && (auth.user.role === 'admin' || isManagerRole)) {
         getAllBookings()
           .then((response: any) => {
             if (response.status === 'success' && response.bookings) {
@@ -199,6 +228,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setNotifications([]);
     }
   }, [auth.user]);
+
 
   const logout = () => {
     auth.logout();
@@ -235,6 +265,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: status } : b));
   };
 
+  const removeBooking = (id: string) => {
+    setBookings(prev => prev.filter(b => b.id !== id));
+  };
+
+  const cancelBooking = async (bookingId: string) => {
+    try {
+      const response: any = await deleteBookingApi(bookingId);
+      if (response.status === 'success') {
+        removeBooking(bookingId);
+        return;
+      }
+      throw new Error(response.message || 'Cancel booking failed');
+    } catch (error: any) {
+      console.error('Cancel booking failed:', error);
+      throw error;
+    }
+  };
+
   const refreshBookings = async (): Promise<void> => {
     try {
       const response: any = (user && (user.role === 'admin' || user.role === 'manager')) ? await getAllBookings() : await getUserBookings();
@@ -247,14 +295,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const filteredHostels = useMemo(() => {
-    if (!user || user.role !== 'manager') {
+    if (!user) {
+      return hostels;
+    }
+    const isManagerRole = user.role === 'manager';
+    if (!isManagerRole) {
       return hostels;
     }
     return hostels.filter(h => String(h.managerId) === String(user.id));
   }, [hostels, user]);
 
   const filteredRooms = useMemo(() => {
-    if (!user || user.role !== 'manager') {
+    if (!user) {
+      return rooms;
+    }
+    const isManagerRole = user.role === 'manager';
+    if (!isManagerRole) {
       return rooms;
     }
     const managerHostelIds = new Set(filteredHostels.map(h => h.id));
@@ -286,8 +342,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMessages(prev => [...prev, msg]);
   };
 
-  const markNotificationRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const markNotificationRead = async (notification: Notification) => {
+    const previousNotifications = notifications;
+    setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+
+    const dbId = notification.dbId ?? (typeof notification.id === 'string' && notification.id.startsWith('db_')
+      ? Number(notification.id.slice(3))
+      : undefined);
+
+    if (dbId) {
+      try {
+        await markNotificationReadApi(dbId);
+      } catch (error: any) {
+        console.error('Failed to persist notification read status:', error);
+        setNotifications(previousNotifications);
+      }
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    const unreadNotifications = notifications.filter(n => !n.read);
+    if (unreadNotifications.length === 0) return;
+
+    const previousNotifications = notifications;
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+    try {
+      await Promise.all(unreadNotifications.map(async notification => {
+        const dbId = notification.dbId ?? (typeof notification.id === 'string' && notification.id.startsWith('db_')
+          ? Number(notification.id.slice(3))
+          : undefined);
+
+        if (dbId) {
+          await markNotificationReadApi(dbId);
+        }
+      }));
+    } catch (error: any) {
+      console.error('Failed to persist all notification read states:', error);
+      setNotifications(previousNotifications);
+    }
   };
 
   const toggleSaveHostel = (id: string) => {
@@ -311,8 +404,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRooms(prev => prev.filter(r => r.hostelId !== id));
   };
 
+  const deleteRoom = (id: string) => {
+    setRooms(prev => prev.filter(r => r.id !== id));
+  };
+
+  const deleteUniversity = (id: string) => {
+    setUniversities(prev => prev.filter(u => u.id !== id));
+    setHostels(prev => {
+      const deletedHostelIds = new Set(prev.filter(h => h.universityId === id).map(h => h.id));
+      setRooms(currentRooms => currentRooms.filter(r => !deletedHostelIds.has(r.hostelId)));
+      return prev.filter(h => h.universityId !== id);
+    });
+  };
+
   const updateRoom = (room: Room) => {
     setRooms(prev => prev.map(r => r.id === room.id ? room : r));
+  };
+
+  const updateHostel = (hostel: Hostel) => {
+    setHostels(prev => prev.map(h => h.id === hostel.id ? hostel : h));
   };
 
   useEffect(() => {
@@ -346,14 +456,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updatePaymentStatus,
       refreshBookings,
       refreshData,
+      refreshNotifications,
       addReview,
       sendMessage,
+      removeBooking,
+      cancelBooking,
       markNotificationRead,
+      markAllNotificationsRead,
       toggleSaveHostel,
       addHostel,
       addRoom,
       deleteHostel,
+      deleteRoom,
+      deleteUniversity,
       updateRoom,
+      updateHostel,
     }}>
       {children}
     </AppContext.Provider>

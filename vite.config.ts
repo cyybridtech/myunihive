@@ -17,6 +17,9 @@ export default defineConfig({
     viteSingleFile(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: false,
+      },
       manifestFilename: 'manifest.webmanifest',
       manifest: {
         name: 'UniHive',
@@ -54,9 +57,15 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173,
     proxy: {
-      "/backend": {
-        target: "http://localhost/unihive",
+      // Forward /api requests to Express server on port 3001
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+      "/uploads": {
+        target: "http://localhost:3001",
         changeOrigin: true,
       },
     },

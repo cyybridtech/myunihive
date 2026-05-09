@@ -1,31 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building2, Calendar, CreditCard, Star, BarChart3, Plus, Trash2, CheckCircle, XCircle, Eye, GraduationCap, DoorOpen, TrendingUp, AlertCircle, Search } from 'lucide-react';
+import { Users, Building2, Calendar, CreditCard, Star, BarChart3, Plus, Trash2, CheckCircle, XCircle, Eye, Pencil, GraduationCap, DoorOpen, TrendingUp, AlertCircle, Search, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { approveBooking, createHostel, createRoom, createUniversity, deleteHostel as deleteHostelApi, uploadImage, updateRoomStatus } from '../api/api.js';
+import { approveBooking, createHostel, createRoom, createUniversity, deleteHostel as deleteHostelApi, deleteRoom as deleteRoomApi, deleteUniversity as deleteUniversityApi, updateRoom as updateRoomApi, updateHostel as updateHostelApi, updateRoomOccupancy, uploadImage } from '../api/api.js';
+import type { Hostel, Room } from '../data/mockData';
 
-type AdminTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'users' | 'reviews' | 'universities';
+type AdminTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'users' | 'reviews' | 'universities' | 'notifications';
 
 export default function AdminDashboard() {
   const auth = useAuth();
-  const { hostels, rooms, bookings, reviews, universities, refreshBookings, deleteHostel, addHostel, addRoom, addUniversity, updateRoom, updateBookingStatus } = useApp();
+  const { hostels, rooms, bookings, reviews, universities, notifications, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshData, deleteHostel, deleteRoom, deleteUniversity, addHostel, addRoom, addUniversity, updateRoom, updateHostel, updateBookingStatus } = useApp();
   const navigate = useNavigate();
-  const isManager = auth.user?.role === 'manager';
+  const isManager = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
   const managerHostels = isManager ? hostels.filter(h => String(h.managerId) === String(auth.user?.id)) : hostels;
   const managerHostelIds = managerHostels.map(h => String(h.id));
   const visibleHostels = isManager ? managerHostels : hostels;
   const visibleRooms = isManager ? rooms.filter(r => managerHostelIds.includes(String(r.hostelId))) : rooms;
   const visibleBookings = isManager ? bookings.filter(b => managerHostelIds.includes(String(b.hostelId))) : bookings;
   const visibleReviews = isManager ? reviews.filter(r => managerHostelIds.includes(String(r.hostelId))) : reviews;
+  const unreadNotifications = notifications.filter(n => !n.read && String(n.userId) === String(auth.user?.id));
+  const unreadCount = unreadNotifications.length;
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [showAddHostel, setShowAddHostel] = useState(false);
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [showAddUniversity, setShowAddUniversity] = useState(false);
   const [selectedHostelForRoom, setSelectedHostelForRoom] = useState('');
   const [newUniversity, setNewUniversity] = useState({ name: '', city: '', country: 'Ghana' });
-  const [hostelImageFile, setHostelImageFile] = useState<File | null>(null);
-  const [roomImageFile, setRoomImageFile] = useState<File | null>(null);
   const [hostelSearch, setHostelSearch] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
   const filteredHostels = visibleHostels.filter(h => {
@@ -41,13 +42,15 @@ export default function AdminDashboard() {
     return r.roomNumber.toLowerCase().includes(query) || r.type.toLowerCase().includes(query) || hostel?.name.toLowerCase().includes(query);
   });
 
-  if (!auth.user || (auth.user.role !== 'admin' && auth.user.role !== 'manager')) {
+  if (!auth.user || (auth.user.role !== 'admin' && auth.user.role !== 'manager' && auth.user.role !== 'hostel_manager')) {
     navigate('/login');
     return null;
   }
 
   const [newHostel, setNewHostel] = useState({ name: '', universityId: 'u1', address: '', description: '', facilities: '' as string, distanceFromCampus: '', priceRange: '', bankCode: '', accountNumber: '', managerFullName: '', managerEmail: '', managerPhone: '', managerPassword: '', managerGender: 'male' });
+  const [hostelImageFile, setHostelImageFile] = useState<File | null>(null);
   const [newRoom, setNewRoom] = useState<{ roomNumber: string; capacity: string; price: string; description: string; type: string; gender: 'male' | 'female' }>({ roomNumber: '', capacity: '1', price: '', description: '', type: '', gender: 'male' });
+  const [roomImageFile, setRoomImageFile] = useState<File | null>(null);
 
   const totalRevenue = visibleBookings.filter(b => b.paymentStatus === 'paid').reduce((sum, b) => sum + b.reservationFee, 0);
   const pendingBookings = visibleBookings.filter(b => b.status === 'pending').length;
@@ -67,7 +70,7 @@ export default function AdminDashboard() {
       let imageUrl = 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80';
       if (hostelImageFile) {
         const uploadRes = await uploadImage(hostelImageFile);
-        if (uploadRes.status === 'success') {
+        if (uploadRes.status === 'success' && uploadRes.url) {
           imageUrl = uploadRes.url;
         }
       }
@@ -124,7 +127,7 @@ export default function AdminDashboard() {
       let imageUrl = 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80';
       if (roomImageFile) {
         const uploadRes = await uploadImage(roomImageFile);
-        if (uploadRes.status === 'success') {
+        if (uploadRes.status === 'success' && uploadRes.url) {
           imageUrl = uploadRes.url;
         }
       }
@@ -163,16 +166,106 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRoomAvailabilityToggle = async (roomId: string, available: boolean) => {
+  const handleUpdateHostel = async (hostel: Hostel) => {
+    const name = window.prompt('Enter hostel name', hostel.name) ?? hostel.name;
+    const address = window.prompt('Enter address', hostel.address) ?? hostel.address;
+    const description = window.prompt('Enter description', hostel.description) ?? hostel.description;
+    const distanceFromCampus = window.prompt('Enter distance from campus', hostel.distanceFromCampus) ?? hostel.distanceFromCampus;
+    const priceRange = window.prompt('Enter price range', hostel.priceRange) ?? hostel.priceRange;
+
     try {
-      const response = await updateRoomStatus(roomId, available);
+      const response = await updateHostelApi(hostel.id, {
+        name,
+        address,
+        description,
+        distance_from_campus: distanceFromCampus,
+        price_range: priceRange,
+      });
+
+      if (response.status === 'success') {
+        updateHostel({ ...hostel, name, address, description, distanceFromCampus, priceRange });
+      } else {
+        alert(response.message || 'Failed to update hostel');
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+    }
+  };
+
+  const handleUpdateRoom = async (room: Room) => {
+    const roomNumber = window.prompt('Room number', room.roomNumber) ?? room.roomNumber;
+    const type = window.prompt('Room type', room.type) ?? room.type;
+    const price = Number(window.prompt('Room price', String(room.price)) ?? room.price);
+    const capacity = Number(window.prompt('Room capacity', String(room.capacity)) ?? room.capacity);
+    const gender = window.prompt('Room gender (male/female)', room.gender) as 'male' | 'female' || room.gender;
+    const description = window.prompt('Room description', room.description) ?? room.description;
+
+    try {
+      const response = await updateRoomApi(room.id, {
+        room_number: roomNumber,
+        type,
+        price,
+        capacity,
+        gender,
+        description,
+      });
+
+      if (response.status === 'success') {
+        updateRoom({ ...room, roomNumber, type, price, capacity, gender, description });
+      } else {
+        alert(response.message || 'Failed to update room');
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!window.confirm('Delete this room permanently?')) return;
+
+    try {
+      const response = await deleteRoomApi(roomId);
+      if (response.status === 'success') {
+        deleteRoom(roomId);
+      } else {
+        alert(response.message || 'Failed to delete room');
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+    }
+  };
+
+  const handleDeleteUniversity = async (universityId: string) => {
+    if (!window.confirm('Delete this university and all associated hostels, rooms, and bookings?')) return;
+
+    try {
+      const response = await deleteUniversityApi(universityId);
+      if (response.status === 'success') {
+        deleteUniversity(universityId);
+      } else {
+        alert(response.message || 'Failed to delete university');
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+    }
+  };
+
+  const handleUpdateOccupancy = async (roomId: string, action: 'increment' | 'decrement') => {
+    try {
+      const response = await updateRoomOccupancy(roomId, action);
       if (response.status === 'success') {
         const room = rooms.find(r => r.id === roomId);
         if (room) {
-          updateRoom({ ...room, available });
+          const manualOccupancy = room.manualOccupancy || 0;
+          const newManualOccupancy = action === 'increment' ? manualOccupancy + 1 : Math.max(0, manualOccupancy - 1);
+          const currentOccupancy = room.occupancy || 0;
+          const newOccupancy = action === 'increment' ? currentOccupancy + 1 : Math.max(0, currentOccupancy - 1);
+          const newAvailable = newOccupancy < room.capacity;
+          updateRoom({ ...room, manualOccupancy: newManualOccupancy, occupancy: newOccupancy, available: newAvailable });
         }
+        refreshData();
       } else {
-        alert(response.message || 'Could not update room status');
+        alert(response.message || 'Could not update room occupancy');
       }
     } catch (error: any) {
       alert('Network error: ' + error.message);
@@ -222,6 +315,7 @@ export default function AdminDashboard() {
     { id: 'bookings', label: 'Bookings', icon: Calendar },
     { id: 'reviews', label: 'Reviews', icon: Star },
     { id: 'universities', label: 'Universities', icon: GraduationCap },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
 
   return (
@@ -240,6 +334,9 @@ export default function AdminDashboard() {
                 <tab.icon className="w-4 h-4" /> {tab.label}
                 {tab.id === 'bookings' && pendingBookings > 0 && (
                   <span className="bg-red-500 text-white text-xs rounded-full px-1.5 min-w-[18px] text-center">{pendingBookings}</span>
+                )}
+                {tab.id === 'notifications' && unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full px-1.5 min-w-[18px] text-center">{unreadCount}</span>
                 )}
               </button>
             ))}
@@ -344,7 +441,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-gray-500">Search, review and manage your property listings with confidence.</p>
               </div>
               {!isManager && (
-                <button onClick={() => setShowAddHostel(true)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors">
+                <button onClick={() => navigate('/admin/add-hostel')} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors">
                   <Plus className="w-4 h-4" /> Add Hostel
                 </button>
               )}
@@ -402,7 +499,10 @@ export default function AdminDashboard() {
                               <div className="flex items-center gap-2">
                                 <button aria-label="View hostel" onClick={() => navigate(`/hostels/${hostel.id}`)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Eye className="w-4 h-4" /></button>
                                 {!isManager && (
-                                  <button aria-label="Delete hostel" onClick={() => handleDeleteHostel(hostel.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                  <>
+                                    <button aria-label="Edit hostel" onClick={() => handleUpdateHostel(hostel)} className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"><Pencil className="w-4 h-4" /></button>
+                                    <button aria-label="Delete hostel" onClick={() => handleDeleteHostel(hostel.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                  </>
                                 )}
                               </div>
                             </td>
@@ -415,111 +515,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Add Hostel Modal */}
-            {showAddHostel && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-                  <h3 className="text-xl font-bold text-gray-900 mb-5">Add New Hostel</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Hostel Name *</label>
-                      <input value={newHostel.name} onChange={e => setNewHostel({ ...newHostel, name: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g., Sunrise Hall" />
-                    </div>
-                    <div>
-                      <label htmlFor="newHostelUniversity" className="text-sm font-medium text-gray-700 mb-1 block">University *</label>
-                      <select id="newHostelUniversity" aria-label="Select university" value={newHostel.universityId} onChange={e => setNewHostel({ ...newHostel, universityId: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                        {universities.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Address *</label>
-                      <input value={newHostel.address} onChange={e => setNewHostel({ ...newHostel, address: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g., 25 Main Road, Accra" />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
-                      <textarea value={newHostel.description} onChange={e => setNewHostel({ ...newHostel, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none resize-none" placeholder="Describe the hostel..." />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Facilities (comma-separated)</label>
-                      <input value={newHostel.facilities} onChange={e => setNewHostel({ ...newHostel, facilities: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="WiFi, Security, Generator" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Distance</label>
-                        <input value={newHostel.distanceFromCampus} onChange={e => setNewHostel({ ...newHostel, distanceFromCampus: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="0.5 km" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Price Range</label>
-                        <input value={newHostel.priceRange} onChange={e => setNewHostel({ ...newHostel, priceRange: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="GH₵800 – GH₵1,500" />
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="hostelImageFile" className="text-sm font-medium text-gray-700 mb-1 block">Hostel Image</label>
-                      <input id="hostelImageFile" type="file" accept="image/*" aria-label="Upload hostel image" title="Upload hostel image" onChange={e => setHostelImageFile(e.target.files?.[0] || null)} className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
-                    </div>
-
-                    <div className="border-t border-gray-200 mt-4 pt-4 pb-2">
-                      <h4 className="text-sm font-bold text-gray-800 mb-3">Hostel Manager Credentials</h4>
-                      <div className="grid grid-cols-1 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Manager Name</label>
-                          <input type="text" value={newHostel.managerFullName} onChange={e => setNewHostel({ ...newHostel, managerFullName: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" placeholder="Hostel Manager Full Name" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Manager Email</label>
-                            <input type="email" value={newHostel.managerEmail} onChange={e => setNewHostel({ ...newHostel, managerEmail: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" placeholder="manager@example.com" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Manager Phone</label>
-                            <input type="tel" value={newHostel.managerPhone} onChange={e => setNewHostel({ ...newHostel, managerPhone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" placeholder="+233 24 123 4567" />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Manager Password</label>
-                            <input type="password" value={newHostel.managerPassword} onChange={e => setNewHostel({ ...newHostel, managerPassword: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" placeholder="Create a password" />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Manager Gender</label>
-                          <select id="managerGender" aria-label="Select manager gender" value={newHostel.managerGender} onChange={e => setNewHostel({ ...newHostel, managerGender: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500">
-                              <option value="male">Male</option>
-                              <option value="female">Female</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-200 mt-4 pt-4 pb-2">
-                      <h4 className="text-sm font-bold text-gray-800 mb-3">Hostel Payout Details & Paystack Subaccount</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name / MoMo</label>
-                          <select id="bankCode" aria-label="Select bank or mobile money" value={newHostel.bankCode} onChange={e => setNewHostel({ ...newHostel, bankCode: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500">
-                            <option value="">Select Option</option>
-                            <option value="MTN">MTN Mobile Money</option>
-                            <option value="VOD">Vodafone Cash</option>
-                            <option value="TGO">AirtelTigo</option>
-                            <option value="044">Access Bank</option>
-                            <option value="014">Ecobank Ghana</option>
-                            <option value="053">Zenith Bank</option>
-                            <option value="090115">Fidelity Bank</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
-                          <input type="text" value={newHostel.accountNumber} onChange={e => setNewHostel({ ...newHostel, accountNumber: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500" placeholder="0540000000" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 mt-6">
-                    <button onClick={() => setShowAddHostel(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button onClick={handleAddHostel} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600">Add Hostel</button>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Add Hostel Modal Removed */}
           </div>
         )}
 
@@ -531,7 +527,7 @@ export default function AdminDashboard() {
                 <h2 className="text-xl font-bold text-gray-900">Manage Rooms ({filteredRooms.length})</h2>
                 <p className="text-sm text-gray-500">Quickly find rooms by number, type, or hostel name.</p>
               </div>
-              <button onClick={() => setShowAddRoom(true)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2">
+              <button onClick={() => navigate('/add-room')} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Add Room
               </button>
             </div>
@@ -578,14 +574,25 @@ export default function AdminDashboard() {
                             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${room.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                               {room.available ? 'Available' : 'Occupied'}
                               {(() => {
-                                const occupancy = visibleBookings.filter(b => b.roomId === room.id && b.status === 'approved').length;
+                                const occupancy = room.occupancy || 0;
                                 return room.capacity > 1 ? ` • ${occupancy}/${room.capacity}` : '';
                               })()}
                             </span>
                           </td>
-                          <td className="px-6 py-4 flex gap-2">
-                            <button aria-label={room.available ? 'Mark as occupied' : 'Mark as available'} onClick={() => handleRoomAvailabilityToggle(room.id, !room.available)} className={`px-3 py-2 rounded-lg text-xs font-semibold ${room.available ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
-                              {room.available ? 'Mark Occupied' : 'Make Available'}
+                          <td className="px-6 py-4 flex flex-wrap gap-2">
+                            <button aria-label="Reserve bed" onClick={() => handleUpdateOccupancy(room.id, 'increment')} disabled={room.capacity <= (room.occupancy || 0)} className="px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50">
+                              Reserve bed
+                            </button>
+                            {(room.manualOccupancy || 0) > 0 && (
+                              <button aria-label="Free bed" onClick={() => handleUpdateOccupancy(room.id, 'decrement')} className="px-3 py-2 rounded-lg text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200">
+                                Free bed
+                              </button>
+                            )}
+                            <button aria-label="Edit room" onClick={() => handleUpdateRoom(room)} className="px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200">
+                              Edit
+                            </button>
+                            <button aria-label="Delete room" onClick={() => handleDeleteRoom(room.id)} className="px-3 py-2 rounded-lg text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200">
+                              Delete
                             </button>
                           </td>
                         </tr>
@@ -597,61 +604,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-            {showAddRoom && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-5">Add New Room</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Hostel *</label>
-                        <select id="selectedHostelForRoom" aria-label="Select hostel for new room" value={selectedHostelForRoom} onChange={e => setSelectedHostelForRoom(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                        <option value="">Select hostel</option>
-                        {visibleHostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Room Number *</label>
-                        <input value={newRoom.roomNumber} onChange={e => setNewRoom({ ...newRoom, roomNumber: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="101" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Room Type</label>
-                        <input value={newRoom.type} onChange={e => setNewRoom({ ...newRoom, type: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="Single" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Capacity</label>
-                        <input id="newRoomCapacity" type="number" aria-label="Room capacity" value={newRoom.capacity} onChange={e => setNewRoom({ ...newRoom, capacity: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 block">Price (GH₵) *</label>
-                        <input id="newRoomPrice" type="number" aria-label="Room price" value={newRoom.price} onChange={e => setNewRoom({ ...newRoom, price: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="1500" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Gender *</label>
-                      <select id="newRoomGender" aria-label="Select room gender" value={newRoom.gender} onChange={e => setNewRoom({ ...newRoom, gender: e.target.value as 'male' | 'female' })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
-                      <textarea value={newRoom.description} onChange={e => setNewRoom({ ...newRoom, description: e.target.value })} rows={2} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none resize-none" placeholder="Describe the room..." />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 block">Room Image</label>
-                        <input id="newRoomImageFile" type="file" accept="image/*" aria-label="Upload room image" title="Upload room image" onChange={e => setRoomImageFile(e.target.files?.[0] || null)} className="w-full px-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
-                    </div>
-                  </div>
-                  <div className="flex gap-3 mt-6">
-                    <button onClick={() => setShowAddRoom(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button onClick={handleAddRoom} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600">Add Room</button>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Add Room Modal Removed */}
           </div>
         )}
 
@@ -776,9 +729,16 @@ export default function AdminDashboard() {
                     </div>
                     <h3 className="font-bold text-gray-900 mb-1">{uni.name}</h3>
                     <p className="text-sm text-gray-500 mb-3">{uni.city || 'No City'}, {uni.country || 'No Country'}</p>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-amber-600 font-semibold">{uniHostels.length} hostels</span>
-                      <span className="text-gray-400">{rooms.filter(r => uniHostels.some(h => h.id === r.hostelId)).length} rooms</span>
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <div className="flex items-center gap-4">
+                        <span className="text-amber-600 font-semibold">{uniHostels.length} hostels</span>
+                        <span className="text-gray-400">{rooms.filter(r => uniHostels.some(h => h.id === r.hostelId)).length} rooms</span>
+                      </div>
+                      {!isManager && (
+                        <button aria-label="Delete university" onClick={() => handleDeleteUniversity(uni.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -813,6 +773,49 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Notifications */}
+        {activeTab === 'notifications' && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
+              {unreadCount > 0 && (
+                <button onClick={markAllNotificationsRead} className="text-sm text-amber-600 hover:text-amber-700 font-medium">Mark all as read</button>
+              )}
+            </div>
+            
+            <div className="space-y-4">
+              {notifications.filter(n => String(n.userId) === String(auth.user?.id)).length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-sm text-gray-500">
+                  No notifications to display.
+                </div>
+              ) : (
+                notifications
+                  .filter(n => String(n.userId) === String(auth.user?.id))
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map(notification => (
+                    <div key={notification.id} className={`bg-white rounded-xl border ${notification.read ? 'border-gray-100' : 'border-amber-200 bg-amber-50/30'} p-5 flex items-start gap-4 transition-colors`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notification.read ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-600'}`}>
+                        <Bell className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className={`font-semibold text-sm ${notification.read ? 'text-gray-800' : 'text-gray-900'}`}>{notification.title}</h3>
+                          <span className="text-xs text-gray-400">{notification.date}</span>
+                        </div>
+                        <p className={`text-sm ${notification.read ? 'text-gray-600' : 'text-gray-800'}`}>{notification.message}</p>
+                        {!notification.read && (
+                          <button onClick={() => markNotificationRead(notification)} className="mt-3 text-xs font-semibold text-amber-600 hover:text-amber-700">
+                            Mark as read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
           </div>
         )}
       </div>

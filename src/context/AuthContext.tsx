@@ -1,6 +1,5 @@
 import { createContext, useState, useEffect, ReactNode, useContext } from "react";
-import { registerUser } from "../api/registerUser";
-import { loginUser } from "../api/api";
+import { registerUser, loginUser } from "../api/api.js";
 
 interface User {
   id: number;
@@ -10,6 +9,7 @@ interface User {
   gender?: 'male' | 'female';
   avatar?: string;
   credits?: number;
+  token?: string;
 }
 
 interface AuthContextType {
@@ -17,9 +17,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isManager: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
 
-  register: (firstName: string, lastName: string, fullName: string, email: string, phone: string, universityId: string, password: string, gender: string) => Promise<void>;
+  register: (firstName: string, lastName: string, fullName: string, email: string, phone: string, universityId: string, password: string, gender: string, otp: string) => Promise<void>;
 
   logout: () => void;
   loading: boolean;
@@ -37,9 +37,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
-      } catch {
+        const parsedUser = JSON.parse(storedUser);
+
+        if (!parsedUser || !parsedUser.token || !parsedUser.id) {
+          throw new Error('Invalid stored auth state');
+        }
+
+        setUser(parsedUser);
+      } catch (error) {
+        console.warn('Clearing invalid stored auth state', error);
         localStorage.removeItem("user");
+        setUser(null);
       }
     }
 
@@ -50,14 +58,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const data = await loginUser(email, password);
+      console.log('AuthContext login response', data);
 
-      if (data.status === "success") {
-        const userData = data.user;
+      if (data.status === "success" && data.token) {
+        const userData = { ...data.user, token: data.token };
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
-      } else {
-        throw new Error(data.message || "Login failed");
+        return userData;
       }
+
+      throw new Error(data.message || "Login failed: missing auth token");
     } finally {
       setLoading(false);
     }
@@ -72,12 +82,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     phone: string,
     universityId: string,
     password: string,
-    gender: string
+    gender: string,
+    otp: string
   ) => {
     setLoading(true);
     try {
-      const data = await registerUser(firstName, lastName, fullName, email, phone, universityId, password, gender);
-
+      const data = await registerUser({
+        first_name: firstName,
+        last_name: lastName,
+        full_name: fullName,
+        email,
+        phone,
+        university_id: universityId,
+        password,
+        gender,
+        otp,
+      });
 
       if (data.status === "success") {
         await login(email, password);
@@ -100,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated: !!user,
         isAdmin: user?.role === "admin",
-        isManager: user?.role === "manager",
+        isManager: user?.role === "manager" || user?.role === "hostel_manager",
         login,
         register,
         logout,

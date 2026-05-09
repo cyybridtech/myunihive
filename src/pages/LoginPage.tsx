@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Hexagon } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
@@ -13,7 +13,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
+  useEffect(() => {
+    console.log('LoginPage auth.user update', auth.user);
+    if (auth.user) {
+      const targetRoute = auth.user.role === 'admin'
+        ? '/admin'
+        : auth.user.role === 'manager' || auth.user.role === 'hostel_manager'
+          ? '/manager'
+          : '/dashboard';
+      navigate(targetRoute, { replace: true });
+    }
+  }, [auth.user, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('LoginPage submit', { email });
     e.preventDefault();
 
     if (!email || !password) {
@@ -25,22 +38,18 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await auth.login(email, password);
-      
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        if (user.role === 'admin') {
-          navigate('/admin');
-        } else if (user.role === 'manager') {
-          navigate('/manager');
-        } else {
-          navigate('/dashboard');
-        }
+      const user = await auth.login(email, password);
+      console.log('Login response user', user);
+
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else if (user.role === 'manager' || user.role === 'hostel_manager') {
+        navigate('/manager');
       } else {
         navigate('/dashboard');
       }
     } catch (err: any) {
+      console.error('Login error caught', err);
       setError(err.message || 'Server error. Try again.');
     }
 
@@ -122,9 +131,9 @@ export default function LoginPage() {
                 />
                 <span className="text-gray-600">Remember me</span>
               </label>
-              <span className="text-amber-600 hover:text-amber-700 cursor-pointer font-medium">
+              <Link to="/forgot-password" className="text-amber-600 hover:text-amber-700 font-medium">
                 Forgot password?
-              </span>
+              </Link>
             </div>
 
             <button

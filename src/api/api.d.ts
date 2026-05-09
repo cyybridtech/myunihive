@@ -12,19 +12,25 @@ export interface IdVerificationResponse {
 }
 export declare const loginUser: (email: string, password: string) => Promise<any>;
 export declare const registerUser: (userData: any) => Promise<any>;
-export declare const createBooking: (userId: string, roomId: string, hostelId: string, bookingDate: string) => Promise<any>;
+export declare const createBooking: (roomId: string, hostelId: string, bookingDate: string) => Promise<any>;
 export declare const getUserBookings: () => Promise<any>;
 export declare const getNotifications: () => Promise<any>;
+export declare const markNotificationRead: (notificationId: string | number) => Promise<any>;
 export declare const getAllBookings: () => Promise<any>;
 export declare const createHostel: (hostelData: any) => Promise<any>;
 export declare const deleteHostel: (hostelId: string) => Promise<any>;
 export declare const createRoom: (roomData: any) => Promise<any>;
 export declare const updateRoomStatus: (roomId: string, available: boolean) => Promise<any>;
+export declare const deleteRoom: (roomId: string) => Promise<any>;
+export declare const updateRoom: (roomId: string, roomData: any) => Promise<any>;
+export declare const updateHostel: (hostelId: string, hostelData: any) => Promise<any>;
+export declare const deleteUniversity: (universityId: string) => Promise<any>;
 export declare const getUniversities: () => Promise<any>;
 export declare const createUniversity: (uniData: any) => Promise<any>;
 export declare const getHostels: () => Promise<any>;
 export declare const getRooms: () => Promise<any>;
 export declare const verifyPayment: (reference: string, bookingId: string | number) => Promise<any>;
+export declare const deleteBooking: (bookingId: string | number) => Promise<any>;
 export declare const approveBooking: (bookingId: string | number, status: string) => Promise<any>;
 export declare const getReviewsForHostel: (hostelId: string) => Promise<any>;
 export declare const submitReview: (reviewData: any) => Promise<any>;
