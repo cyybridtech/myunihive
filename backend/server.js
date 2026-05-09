@@ -45,6 +45,7 @@ const getNotificationsHandler = require('./api/getNotifications');
 const markNotificationReadHandler = require('./api/markNotificationRead');
 const uploadImageHandler = require('./api/uploadImage');
 const auth = require('./api/auth');
+const { getPool } = require('./api/config');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -53,6 +54,38 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Debug route for OTP checking, enabled only when DEBUG_EMAIL=true
+if (process.env.DEBUG_EMAIL === 'true') {
+    app.get('/api/debug-otp/:email', async (req, res) => {
+        const { email } = req.params;
+        if (!email) {
+            return res.status(400).json({ error: 'Email required' });
+        }
+
+        try {
+            const pool = getPool();
+            const [rows] = await pool.execute(
+                'SELECT otp_code, expires_at FROM otps WHERE email = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+                [email]
+            );
+
+            if (rows.length === 0) {
+                return res.json({ found: false, message: 'No active OTP found for this email' });
+            }
+
+            return res.json({
+                found: true,
+                email,
+                otp_code: rows[0].otp_code,
+                expires_at: rows[0].expires_at
+            });
+        } catch (error) {
+            console.error('Debug OTP error:', error);
+            res.status(500).json({ error: 'Database error' });
+        }
+    });
+}
 
 // Request logging
 app.use((req, res, next) => {

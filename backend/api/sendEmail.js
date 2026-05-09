@@ -6,17 +6,24 @@ require('./loadEnv');
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    // Add these settings to improve deliverability
-    secure: true,
+    logger: true,
+    debug: process.env.NODE_ENV !== 'production',
     tls: {
         rejectUnauthorized: false
     }
 });
+
+const fromAddress = process.env.EMAIL_USER || process.env.EMAIL_FROM || 'noreply@unihive.com';
+if (process.env.EMAIL_FROM && process.env.EMAIL_FROM !== process.env.EMAIL_USER) {
+    console.warn(`[EMAIL] WARNING: EMAIL_FROM (${process.env.EMAIL_FROM}) differs from EMAIL_USER (${process.env.EMAIL_USER}). Gmail may reject or rewrite this sender.`);
+}
 
 // Test email connection on startup
 transporter.verify((error, success) => {
@@ -50,7 +57,7 @@ async function sendWelcomeEmail(email, full_name, user_id) {
 
     try {
         const info = await transporter.sendMail({
-            from: `"UniHive" <${process.env.EMAIL_USER}>`,
+            from: `"UniHive" <${fromAddress}>`,
             to: email,
             subject,
             text,
@@ -99,7 +106,7 @@ async function sendBookingEmail(email, full_name, booking_id, room_number, hoste
 
     try {
         const info = await transporter.sendMail({
-            from: `"UniHive" <${process.env.EMAIL_USER}>`,
+            from: `"UniHive" <${fromAddress}>`,
             to: email,
             subject,
             text,
@@ -147,9 +154,9 @@ async function sendOtpEmail(email, full_name, otp_code) {
     `;
 
     try {
-        console.log(`[EMAIL] Attempting to send OTP email to ${email} from ${process.env.EMAIL_USER}`);
+        console.log(`[EMAIL] Attempting to send OTP email to ${email} from ${fromAddress}`);
         const info = await transporter.sendMail({
-            from: `"UniHive" <${process.env.EMAIL_USER}>`,
+            from: `"UniHive" <${fromAddress}>`,
             to: email,
             subject,
             text,
@@ -199,7 +206,7 @@ async function sendPasswordResetEmail(email, full_name, reset_code) {
 
     try {
         const info = await transporter.sendMail({
-            from: `"UniHive" <${process.env.EMAIL_USER}>`,
+            from: `"UniHive" <${fromAddress}>`,
             to: email,
             subject,
             text,
