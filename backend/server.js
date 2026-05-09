@@ -46,10 +46,6 @@ const markNotificationReadHandler = require('./api/markNotificationRead');
 const uploadImageHandler = require('./api/uploadImage');
 const auth = require('./api/auth');
 
-// Debug route for OTP checking (remove in production)
-const requestOtpHandler = require('./api/requestOtp');
-app.get('/api/debug-otp/:email', requestOtpHandler);
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
