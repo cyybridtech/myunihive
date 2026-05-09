@@ -21,6 +21,8 @@ export interface Hostel {
   verified: boolean;
   subaccountCode?: string;
   managerId?: string;
+  commissionType?: 'split' | 'flat';
+  platformFee?: number;
   rating: number;
   reviewCount: number;
   lat?: number;

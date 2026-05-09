@@ -84,12 +84,15 @@ export default function RoomDetailsPage() {
         throw new Error('Payment system not available. Refresh the page and try again.');
       }
 
+      const totalAmount = hostel.commissionType === 'flat' ? room.price + (hostel.platformFee || 0) : room.price;
+
       const handler = (window as any).PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: user?.email,
-        amount: room.price * 100,
+        amount: totalAmount * 100,
         currency: 'GHS',
         ...(hostel.subaccountCode ? { subaccount: hostel.subaccountCode } : {}),
+        ...(hostel.commissionType === 'flat' && hostel.platformFee ? { transaction_charge: hostel.platformFee * 100 } : {}),
         reference: 'BK_' + Math.floor((Math.random() * 1000000000) + 1).toString(),
         callback: function (paystackResponse: any) {
           verifyPayment(paystackResponse.reference, bookingId)
@@ -104,7 +107,7 @@ export default function RoomDetailsPage() {
                 status: paid ? 'approved' : 'pending',
                 paymentStatus: paid ? 'paid' : 'unpaid',
                 reservationFee: room.price,
-                totalPrice: room.price,
+                totalPrice: totalAmount,
               });
               setBookingState('success');
               refreshBookings();
@@ -130,6 +133,7 @@ export default function RoomDetailsPage() {
       setBookingError(error.message || 'Booking failed');
       setBookingState('failed');
       if (bookingId && user) {
+        const totalAmount = hostel.commissionType === 'flat' ? room.price + (hostel.platformFee || 0) : room.price;
         addBooking({
           id: bookingId,
           userId: user.id,
@@ -139,7 +143,7 @@ export default function RoomDetailsPage() {
           status: 'pending',
           paymentStatus: 'unpaid',
           reservationFee: room.price,
-          totalPrice: room.price,
+          totalPrice: totalAmount,
         });
       }
     }
@@ -271,7 +275,7 @@ export default function RoomDetailsPage() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="text-sm text-gray-500">Start your reservation</p>
-                <p className="text-3xl font-bold text-amber-600">GH₵{room.price.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-amber-600">GH₵{(hostel.commissionType === 'flat' ? room.price + (hostel.platformFee || 0) : room.price).toLocaleString()}</p>
               </div>
               <div className={`rounded-full px-3 py-1 text-xs font-semibold ${room.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                 {room.available ? 'Available' : 'Occupied'}
@@ -329,15 +333,24 @@ export default function RoomDetailsPage() {
             <div className="space-y-4 mb-6">
               <div className="rounded-3xl bg-gray-50 p-4">
                 <p className="text-sm text-gray-500">Room</p>
-                <p className="font-semibold text-gray-900">{room.type} • Room {room.roomNumber}</p>
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold text-gray-900">{room.type} • Room {room.roomNumber}</p>
+                  <p className="font-semibold text-gray-900">GH₵{room.price.toLocaleString()}</p>
+                </div>
               </div>
               <div className="rounded-3xl bg-gray-50 p-4">
                 <p className="text-sm text-gray-500">Hostel</p>
                 <p className="font-semibold text-gray-900">{hostel.name}</p>
               </div>
-              <div className="rounded-3xl bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Total</p>
-                <p className="font-semibold text-amber-600">GH₵{room.price.toLocaleString()}</p>
+              {hostel.commissionType === 'flat' && hostel.platformFee ? (
+                <div className="rounded-3xl bg-gray-50 p-4 flex justify-between items-center">
+                  <p className="text-sm text-gray-500">Platform Fee</p>
+                  <p className="font-semibold text-gray-900">GH₵{hostel.platformFee.toLocaleString()}</p>
+                </div>
+              ) : null}
+              <div className="rounded-3xl bg-amber-50 p-4 flex justify-between items-center">
+                <p className="text-sm text-amber-700 font-semibold">Total to Pay</p>
+                <p className="font-bold text-amber-700 text-lg">GH₵{(hostel.commissionType === 'flat' ? room.price + (hostel.platformFee || 0) : room.price).toLocaleString()}</p>
               </div>
             </div>
             <div className="flex gap-3">

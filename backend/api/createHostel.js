@@ -88,10 +88,10 @@ async function createHostelHandler(req, res) {
 
         // Insert hostel
         await pool.execute(
-            `INSERT INTO hostels (id, name, university_id, address, description, distance_from_campus, price_range, main_image, gallery, verified, manager_id, subaccount_code, bank_name, account_number) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+            `INSERT INTO hostels (id, name, university_id, address, description, distance_from_campus, price_range, main_image, gallery, verified, manager_id, subaccount_code, bank_name, account_number, commission_type, platform_fee) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
             [id, name, university_id, address || '', description || '', distance_from_campus || '1.0km', price_range || 'GH₵1000-2000', 
-             main_image || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80', gallery_json, manager_id, subaccount_code, bank_code || '', account_number || '']
+             main_image || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80', gallery_json, manager_id, subaccount_code, bank_code || '', account_number || '', req.body.commission_type || 'split', req.body.platform_fee || 0]
         );
 
         res.json({

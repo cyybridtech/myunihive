@@ -25,7 +25,9 @@ export default function AddHostelPage() {
     managerPhone: '',
     managerPassword: '',
     managerGender: 'male',
-    facilities: ''
+    facilities: '',
+    commissionType: 'split',
+    platformFee: ''
   });
 
   const [gallery, setGallery] = useState<{ file?: File, previewUrl: string, desc: string, isUploading: boolean, uploadedUrl?: string }[]>([]);
@@ -97,7 +99,9 @@ export default function AddHostelPage() {
         manager_email: formData.managerEmail,
         manager_phone: formData.managerPhone,
         manager_password: formData.managerPassword,
-        manager_gender: formData.managerGender
+        manager_gender: formData.managerGender,
+        commission_type: formData.commissionType,
+        platform_fee: formData.commissionType === 'flat' ? parseFloat(formData.platformFee) || 0 : 0
       });
 
       if (response.status === 'success') {
@@ -228,6 +232,19 @@ export default function AddHostelPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Account Number</label>
                   <input type="text" value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="0540000000" />
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Fee Structure</label>
+                  <select value={formData.commissionType} onChange={e => setFormData({ ...formData, commissionType: e.target.value })} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none">
+                    <option value="split">Percentage Split (Platform takes 5%)</option>
+                    <option value="flat">Flat Platform Fee (Added to Room Price)</option>
+                  </select>
+                </div>
+                {formData.commissionType === 'flat' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Platform Fee Amount (GH₵)</label>
+                    <input type="number" value={formData.platformFee} onChange={e => setFormData({ ...formData, platformFee: e.target.value })} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. 300" />
+                  </div>
+                )}
               </div>
             </div>
 
