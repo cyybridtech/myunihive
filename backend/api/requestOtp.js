@@ -41,14 +41,16 @@ async function requestOtpHandler(req, res) {
             [email, otp_code, expires_at, otp_code, expires_at]
         );
 
-        // Send Email
-        const emailSent = await sendOtpEmail(email, full_name, otp_code);
-        
-        if (!emailSent) {
-            // Still proceed even if email transport fails during local dev (for debugging). 
-            // In production, we'd throw an error if emailSent is false.
-            console.warn('Failed to send OTP email, but OTP was generated.');
-        }
+        // Send Email asynchronously so the API returns quickly even if email transport is slow.
+        sendOtpEmail(email, full_name, otp_code)
+            .then(emailSent => {
+                if (!emailSent) {
+                    console.warn('Failed to send OTP email, but OTP was generated.');
+                }
+            })
+            .catch(emailError => {
+                console.error('Failed to send OTP email:', emailError);
+            });
 
         res.json({
             status: 'success',

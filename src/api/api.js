@@ -87,9 +87,6 @@ const buildApiUrl = (url) => {
 
 const fetchJson = async (url, options = {}) => {
   const token = getAuthToken();
-  if (!token) {
-    console.warn('API request without auth token', { url, options });
-  }
 
   const headers = {
     ...normalizeHeaders(options.headers),
