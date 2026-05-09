@@ -18,6 +18,14 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const SMTP_SECURE = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : SMTP_PORT === 465;
 const SMTP_TLS_REJECT_UNAUTHORIZED = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
 
+const FROM_ADDRESS = (EMAIL_USER && EMAIL_FROM && EMAIL_FROM.toLowerCase() !== EMAIL_USER.toLowerCase())
+    ? EMAIL_USER
+    : EMAIL_FROM;
+
+if (EMAIL_USER && EMAIL_FROM && EMAIL_FROM.toLowerCase() !== EMAIL_USER.toLowerCase()) {
+    console.warn(`[EMAIL] WARNING: EMAIL_FROM (${EMAIL_FROM}) differs from EMAIL_USER (${EMAIL_USER}). Using EMAIL_USER as sender address to avoid SMTP rejection.`);
+}
+
 if (!EMAIL_USER || !EMAIL_PASS) {
     console.warn('[EMAIL] WARNING: EMAIL_USER or EMAIL_PASS is not configured. Email delivery will be disabled.');
 }
@@ -89,7 +97,7 @@ async function sendMail(options) {
     }
 
     const mailOptions = {
-        from: `"${EMAIL_FROM_NAME}" <${EMAIL_FROM}>`,
+        from: `"${EMAIL_FROM_NAME}" <${FROM_ADDRESS}>`,
         replyTo: EMAIL_SUPPORT,
         headers: {
             'X-Mailer': 'UniHive Mailer',

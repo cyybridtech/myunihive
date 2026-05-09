@@ -44,6 +44,7 @@ const reviewsHandler = require('./api/reviews');
 const getNotificationsHandler = require('./api/getNotifications');
 const markNotificationReadHandler = require('./api/markNotificationRead');
 const uploadImageHandler = require('./api/uploadImage');
+const testEmailHandler = require('./api/testEmail');
 const auth = require('./api/auth');
 const { getPool } = require('./api/config');
 
@@ -188,6 +189,9 @@ app.post('/api/markNotificationRead', wrapHandler(markNotificationReadHandler));
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Test email delivery endpoint
+app.post('/api/test-email', wrapHandler(testEmailHandler));
 
 // Serve uploaded images and public static assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
