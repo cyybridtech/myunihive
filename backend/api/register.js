@@ -12,16 +12,29 @@ const { sendWelcomeEmail } = require('./sendEmail');
 async function registerHandler(req, res) {
         const { full_name, email, password, phone, gender } = req.body || {};
     const university_id = req.body?.university_id || req.body?.universityId || null;
-    const otp = req.body?.otp; // Accept OTP but don't require it
+    const otp = req.body?.otp;
 
     // Validate required fields
-    if (!full_name || !email || !password) {
-        return res.status(400).json({ status: 'error', message: 'All fields are required' });
+    if (!full_name || !email || !password || !otp) {
+        return res.status(400).json({ status: 'error', message: 'All fields including OTP are required' });
     }
 
     const pool = getPool();
 
     try {
+        // Verify OTP first
+        const [otpRows] = await pool.execute(
+            'SELECT * FROM otps WHERE email = ? AND otp_code = ? AND expires_at > NOW()',
+            [email, otp]
+        );
+
+        if (otpRows.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'Invalid or expired OTP code' });
+        }
+
+        // Delete OTP
+        await pool.execute('DELETE FROM otps WHERE email = ?', [email]);
+
         // Check if user already exists
         const [existing] = await pool.execute(
             'SELECT id FROM users WHERE email = ?',
@@ -32,8 +45,7 @@ async function registerHandler(req, res) {
             return res.status(400).json({ status: 'error', message: 'Email already exists' });
         }
 
-        // OTP verification temporarily disabled - users can register without email verification
-        console.log(`[REGISTER] User registration for ${email} (OTP verification disabled for now)`);
+        console.log(`[REGISTER] User registration for ${email} (OTP verified successfully)`);
 
         // Hash password
         const bcrypt = require('bcryptjs');
