@@ -19,6 +19,7 @@ import AddHostelPage from './pages/AddHostelPage';
 import AddRoomPage from './pages/AddRoomPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useEffect, type ReactNode } from 'react';
+import InstallPWA from './components/InstallPWA';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -73,6 +74,7 @@ function AppLayout() {
     <div className="min-h-screen bg-gray-50">
       {!hideNavbar && <Navbar />}
       <ScrollToTop />
+      <InstallPWA />
 
       <Routes>
         <Route path="/" element={<HomePage />} />

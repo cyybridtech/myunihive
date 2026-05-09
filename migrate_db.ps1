@@ -1,7 +1,7 @@
 $HostName = "gateway01.eu-central-1.prod.aws.tidbcloud.com"
 $Port = 4000
 $Username = "3kBDbpwqLJVraMm.root"
-$Database = "sys"
+$Database = "test"
 
 $Password = Read-Host -Prompt "Please enter your TiDB Password" -AsSecureString
 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
