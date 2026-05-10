@@ -46,7 +46,7 @@ const markNotificationReadHandler = require('./api/markNotificationRead');
 const uploadImageHandler = require('./api/uploadImage');
 const testEmailHandler = require('./api/testEmail');
 const auth = require('./api/auth');
-const { getPool } = require('./api/config');
+const { getPool, initSchema } = require('./api/config');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -196,6 +196,12 @@ app.post('/api/test-email', wrapHandler(testEmailHandler));
 // Serve uploaded images and public static assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Serve built React app for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -204,7 +210,15 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+    // Initialize database schema
+    try {
+        await initSchema();
+        console.log('Database schema initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize database schema:', error);
+    }
+
     console.log(`
 ╔═══════════════════════════════════════════════════╗
 ║         UniHive API Server Started               ║
