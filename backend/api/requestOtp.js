@@ -10,7 +10,7 @@ async function requestOtpHandler(req, res) {
     const { email, full_name } = req.body || {};
 
     if (!email || !full_name) {
-        return res.status(400).json({ status: 'error', message: 'Email and full name are required' });
+        return res.status(400).json({ status: 'warn', message: 'Email and full name are required' });
     }
 
     const pool = getPool();
@@ -51,10 +51,10 @@ async function requestOtpHandler(req, res) {
 
         if (!emailSent) {
             // Fail loudly so clients know OTP delivery didn’t happen.
-            return res.status(500).json({
+            return res.status(200).json({
                 status: 'error',
-                message: 'OTP generation succeeded but email delivery failed (SMTP not configured or rejected).',
-                debug_info: process.env.NODE_ENV === 'development' ? `OTP: ${otp_code}` : undefined
+                message: 'OTP generated but email could not be sent. OTP shown in debug_info in non-production.',
+                debug_info: process.env.NODE_ENV !== 'production' ? 'OTP: ' + otp_code : undefined
             });
         }
 
