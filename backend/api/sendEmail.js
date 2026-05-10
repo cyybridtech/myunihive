@@ -66,7 +66,11 @@ transporter.verify()
         console.log('[EMAIL] SMTP transporter verified successfully');
     })
     .catch(error => {
-        console.error('[EMAIL] SMTP transporter verification failed:', error && error.message ? error.message : error);
+        console.error('[EMAIL] SMTP transporter verification FAILED');
+        console.error('[EMAIL] Error message:', error?.message || error);
+        console.error('[EMAIL] Error code:', error?.code);
+        console.error('[EMAIL] Error command:', error?.command);
+        console.error('[EMAIL] Full error:', error);
     });
 
 function buildHtmlEmail(title, intro, contentHtml, closing) {
