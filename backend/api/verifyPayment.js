@@ -131,8 +131,15 @@ async function verifyPaymentHandler(req, res) {
             await connection.commit();
             connection.release();
 
-            sendBookingEmail(details.user_email, details.full_name, booking_id, details.room_number, details.hostel_name, authCode)
-                .catch(err => console.error('Email error:', err.message));
+            if (!details.user_email) {
+                console.error('[BOOKING] Missing user_email for booking:', booking_id);
+            } else {
+                try {
+                    await sendBookingEmail(details.user_email, details.full_name, booking_id, details.room_number, details.hostel_name, authCode);
+                } catch (err) {
+                    console.error('[BOOKING] Booking confirmation email failed:', err && err.message ? err.message : err);
+                }
+            }
 
             return res.json({
                 status: 'success',

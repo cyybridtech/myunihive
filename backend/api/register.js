@@ -68,10 +68,12 @@ async function registerHandler(req, res) {
             { expiresIn: '7d' }
         );
 
-        // Send welcome email (async, don't wait)
-        sendWelcomeEmail(email, full_name, user_id).catch(err => {
-            console.error('Welcome email failed:', err.message);
-        });
+        // Send welcome email and fail loudly in logs if it doesn’t go out
+        try {
+            await sendWelcomeEmail(email, full_name, user_id);
+        } catch (err) {
+            console.error('[REGISTER] Welcome email failed:', err && err.message ? err.message : err);
+        }
 
         res.json({
             status: 'success',

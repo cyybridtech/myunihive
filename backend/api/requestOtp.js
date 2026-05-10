@@ -41,20 +41,16 @@ async function requestOtpHandler(req, res) {
             [email, otp_code, expires_at, otp_code, expires_at]
         );
 
-        // Send Email asynchronously so the API returns quickly even if email transport is slow.
-        sendOtpEmail(email, full_name, otp_code)
-            .then(emailSent => {
-                if (!emailSent) {
-                    console.warn(`[OTP] Failed to send OTP email to ${email}, but OTP was generated and stored.`);
-                    console.warn(`[OTP] OTP Code for ${email}: ${otp_code} (expires: ${expires_at.toISOString()})`);
-                } else {
-                    console.log(`[OTP] OTP email sent successfully to ${email}`);
-                }
-            })
-            .catch(emailError => {
-                console.error(`[OTP] Failed to send OTP email to ${email}:`, emailError);
-                console.warn(`[OTP] Manual OTP Code for ${email}: ${otp_code} (expires: ${expires_at.toISOString()})`);
+        const emailSent = await sendOtpEmail(email, full_name, otp_code);
+
+        if (!emailSent) {
+            // Fail loudly so clients know OTP delivery didn’t happen.
+            return res.status(500).json({
+                status: 'error',
+                message: 'OTP generation succeeded but email delivery failed (SMTP not configured or rejected).',
+                debug_info: process.env.NODE_ENV === 'development' ? `OTP: ${otp_code}` : undefined
             });
+        }
 
         res.json({
             status: 'success',
