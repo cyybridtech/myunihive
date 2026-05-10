@@ -5,8 +5,12 @@
  * authentication, welcome, booking, OTP, and password reset workflows.
  */
 
-require('./loadEnv');
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Gmail has no IPv6 on Render, so we resolve to IPv4 manually
+const SMTP_IPV4 = process.env.SMTP_IPV4;
+const SMTP_FALLBACK_IPS = ['173.194.76.109', '74.125.142.109', '173.194.67.109'];
 
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
@@ -33,6 +37,20 @@ if (!EMAIL_USER || !EMAIL_PASS) {
     console.log('[EMAIL] Config loaded - USER:', EMAIL_USER, '| PASS length:', EMAIL_PASS.length);
 }
 
+// Resolve smtp.gmail.com to IPv4 only — bypasses IPv6 issue on Render
+let resolvedSMTP_IP = SMTP_IPV4 || null;
+if (!resolvedSMTP_IP && EMAIL_USER && EMAIL_PASS) {
+    try {
+        // Synchronous DNS lookup for IPv4 only
+        const result = dns.resolve4('smtp.gmail.com');
+        resolvedSMTP_IP = result[0];
+        console.log('[EMAIL] Resolved smtp.gmail.com to IPv4:', resolvedSMTP_IP);
+    } catch (e) {
+        console.warn('[EMAIL] DNS v4 resolve failed, will try fallback IPs');
+        resolvedSMTP_IP = SMTP_FALLBACK_IPS[0];
+    }
+}
+
 const transportOptions = {
     logger: true,
     debug: true,
@@ -43,13 +61,15 @@ const transportOptions = {
     connectionTimeout: 10000,
     greetingTimeout: 8000,
     socketTimeout: 10000,
-    family: 4 // Force IPv4 only - Render doesn't support outbound IPv6 to SMTP
+    // TLS is required for STARTTLS on port 587
+    tls: { rejectUnauthorized: true }
 };
 
 if (process.env.EMAIL_SERVICE) {
     transportOptions.service = process.env.EMAIL_SERVICE;
 } else {
-    transportOptions.host = SMTP_HOST;
+    // Use resolved IPv4 IP directly — bypasses DNS IPv6 on Render
+    transportOptions.host = resolvedSMTP_IP || SMTP_HOST;
     transportOptions.port = SMTP_PORT;
     transportOptions.secure = SMTP_SECURE;
     // STARTTLS on port 587 is automatic when secure is false
