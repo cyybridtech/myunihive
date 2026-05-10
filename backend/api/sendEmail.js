@@ -14,9 +14,10 @@ const EMAIL_FROM = process.env.EMAIL_FROM || EMAIL_USER || 'noreply@unihive.com'
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'UniHive';
 const EMAIL_SUPPORT = process.env.EMAIL_SUPPORT || EMAIL_FROM;
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
-const SMTP_SECURE = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : SMTP_PORT === 465;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = false; // Use STARTTLS on 587 (not implicit SSL on 465)
 const SMTP_TLS_REJECT_UNAUTHORIZED = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
+const SMTP_TLS_ENABLED = process.env.SMTP_TLS_ENABLED !== 'false';
 
 const FROM_ADDRESS = (EMAIL_USER && EMAIL_FROM && EMAIL_FROM.toLowerCase() !== EMAIL_USER.toLowerCase())
     ? EMAIL_USER
@@ -32,7 +33,7 @@ if (!EMAIL_USER || !EMAIL_PASS) {
 
 const transportOptions = {
     logger: true,
-    debug: process.env.NODE_ENV !== 'production',
+    debug: true,
     auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
@@ -45,6 +46,9 @@ if (process.env.EMAIL_SERVICE) {
     transportOptions.host = SMTP_HOST;
     transportOptions.port = SMTP_PORT;
     transportOptions.secure = SMTP_SECURE;
+    if (SMTP_TLS_ENABLED) {
+        transportOptions.requireTLS = true;
+    }
     if (!SMTP_TLS_REJECT_UNAUTHORIZED) {
         transportOptions.tls = { rejectUnauthorized: false };
     }
