@@ -8,7 +8,7 @@
 ## Step 2: Fix OTP email not being delivered
 - [x] Make `/api/request-otp` return an error if SMTP/email credentials are missing (by failing when sendOtpEmail returns false)
 - [x] Make OTP email sending awaited
-- [ ] Add explicit logs for `EMAIL_USER`, `EMAIL_PASS` presence and target recipient
+- [x] Add explicit logs for `EMAIL_USER`, `EMAIL_PASS` presence and target recipient
 
 ## Step 3: Fix welcome + booking confirmation not being delivered
 - [ ] Ensure welcome email failures are surfaced in logs with enough context

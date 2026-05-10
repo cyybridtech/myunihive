@@ -17,9 +17,11 @@ async function requestOtpHandler(req, res) {
 
     try {
         // First check if user already exists
+        const normalizedEmail = String(email).trim().toLowerCase();
+
         const [existing] = await pool.execute(
             'SELECT id FROM users WHERE email = ?',
-            [email]
+            [normalizedEmail]
         );
 
         if (existing.length > 0) {
@@ -41,7 +43,11 @@ async function requestOtpHandler(req, res) {
             [email, otp_code, expires_at, otp_code, expires_at]
         );
 
-        const emailSent = await sendOtpEmail(email, full_name, otp_code);
+        // Normalize recipient to avoid SMTP rejection due to casing/whitespace.
+        const recipientEmail = String(email).trim().toLowerCase();
+        const recipientName = String(full_name).trim();
+
+        const emailSent = await sendOtpEmail(recipientEmail, recipientName, otp_code);
 
         if (!emailSent) {
             // Fail loudly so clients know OTP delivery didn’t happen.
