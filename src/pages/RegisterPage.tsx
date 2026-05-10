@@ -56,11 +56,10 @@ export default function RegisterPage() {
     setOtpLoading(true);
     try {
       const res = await requestOtp(formData.email, formData.firstName + ' ' + formData.lastName);
-      if (res.status === 'warn' && res.debug_info) {
-        // In dev/non-production, OTP is shown in debug_info when email fails
-        console.warn('[DEV] Email failed. OTP:', res.debug_info);
-        // Show OTP to user so they can test
-        setError('Email delivery failed. (Dev: use code ' + res.debug_info.replace('OTP: ', '') + ')');
+      // Always redirect to OTP step - email may succeed or fail
+      // If email failed and SMTP_AUTH_TEST is enabled, show OTP in console
+      if (res.status === 'error' && res.debug_info) {
+        console.warn('[DEV] Email failed. OTP code:', res.debug_info);
       }
       setStep('otp');
     } catch (err: any) {

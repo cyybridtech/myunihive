@@ -54,7 +54,7 @@ async function requestOtpHandler(req, res) {
             return res.status(200).json({
                 status: 'error',
                 message: 'OTP generated but email could not be sent. OTP shown in debug_info in non-production.',
-                debug_info: process.env.NODE_ENV !== 'production' ? 'OTP: ' + otp_code : undefined
+                debug_info: process.env.SMTP_AUTH_TEST === 'true' ? 'OTP: ' + otp_code : undefined
             });
         }
 

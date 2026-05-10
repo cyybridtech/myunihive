@@ -37,7 +37,10 @@ const transportOptions = {
     auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
-    }
+    },
+    connectionTimeout: 10000, // 10 second timeout - fail fast so page doesn't hang
+    greetingTimeout: 8000,
+    socketTimeout: 10000
 };
 
 if (process.env.EMAIL_SERVICE) {
