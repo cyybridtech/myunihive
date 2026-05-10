@@ -1,14 +1,22 @@
-// Use proxy path by default - Vite forwards /api requests to the Express server.
-const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "/api";
-const normalizeBaseUrl = (value) => {
-  let url = String(value || '').trim();
-  if (!url) return '/api';
-  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
-    url = '/' + url;
+// API Base URL: Use Render backend in production, fallback to proxy in development
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (envUrl) return envUrl;
+  
+  // Development: use relative path (Vite proxy will forward to localhost:3001)
+  if (import.meta.env.DEV) return '/api';
+  
+  // Production: construct from window location or default to Render
+  if (typeof window !== 'undefined') {
+    // If running on www.myunihive.com, use Render backend
+    if (window.location.hostname.includes('myunihive.com')) {
+      return 'https://unihive-9k0l.onrender.com';
+    }
   }
-  return url.replace(/\/$/, '');
+  
+  return '/api';
 };
-const BASE_URL = normalizeBaseUrl(RAW_BASE_URL);
+const BASE_URL = getBaseUrl();
 const defaultFetchOptions = { credentials: 'include' };
 
 const normalizeHeaders = (headers) => {
@@ -77,12 +85,13 @@ const buildApiUrl = (url) => {
   if (!url.startsWith('/')) {
     url = '/' + url;
   }
-
-  if (BASE_URL.startsWith('http://') || BASE_URL.startsWith('https://')) {
-    return url.startsWith(BASE_URL) ? url : `${BASE_URL}${url}`;
+  
+  const baseUrl = getBaseUrl();
+  if (baseUrl.startsWith('http://') || baseUrl.startsWith('https://')) {
+    return url.startsWith(baseUrl) ? url : `${baseUrl}${url}`;
   }
-
-  return url.startsWith(BASE_URL) ? url : `${BASE_URL}${url}`;
+  
+  return url.startsWith(baseUrl) ? url : `${baseUrl}${url}`;
 };
 
 const fetchJson = async (url, options = {}) => {
