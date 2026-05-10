@@ -38,9 +38,10 @@ const transportOptions = {
         user: EMAIL_USER,
         pass: EMAIL_PASS
     },
-    connectionTimeout: 10000, // 10 second timeout - fail fast so page doesn't hang
+    connectionTimeout: 10000,
     greetingTimeout: 8000,
-    socketTimeout: 10000
+    socketTimeout: 10000,
+    family: 4 // Force IPv4 only - Render doesn't support outbound IPv6 to SMTP
 };
 
 if (process.env.EMAIL_SERVICE) {
@@ -49,9 +50,8 @@ if (process.env.EMAIL_SERVICE) {
     transportOptions.host = SMTP_HOST;
     transportOptions.port = SMTP_PORT;
     transportOptions.secure = SMTP_SECURE;
-    if (SMTP_TLS_ENABLED) {
-        transportOptions.requireTLS = true;
-    }
+    // STARTTLS on port 587 is automatic when secure is false
+    // requireTLS forces it which is fine for port 587
     if (!SMTP_TLS_REJECT_UNAUTHORIZED) {
         transportOptions.tls = { rejectUnauthorized: false };
     }
