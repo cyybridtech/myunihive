@@ -11,12 +11,20 @@
 - [x] Add explicit logs for `EMAIL_USER`, `EMAIL_PASS` presence and target recipient
 
 ## Step 3: Fix welcome + booking confirmation not being delivered
-- [ ] Ensure welcome email failures are surfaced in logs with enough context
-- [ ] Ensure `details.user_email` from DB is always populated (defensive checks)
-- [ ] Make booking confirmation handler fail loudly (or return status) if email cannot be sent
+- [x] Ensure welcome email failures are surfaced in logs with enough context
+- [x] Ensure `details.user_email` from DB is always populated (defensive checks)
+- [x] Make booking confirmation handler fail loudly (or return status) if email cannot be sent
 
 ## Step 4: Testing
 - [ ] Run `/api/test-email` and confirm SMTP sends successfully
 - [ ] Call `/api/request-otp` and confirm email arrives
 - [ ] Complete registration and booking/payment flow to confirm welcome + confirmation emails
+
+## Deployment Fixes Applied
+- [x] Updated server.js to serve built React app from dist/ directory
+- [x] Modified package.json scripts for proper deployment (build + start)
+- [x] Updated .env.example with all required environment variables
+- [x] Fixed .gitignore to include package-lock.json for consistent dependencies
+- [x] Added database schema initialization on server startup
+- [x] Added notifications tab to Manager Dashboard
 
