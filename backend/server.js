@@ -200,16 +200,21 @@ app.use(express.static(path.resolve(__dirname, '../public')));
 // Serve built React app for all other routes
 app.use((req, res, next) => {
     if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
-        const indexPath = path.resolve(__dirname, '../dist/index.html');
-        if (fs.existsSync(indexPath)) {
-            res.sendFile(indexPath);
+        const distPath = path.resolve(__dirname, '../dist/index.html');
+        const rootPath = path.resolve(__dirname, '../index.html');
+        if (fs.existsSync(distPath)) {
+            res.sendFile(distPath);
+        } else if (fs.existsSync(rootPath)) {
+            res.sendFile(rootPath);
         } else {
-            res.sendFile(path.resolve(__dirname, '../index.html'));
+            // No index.html found - return a simple HTML message
+            res.type('html').send('<html><body><h1>UniHive API</h1><p>Server is running. Build the frontend and redeploy for the full app.</p></body></html>');
         }
     } else {
         next();
     }
 });
+
 
 
 // Error handler
