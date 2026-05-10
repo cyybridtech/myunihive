@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search } from 'lucide-react';
+import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking } from '../api/api.js';
 import { Booking } from '../data/mockData';
 
-type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews';
+type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'notifications';
 
 export default function ManagerDashboard() {
   const auth = useAuth();
-  const { hostels, rooms, bookings, reviews, universities, refreshBookings, refreshData, addRoom, updateRoom } = useApp();
+  const { hostels, rooms, bookings, reviews, universities, notifications, refreshBookings, refreshData, addRoom, updateRoom, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
   const isManager = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
 
@@ -27,6 +27,7 @@ export default function ManagerDashboard() {
   const visibleRooms = rooms.filter(r => managerHostelIds.includes(String(r.hostelId)));
   const visibleBookings = bookings.filter(b => managerHostelIds.includes(String(b.hostelId)));
   const visibleReviews = reviews.filter(r => managerHostelIds.includes(String(r.hostelId)));
+  const managerNotifications = notifications.filter(n => String(n.userId) === String(auth.user?.id));
 
   const [activeTab, setActiveTab] = useState<ManagerTab>('overview');
   const [roomSearch, setRoomSearch] = useState('');
@@ -132,6 +133,7 @@ export default function ManagerDashboard() {
     { id: 'rooms', label: 'Rooms' },
     { id: 'bookings', label: 'Bookings' },
     { id: 'reviews', label: 'Reviews' },
+    { id: 'notifications', label: 'Notifications' },
   ];
 
   return (
@@ -145,8 +147,13 @@ export default function ManagerDashboard() {
           <div className="flex gap-1 overflow-x-auto pb-px">
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-amber-500 text-amber-400' : 'border-transparent text-gray-400 hover:text-gray-200'}`}>
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-amber-500 text-amber-400' : 'border-transparent text-gray-400 hover:text-gray-200'}`}>
                 {tab.label}
+                {tab.id === 'notifications' && managerNotifications.filter(n => !n.read).length > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full px-1.5 min-w-[18px] text-center">
+                    {managerNotifications.filter(n => !n.read).length}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -508,6 +515,39 @@ export default function ManagerDashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
+                <p className="text-sm text-gray-500">{managerNotifications.filter(n => !n.read).length} unread</p>
+              </div>
+              {managerNotifications.some(n => !n.read) && (
+                <button onClick={markAllNotificationsRead} className="text-sm font-semibold text-amber-600 hover:text-amber-700">
+                  Mark all as read
+                </button>
+              )}
+            </div>
+            <div className="divide-y">
+              {managerNotifications.length === 0 ? (
+                <div className="p-10 text-center text-gray-500">No new notifications.</div>
+              ) : (
+                managerNotifications.map(notif => (
+                  <div key={notif.id} onClick={() => markNotificationRead(notif)} className={`p-4 flex gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${!notif.read ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>
+                      <Bell className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm ${!notif.read ? 'font-bold text-gray-900' : 'text-gray-600'}`}>{notif.title}</p>
+                      <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>
