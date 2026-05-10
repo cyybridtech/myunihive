@@ -118,11 +118,14 @@ async function sendMail(options) {
         console.log(`[EMAIL] Sent to ${options.to}. messageId=${info.messageId}`);
         return true;
     } catch (error) {
-        console.error('[EMAIL] sendMail failed:', {
-            message: error.message || error,
+        // Log everything possible for debugging
+        console.error('[EMAIL] sendMail FAILED:', {
+            message: error.message,
             code: error.code,
+            command: error.command,
+            responseCode: error.responseCode,
             response: error.response,
-            responseCode: error.responseCode
+            stack: error.stack
         });
         return false;
     }
