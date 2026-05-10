@@ -195,17 +195,22 @@ app.post('/api/test-email', wrapHandler(testEmailHandler));
 
 // Serve uploaded images and public static assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(express.static(path.resolve(__dirname, '../dist')));
 app.use(express.static(path.resolve(__dirname, '../public')));
 
 // Serve built React app for all other routes
 app.use((req, res, next) => {
     if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
-        res.sendFile(path.resolve(__dirname, '../dist/index.html'));
+        const indexPath = path.resolve(__dirname, '../dist/index.html');
+        if (fs.existsSync(indexPath)) {
+            res.sendFile(indexPath);
+        } else {
+            res.sendFile(path.resolve(__dirname, '../index.html'));
+        }
     } else {
         next();
     }
 });
+
 
 // Error handler
 app.use((err, req, res, next) => {
