@@ -29,6 +29,8 @@ if (EMAIL_USER && EMAIL_FROM && EMAIL_FROM.toLowerCase() !== EMAIL_USER.toLowerC
 
 if (!EMAIL_USER || !EMAIL_PASS) {
     console.warn('[EMAIL] WARNING: EMAIL_USER or EMAIL_PASS is not configured. Email delivery will be disabled.');
+} else {
+    console.log('[EMAIL] Config loaded - USER:', EMAIL_USER, '| PASS length:', EMAIL_PASS.length);
 }
 
 const transportOptions = {
