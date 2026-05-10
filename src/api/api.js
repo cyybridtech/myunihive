@@ -1,20 +1,15 @@
-// API Base URL: Use Render backend in production, fallback to proxy in development
+// API Base URL
+// - Development: use Vite proxy (/api -> localhost:3001)
+// - Production: always use Render backend (or env override)
 const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   if (envUrl) return envUrl;
-  
-  // Development: use relative path (Vite proxy will forward to localhost:3001)
+
+  // Dev: let Vite proxy handle it
   if (import.meta.env.DEV) return '/api';
-  
-  // Production: construct from window location or default to Render
-  if (typeof window !== 'undefined') {
-    // If running on www.myunihive.com, use Render backend
-    if (window.location.hostname.includes('myunihive.com')) {
-      return 'https://unihive-9k0l.onrender.com';
-    }
-  }
-  
-  return '/api';
+
+  // Prod fallback
+  return 'https://unihive-9k0l.onrender.com';
 };
 const BASE_URL = getBaseUrl();
 const defaultFetchOptions = { credentials: 'include' };
