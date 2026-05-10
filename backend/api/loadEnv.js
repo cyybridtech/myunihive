@@ -8,7 +8,7 @@ const path = require('path');
 
 function loadEnv(envPath = path.join(__dirname, '../../.env')) {
     if (!fs.existsSync(envPath)) {
-        console.log('.env file not found, using defaults');
+        // .env not found — env vars expected from Render environment
         return;
     }
 

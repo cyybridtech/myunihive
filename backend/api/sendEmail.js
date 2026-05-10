@@ -1,10 +1,3 @@
-/**
- * Email Sending Functions using Nodemailer
- *
- * Production-ready transactional email templates for
- * authentication, welcome, booking, OTP, and password reset workflows.
- */
-
 const nodemailer = require('nodemailer');
 
 const EMAIL_USER = process.env.EMAIL_USER;
@@ -30,30 +23,19 @@ if (!EMAIL_USER || !EMAIL_PASS) {
 }
 
 const transportOptions = {
-    logger: true,
-    debug: true,
-    pool: true,
-    maxConnections: 2,
-    rateLimit: 1,
+    service: 'Gmail', // Handles SMTP host resolution, STARTTLS on 587, IPv4
     auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
     },
+    pool: true,
+    maxConnections: 2,
+    rateLimit: 1,
     connectionTimeout: 15000,
     greetingTimeout: 10000,
-    socketTimeout: 15000
+    socketTimeout: 15000,
+    tls: { rejectUnauthorized: true }
 };
-
-if (process.env.EMAIL_SERVICE) {
-    transportOptions.service = process.env.EMAIL_SERVICE;
-} else {
-    transportOptions.host = 'smtp.gmail.com';
-    transportOptions.port = SMTP_PORT;
-    transportOptions.secure = false; // STARTTLS on 587
-    if (!SMTP_TLS_REJECT_UNAUTHORIZED) {
-        transportOptions.tls = { rejectUnauthorized: false };
-    }
-}
 
 const transporter = nodemailer.createTransport(transportOptions);
 
