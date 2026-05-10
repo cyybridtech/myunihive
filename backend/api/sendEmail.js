@@ -6,22 +6,14 @@
  */
 
 const nodemailer = require('nodemailer');
-const dns = require('dns');
-
-// Gmail has no IPv6 on Render, so we resolve to IPv4 manually
-const SMTP_IPV4 = process.env.SMTP_IPV4;
-const SMTP_FALLBACK_IPS = ['173.194.76.109', '74.125.142.109', '173.194.67.109'];
 
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 const EMAIL_FROM = process.env.EMAIL_FROM || EMAIL_USER || 'noreply@unihive.com';
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'UniHive';
 const EMAIL_SUPPORT = process.env.EMAIL_SUPPORT || EMAIL_FROM;
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_SECURE = false; // Use STARTTLS on 587 (not implicit SSL on 465)
 const SMTP_TLS_REJECT_UNAUTHORIZED = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
-const SMTP_TLS_ENABLED = process.env.SMTP_TLS_ENABLED !== 'false';
 
 const FROM_ADDRESS = (EMAIL_USER && EMAIL_FROM && EMAIL_FROM.toLowerCase() !== EMAIL_USER.toLowerCase())
     ? EMAIL_USER
@@ -37,43 +29,27 @@ if (!EMAIL_USER || !EMAIL_PASS) {
     console.log('[EMAIL] Config loaded - USER:', EMAIL_USER, '| PASS length:', EMAIL_PASS.length);
 }
 
-// Resolve smtp.gmail.com to IPv4 only — bypasses IPv6 issue on Render
-let resolvedSMTP_IP = SMTP_IPV4 || null;
-if (!resolvedSMTP_IP && EMAIL_USER && EMAIL_PASS) {
-    try {
-        // Synchronous DNS lookup for IPv4 only
-        const result = dns.resolve4('smtp.gmail.com');
-        resolvedSMTP_IP = result[0];
-        console.log('[EMAIL] Resolved smtp.gmail.com to IPv4:', resolvedSMTP_IP);
-    } catch (e) {
-        console.warn('[EMAIL] DNS v4 resolve failed, will try fallback IPs');
-        resolvedSMTP_IP = SMTP_FALLBACK_IPS[0];
-    }
-}
-
 const transportOptions = {
     logger: true,
     debug: true,
+    pool: true,
+    maxConnections: 2,
+    rateLimit: 1,
     auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 8000,
-    socketTimeout: 10000,
-    // TLS is required for STARTTLS on port 587
-    tls: { rejectUnauthorized: true }
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
 };
 
 if (process.env.EMAIL_SERVICE) {
     transportOptions.service = process.env.EMAIL_SERVICE;
 } else {
-    // Use resolved IPv4 IP directly — bypasses DNS IPv6 on Render
-    transportOptions.host = resolvedSMTP_IP || SMTP_HOST;
+    transportOptions.host = 'smtp.gmail.com';
     transportOptions.port = SMTP_PORT;
-    transportOptions.secure = SMTP_SECURE;
-    // STARTTLS on port 587 is automatic when secure is false
-    // requireTLS forces it which is fine for port 587
+    transportOptions.secure = false; // STARTTLS on 587
     if (!SMTP_TLS_REJECT_UNAUTHORIZED) {
         transportOptions.tls = { rejectUnauthorized: false };
     }
@@ -139,22 +115,23 @@ async function sendMail(options) {
         ...options
     };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`[EMAIL] Sent to ${options.to}. messageId=${info.messageId}`);
-        return true;
-    } catch (error) {
-        // Log everything possible for debugging
-        console.error('[EMAIL] sendMail FAILED:', {
-            message: error.message,
-            code: error.code,
-            command: error.command,
-            responseCode: error.responseCode,
-            response: error.response,
-            stack: error.stack
-        });
-        return false;
+    // Retry loop for transient network errors on Render
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            console.log(`[EMAIL] Sent to ${options.to}. messageId=${info.messageId}`);
+            return true;
+        } catch (error) {
+            console.error(`[EMAIL] sendMail attempt ${attempt}/3 FAILED:`, error.message);
+            if (attempt === 3) {
+                console.error('[EMAIL] All retry attempts failed');
+                return false;
+            }
+            // Wait 2 seconds before retrying
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
     }
+    return false;
 }
 
 
