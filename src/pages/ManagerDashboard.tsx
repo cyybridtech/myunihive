@@ -35,6 +35,19 @@ export default function ManagerDashboard() {
   const [isSubmittingRoom, setIsSubmittingRoom] = useState(false);
   const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
   const [roomViewMode, setRoomViewMode] = useState<'card' | 'list'>('card');
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationDropdownOpen && !(event.target as Element).closest('.notification-dropdown')) {
+        setNotificationDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [notificationDropdownOpen]);
 
 
   const managerName = auth.user?.full_name || 'Manager';
@@ -140,8 +153,111 @@ export default function ManagerDashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold">Hostel Manager Dashboard</h1>
-          <p className="text-gray-400 text-sm">Welcome back, {managerName}. Manage your assigned hostel, rooms, walk-in reservations, and availability from one place.</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold">Hostel Manager Dashboard</h1>
+              <p className="text-gray-400 text-sm">Welcome back, {managerName}. Manage your assigned hostel, rooms, walk-in reservations, and availability from one place.</p>
+            </div>
+
+            {/* Profile and Notifications */}
+            <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              <div className="notification-dropdown relative">
+                <button
+                  onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+                  className="relative p-2 text-gray-400 hover:text-amber-400 transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                  {managerNotifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full w-4.5 h-4.5 flex items-center justify-center text-[10px] font-bold min-w-[18px] min-h-[18px]">
+                      {managerNotifications.filter(n => !n.read).length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification Dropdown */}
+                {notificationDropdownOpen && (
+                  <div className="notification-dropdown absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50">
+                    <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                      {managerNotifications.some(n => !n.read) && (
+                        <button
+                          onClick={() => {
+                            markAllNotificationsRead();
+                            setNotificationDropdownOpen(false);
+                          }}
+                          className="text-sm font-semibold text-amber-600 hover:text-amber-700"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-96 overflow-y-auto">
+                      {managerNotifications.length === 0 ? (
+                        <div className="p-6 text-center text-gray-500">
+                          <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                          <p>No new notifications.</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          {managerNotifications.slice(0, 10).map(notif => (
+                            <div
+                              key={notif.id}
+                              onClick={() => {
+                                markNotificationRead(notif);
+                                setNotificationDropdownOpen(false);
+                              }}
+                              className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}
+                            >
+                              <div className="flex gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!notif.read ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>
+                                  <Bell className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className={`text-sm ${!notif.read ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
+                                    {notif.title}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {new Date(notif.date).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {managerNotifications.length > 10 && (
+                      <div className="p-3 border-t border-gray-100 text-center">
+                        <button
+                          onClick={() => {
+                            setActiveTab('notifications');
+                            setNotificationDropdownOpen(false);
+                          }}
+                          className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                        >
+                          View all notifications
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Profile */}
+              <div className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 rounded-full px-3 py-1.5 transition-colors cursor-pointer">
+                <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                  {auth.user?.full_name?.charAt(0) || 'M'}
+                </div>
+                <span className="text-sm font-medium text-gray-200 max-w-[100px] truncate">
+                  {auth.user?.full_name?.split(' ')[0] || 'Manager'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-1 overflow-x-auto pb-px">
