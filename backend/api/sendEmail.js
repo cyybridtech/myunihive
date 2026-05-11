@@ -23,18 +23,17 @@ if (!EMAIL_USER || !EMAIL_PASS) {
 }
 
 const transportOptions = {
-    service: 'Gmail', // Handles SMTP host resolution, STARTTLS on 587, IPv4
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // STARTTLS
     auth: {
         user: EMAIL_USER,
         pass: EMAIL_PASS
     },
-    pool: true,
-    maxConnections: 2,
-    rateLimit: 1,
     connectionTimeout: 15000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
-    tls: { rejectUnauthorized: true }
+    family: 4 // Force IPv4 only
 };
 
 const transporter = nodemailer.createTransport(transportOptions);
