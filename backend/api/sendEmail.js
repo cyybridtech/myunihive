@@ -28,9 +28,9 @@ const transportOptions = {
         user: EMAIL_USER,
         pass: EMAIL_PASS
     },
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000
+    connectionTimeout: 3000,
+    greetingTimeout: 3000,
+    socketTimeout: 3000
 };
 
 const transporter = nodemailer.createTransport(transportOptions);
@@ -93,23 +93,14 @@ async function sendMail(options) {
         ...options
     };
 
-    // Retry loop for transient network errors on Render
-    for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`[EMAIL] Sent to ${options.to}. messageId=${info.messageId}`);
-            return true;
-        } catch (error) {
-            console.error(`[EMAIL] sendMail attempt ${attempt}/3 FAILED:`, error.message);
-            if (attempt === 3) {
-                console.error('[EMAIL] All retry attempts failed');
-                return false;
-            }
-            // Wait 2 seconds before retrying
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`[EMAIL] Sent to ${options.to}. messageId=${info.messageId}`);
+        return true;
+    } catch (error) {
+        console.error(`[EMAIL] sendMail FAILED:`, error.message);
+        return false;
     }
-    return false;
 }
 
 
