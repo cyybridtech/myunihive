@@ -104,9 +104,19 @@ async function createHostelHandler(req, res) {
 
     } catch (error) {
         console.error('Create hostel error:', error);
-        res.status(500).json({ status: 'error', message: 'DB insert failed', paystack: paystack_data });
+        const mysqlMessage = error && error.message ? error.message : String(error);
+        const mysqlCode = error && error.code ? error.code : undefined;
+
+        res.status(500).json({
+            status: 'error',
+            message: 'DB insert failed',
+            db_error: mysqlMessage,
+            db_code: mysqlCode,
+            paystack: paystack_data
+        });
     }
 }
+
 
 /**
  * Helper function to make Paystack API requests
