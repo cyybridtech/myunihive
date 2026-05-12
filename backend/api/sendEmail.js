@@ -78,8 +78,43 @@ function buildHtmlEmail(title, intro, contentHtml, closing) {
 }
 
 async function sendMail(options) {
+    // If a Brevo API key is provided, use the HTTP API (Port 443) to completely bypass Render's SMTP blocks
+    if (process.env.BREVO_API_KEY) {
+        try {
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': process.env.BREVO_API_KEY,
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sender: { name: EMAIL_FROM_NAME, email: FROM_ADDRESS },
+                    to: [{ email: options.to }],
+                    subject: options.subject,
+                    htmlContent: options.html,
+                    textContent: options.text,
+                    replyTo: { email: EMAIL_SUPPORT }
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                console.log(`[EMAIL] Sent to ${options.to} via Brevo HTTP API. messageId=${data.messageId}`);
+                return true;
+            } else {
+                console.error(`[EMAIL] Brevo API FAILED:`, data);
+                return false;
+            }
+        } catch (error) {
+            console.error(`[EMAIL] Brevo API Request Error:`, error.message);
+            return false;
+        }
+    }
+
+    // Fallback to Nodemailer for local testing or custom SMTP providers (like SMTP2GO on port 2525)
     if (!EMAIL_USER || !EMAIL_PASS) {
-        console.log('[EMAIL] Email delivery skipped because credentials are not configured.');
+        console.log('[EMAIL] Email delivery skipped because credentials/API keys are not configured.');
         return false;
     }
 
@@ -95,10 +130,10 @@ async function sendMail(options) {
 
     try {
         const info = await transporter.sendMail(mailOptions);
-        console.log(`[EMAIL] Sent to ${options.to}. messageId=${info.messageId}`);
+        console.log(`[EMAIL] Sent to ${options.to} via SMTP. messageId=${info.messageId}`);
         return true;
     } catch (error) {
-        console.error(`[EMAIL] sendMail FAILED:`, error.message);
+        console.error(`[EMAIL] sendMail SMTP FAILED:`, error.message);
         return false;
     }
 }
