@@ -8,10 +8,17 @@ const { getPool, PAYSTACK_SECRET_KEY } = require('./config');
 const https = require('https');
 
 async function createHostelHandler(req, res) {
+    console.log('[CREATE_HOSTEL] incoming', {
+        role: req.role,
+        user_id: req.user_id,
+        bodyKeys: req.body ? Object.keys(req.body) : []
+    });
+
     const { name, university_id, address, description, distance_from_campus, price_range, main_image, 
            bank_code, account_number, manager_full_name, manager_email, manager_password, manager_phone, manager_gender } = req.body || {};
     const user_role = req.role;
     const user_id = req.user_id;
+
 
     const isManagerRole = user_role === 'manager' || user_role === 'hostel_manager';
     if (!user_role || !user_id || (user_role !== 'admin' && !isManagerRole)) {
@@ -87,12 +94,46 @@ async function createHostelHandler(req, res) {
         }
 
         // Insert hostel
-        await pool.execute(
-            `INSERT INTO hostels (id, name, university_id, address, description, distance_from_campus, price_range, main_image, gallery, verified, manager_id, subaccount_code, bank_name, account_number, commission_type, platform_fee) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
-            [id, name, university_id, address || '', description || '', distance_from_campus || '1.0km', price_range || 'GH₵1000-2000', 
-             main_image || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80', gallery_json, manager_id, subaccount_code, bank_code || '', account_number || '', req.body.commission_type || 'split', req.body.platform_fee || 0]
-        );
+        // IMPORTANT: match DB column count + provide safe defaults for nullable/JSON fields
+        const insertValues = [
+            id,
+            name,
+            university_id,
+            address || '',
+            description || '',
+            distance_from_campus || '1.0km',
+            price_range || 'GH₵1000-2000',
+            main_image || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80',
+            gallery_json,
+            manager_id,
+            subaccount_code,
+            bank_code || '',
+            account_number || '',
+            req.body.commission_type || 'split',
+            req.body.platform_fee != null ? req.body.platform_fee : 0
+        ];
+
+        try {
+            await pool.execute(
+                `INSERT INTO hostels (id, name, university_id, address, description, distance_from_campus, price_range, main_image, gallery, verified, manager_id, subaccount_code, bank_name, account_number, commission_type, platform_fee) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
+                insertValues
+            );
+        } catch (dbErr) {
+            console.error('[CREATE_HOSTEL] Insert payload:', {
+                id,
+                name,
+                university_id,
+                manager_id,
+                subaccount_code,
+                bank_code_present: Boolean(bank_code),
+                account_number_present: Boolean(account_number),
+                commission_type: req.body.commission_type,
+                platform_fee: req.body.platform_fee,
+                gallery_json: gallery_json ? String(gallery_json).slice(0, 200) : null
+            });
+            throw dbErr;
+        }
 
         res.json({
             status: 'success',
