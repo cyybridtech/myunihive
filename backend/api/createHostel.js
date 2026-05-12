@@ -103,15 +103,24 @@ async function createHostelHandler(req, res) {
         });
 
     } catch (error) {
-        console.error('Create hostel error:', error);
         const mysqlMessage = error && error.message ? error.message : String(error);
         const mysqlCode = error && error.code ? error.code : undefined;
+        const sqlMessage = error && error.sqlMessage ? error.sqlMessage : undefined;
+        const sqlState = error && error.sqlState ? error.sqlState : undefined;
+
+        console.error('[CREATE_HOSTEL] DB insert failed:', {
+            message: mysqlMessage,
+            code: mysqlCode,
+            sqlMessage,
+            sqlState,
+        });
 
         res.status(500).json({
             status: 'error',
             message: 'DB insert failed',
-            db_error: mysqlMessage,
+            db_error: sqlMessage || mysqlMessage,
             db_code: mysqlCode,
+            db_sql_state: sqlState,
             paystack: paystack_data
         });
     }
