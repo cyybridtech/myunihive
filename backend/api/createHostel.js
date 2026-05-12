@@ -78,7 +78,7 @@ async function createHostelHandler(req, res) {
 
             const [managerResult] = await pool.execute(
                 `INSERT INTO users (full_name, email, phone, university_id, password, role, gender, credits, created_at) 
-                 VALUES (?, ?, ?, ?, ?, 'hostel_manager', ?, 0, NOW())`,
+                VALUES (?, ?, ?, ?, ?, 'admin', ?, 0, NOW())`,
                 [manager_full_name, manager_email, manager_phone || null, university_id, managerPassword, manager_gender || 'male']
             );
 
