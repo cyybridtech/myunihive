@@ -93,9 +93,21 @@ async function createHostelHandler(req, res) {
             gallery_json = JSON.stringify(req.body.gallery);
         }
 
-        // Insert hostel
-        // IMPORTANT: match DB column count + provide safe defaults for nullable/JSON fields
-        const insertValues = [
+
+
+        // Build insert dynamically to match whatever columns exist in the connected DB.
+        // Your current XAMPP `hostels` table does NOT include `commission_type` and `platform_fee`.
+        const [columnsRows] = await pool.execute('SHOW COLUMNS FROM hostels');
+        const existingCols = new Set(columnsRows.map(r => r.Field));
+
+        const allCols = [
+            'id', 'name', 'university_id', 'address', 'description', 'distance_from_campus',
+            'price_range', 'main_image', 'gallery',
+            'verified', 'manager_id', 'subaccount_code', 'bank_name', 'account_number',
+            'commission_type', 'platform_fee'
+        ];
+
+        const allVals = [
             id,
             name,
             university_id,
@@ -105,6 +117,7 @@ async function createHostelHandler(req, res) {
             price_range || 'GH₵1000-2000',
             main_image || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80',
             gallery_json,
+            1,
             manager_id,
             subaccount_code,
             bank_code || '',
@@ -113,27 +126,28 @@ async function createHostelHandler(req, res) {
             req.body.platform_fee != null ? req.body.platform_fee : 0
         ];
 
-        try {
-            await pool.execute(
-                `INSERT INTO hostels (id, name, university_id, address, description, distance_from_campus, price_range, main_image, gallery, verified, manager_id, subaccount_code, bank_name, account_number, commission_type, platform_fee) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
-                insertValues
-            );
-        } catch (dbErr) {
-            console.error('[CREATE_HOSTEL] Insert payload:', {
-                id,
-                name,
-                university_id,
-                manager_id,
-                subaccount_code,
-                bank_code_present: Boolean(bank_code),
-                account_number_present: Boolean(account_number),
-                commission_type: req.body.commission_type,
-                platform_fee: req.body.platform_fee,
-                gallery_json: gallery_json ? String(gallery_json).slice(0, 200) : null
-            });
-            throw dbErr;
+        // Filter to only columns that exist
+        const finalCols = [];
+        const finalVals = [];
+        for (let i = 0; i < allCols.length; i++) {
+            if (existingCols.has(allCols[i])) {
+                finalCols.push(allCols[i]);
+                finalVals.push(allVals[i]);
+            }
         }
+
+        // If critical columns are missing, fail loudly
+        const critical = ['id', 'name', 'university_id'];
+        const missingCritical = critical.filter(c => !existingCols.has(c));
+        if (missingCritical.length) {
+            throw new Error('Hostels table missing critical columns: ' + missingCritical.join(', '));
+        }
+
+        const placeholders = finalCols.map(() => '?').join(', ');
+        const insertSql = `INSERT INTO hostels (${finalCols.join(', ')}) VALUES (${placeholders})`;
+
+        await pool.execute(insertSql, finalVals);
+
 
         res.json({
             status: 'success',
