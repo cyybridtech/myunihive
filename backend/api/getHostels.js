@@ -34,6 +34,9 @@ async function getHostelsHandler(req, res) {
             universityId: h.university_id,
             address: h.address,
             description: h.description,
+            // optional geo coords (map only renders when both exist)
+            lat: h.lat ?? null,
+            lng: h.lng ?? null,
             facilities: ['WiFi', 'Security'],
             distanceFromCampus: h.distance_from_campus,
             priceRange: h.price_range,

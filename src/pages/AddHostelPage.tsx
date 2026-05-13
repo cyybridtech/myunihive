@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
@@ -34,6 +34,10 @@ export default function AddHostelPage() {
 
   const [gallery, setGallery] = useState<{ file?: File, previewUrl: string, desc: string, isUploading: boolean, uploadedUrl?: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const leafletMapRef = useRef<any>(null);
+  const leafletMarkerRef = useRef<any>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -122,6 +126,56 @@ export default function AddHostelPage() {
     }
   };
 
+  useEffect(() => {
+    const lat = formData.lat !== '' ? Number(formData.lat) : null;
+    const lng = formData.lng !== '' ? Number(formData.lng) : null;
+
+    if (lat === null || lng === null) return;
+    if (!mapContainerRef.current) return;
+    if (!(window as any).L) return;
+
+    const L = (window as any).L;
+
+    const zoom = 15;
+
+    // init
+    if (!leafletMapRef.current) {
+      leafletMapRef.current = L.map(mapContainerRef.current).setView([lat, lng], zoom);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(leafletMapRef.current);
+
+      leafletMarkerRef.current = L.marker([lat, lng], { draggable: true }).addTo(leafletMapRef.current);
+
+      // map click => move marker + set coords
+      leafletMapRef.current.on('click', (e: any) => {
+        const clickedLat = e?.latlng?.lat;
+        const clickedLng = e?.latlng?.lng;
+        if (!Number.isFinite(clickedLat) || !Number.isFinite(clickedLng)) return;
+
+        setFormData(prev => ({ ...prev, lat: String(clickedLat), lng: String(clickedLng) }));
+        if (leafletMarkerRef.current) leafletMarkerRef.current.setLatLng([clickedLat, clickedLng]);
+      });
+
+      // marker drag end => set coords
+      leafletMarkerRef.current.on('dragend', () => {
+        const p = leafletMarkerRef.current?.getLatLng?.();
+        if (!p) return;
+        setFormData(prev => ({ ...prev, lat: String(p.lat), lng: String(p.lng) }));
+      });
+    } else {
+      // update view/marker
+      leafletMapRef.current.setView([lat, lng], zoom);
+      if (leafletMarkerRef.current) {
+        leafletMarkerRef.current.setLatLng([lat, lng]);
+      } else {
+        leafletMarkerRef.current = L.marker([lat, lng], { draggable: true }).addTo(leafletMapRef.current);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.lat, formData.lng]);
+
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -154,23 +208,39 @@ export default function AddHostelPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400"/> Address</label>
                   <input value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="123 Campus Road" />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude (lat)</label>
-                  <input
-                    value={formData.lat}
-                    onChange={e => setFormData({ ...formData, lat: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                    placeholder="e.g. 5.6037"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude (lng)</label>
-                  <input
-                    value={formData.lng}
-                    onChange={e => setFormData({ ...formData, lng: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                    placeholder="e.g. -0.1870"
-                  />
+
+                {/* Location Picker */}
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between gap-4 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      Location (pin by map)
+                    </label>
+                    <span className="text-xs text-gray-500">Click anywhere to set, or drag the marker</span>
+                  </div>
+
+                  <div className="w-full h-64 rounded-xl border border-gray-100 overflow-hidden bg-white" ref={mapContainerRef} />
+
+                  <div className="grid sm:grid-cols-2 gap-5 mt-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude (lat) (optional)</label>
+                      <input
+                        value={formData.lat}
+                        onChange={e => setFormData({ ...formData, lat: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                        placeholder="e.g. 5.6037"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude (lng) (optional)</label>
+                      <input
+                        value={formData.lng}
+                        onChange={e => setFormData({ ...formData, lng: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                        placeholder="e.g. -0.1870"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400"/> Price Range</label>
