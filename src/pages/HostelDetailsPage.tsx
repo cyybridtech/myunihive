@@ -280,32 +280,7 @@ export default function HostelDetailsPage() {
                   </div>
                   <p className="text-gray-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {hostel.address} • {hostel.distanceFromCampus} from {uni?.name}</p>
 
-                  {(() => {
-                    const lat = Number((hostel as any)?.lat);
-                    const lng = Number((hostel as any)?.lng);
-                    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
-                    if (!hasCoords) return null;
-
-                    const url = `https://www.google.com/maps?q=${lat},${lng}`;
-
-                    return (
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <h3 className="text-sm font-bold text-gray-800">Location</h3>
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs px-3 py-2 border border-amber-200 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors"
-                            aria-label="View in Google Maps"
-                          >
-                            View in Google Maps
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })()}
                 </div>
                 {isAuthenticated && (
                     <button aria-label={isSaved ? 'Remove saved hostel' : 'Save hostel'} onClick={() => toggleSaveHostel(hostel.id)} className={`p-3 rounded-full border transition-colors ${isSaved ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-white'}`}>

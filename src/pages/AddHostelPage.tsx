@@ -27,17 +27,13 @@ export default function AddHostelPage() {
     managerGender: 'male',
     facilities: '',
     commissionType: 'split',
-    platformFee: '',
-    lat: '',
-    lng: ''
+    platformFee: ''
   });
 
   const [gallery, setGallery] = useState<{ file?: File, previewUrl: string, desc: string, isUploading: boolean, uploadedUrl?: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const leafletMapRef = useRef<any>(null);
-  const leafletMarkerRef = useRef<any>(null);
+
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -107,9 +103,7 @@ export default function AddHostelPage() {
         manager_password: formData.managerPassword,
         manager_gender: formData.managerGender,
         commission_type: formData.commissionType,
-        platform_fee: formData.commissionType === 'flat' ? parseFloat(formData.platformFee) || 0 : 0,
-        lat: formData.lat !== '' ? Number(formData.lat) : null,
-        lng: formData.lng !== '' ? Number(formData.lng) : null
+        platform_fee: formData.commissionType === 'flat' ? parseFloat(formData.platformFee) || 0 : 0
       });
 
       if (response.status === 'success') {
@@ -126,82 +120,7 @@ export default function AddHostelPage() {
     }
   };
 
-  useEffect(() => {
-    // default map center so the picker is never blank
-    const defaultLat = 6.704161;
-    const defaultLng = -1.687694;
 
-    const parsedLat = formData.lat !== '' ? Number(formData.lat) : null;
-    const parsedLng = formData.lng !== '' ? Number(formData.lng) : null;
-
-    const lat = parsedLat !== null && Number.isFinite(parsedLat) ? parsedLat : defaultLat;
-    const lng = parsedLng !== null && Number.isFinite(parsedLng) ? parsedLng : defaultLng;
-
-    if (!mapContainerRef.current) return;
-
-    // Leaflet should be available from the global window (CDN loaded in index.html)
-    const L = (window as any).L;
-    if (!L) return;
-
-    const zoom = 15;
-
-    // init (only once)
-    if (!leafletMapRef.current) {
-      leafletMapRef.current = L.map(mapContainerRef.current).setView([lat, lng], zoom);
-
-      // default: satellite (so admin pin looks like the student view)
-      const satelliteUrl =
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-      const labelsUrl =
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
-
-      const satelliteLayer = L.tileLayer(satelliteUrl, {
-        attribution: 'Tiles © Esri',
-        maxZoom: 19,
-      });
-      const labelsLayer = L.tileLayer(labelsUrl, {
-        attribution: 'Street & labels © Esri',
-        maxZoom: 19,
-      });
-
-      (leafletMapRef.current as any).__satelliteLayer = satelliteLayer;
-      (leafletMapRef.current as any).__labelsLayer = labelsLayer;
-
-      // start with satellite
-      satelliteLayer.addTo(leafletMapRef.current);
-
-      leafletMarkerRef.current = L.marker([lat, lng], { draggable: true }).addTo(leafletMapRef.current);
-
-      // map click => move marker + set coords
-      leafletMapRef.current.on('click', (e: any) => {
-        const clickedLat = e?.latlng?.lat;
-        const clickedLng = e?.latlng?.lng;
-        if (!Number.isFinite(clickedLat) || !Number.isFinite(clickedLng)) return;
-
-        setFormData(prev => ({ ...prev, lat: String(clickedLat), lng: String(clickedLng) }));
-        if (leafletMarkerRef.current) leafletMarkerRef.current.setLatLng([clickedLat, clickedLng]);
-      });
-
-      // marker drag end => set coords
-      leafletMarkerRef.current.on('dragend', () => {
-        const p = leafletMarkerRef.current?.getLatLng?.();
-        if (!p) return;
-        setFormData(prev => ({ ...prev, lat: String(p.lat), lng: String(p.lng) }));
-      });
-
-      return;
-    }
-
-    // update view/marker when coords change
-    leafletMapRef.current.setView([lat, lng], zoom);
-    if (leafletMarkerRef.current) {
-      leafletMarkerRef.current.setLatLng([lat, lng]);
-    } else {
-      leafletMarkerRef.current = L.marker([lat, lng], { draggable: true }).addTo(leafletMapRef.current);
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.lat, formData.lng]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
@@ -236,39 +155,7 @@ export default function AddHostelPage() {
                   <input value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="123 Campus Road" />
                 </div>
 
-                {/* Location Picker */}
-                <div className="sm:col-span-2">
-                  <div className="flex items-center justify-between gap-4 mb-2">
-                    <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      Location (pin by map)
-                    </label>
-                    <span className="text-xs text-gray-500">Click anywhere to set, or drag the marker</span>
-                  </div>
 
-                  <div className="w-full h-64 rounded-xl border border-gray-100 overflow-hidden bg-white" ref={mapContainerRef} />
-
-                  <div className="grid sm:grid-cols-2 gap-5 mt-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude (lat) (optional)</label>
-                      <input
-                        value={formData.lat}
-                        onChange={e => setFormData({ ...formData, lat: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                        placeholder="e.g. 5.6037"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude (lng) (optional)</label>
-                      <input
-                        value={formData.lng}
-                        onChange={e => setFormData({ ...formData, lng: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                        placeholder="e.g. -0.1870"
-                      />
-                    </div>
-                  </div>
-                </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400"/> Price Range</label>
                   <input value={formData.priceRange} onChange={e => setFormData({ ...formData, priceRange: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="GH₵1000 - GH₵2000" />
