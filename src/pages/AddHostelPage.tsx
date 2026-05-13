@@ -127,18 +127,25 @@ export default function AddHostelPage() {
   };
 
   useEffect(() => {
-    const lat = formData.lat !== '' ? Number(formData.lat) : null;
-    const lng = formData.lng !== '' ? Number(formData.lng) : null;
+    // default map center so the picker is never blank
+    const defaultLat = 6.704161;
+    const defaultLng = -1.687694;
 
-    if (lat === null || lng === null) return;
+    const parsedLat = formData.lat !== '' ? Number(formData.lat) : null;
+    const parsedLng = formData.lng !== '' ? Number(formData.lng) : null;
+
+    const lat = parsedLat !== null && Number.isFinite(parsedLat) ? parsedLat : defaultLat;
+    const lng = parsedLng !== null && Number.isFinite(parsedLng) ? parsedLng : defaultLng;
+
     if (!mapContainerRef.current) return;
-    if (!(window as any).L) return;
 
+    // Leaflet should be available from the global window (CDN loaded in index.html)
     const L = (window as any).L;
+    if (!L) return;
 
     const zoom = 15;
 
-    // init
+    // init (only once)
     if (!leafletMapRef.current) {
       leafletMapRef.current = L.map(mapContainerRef.current).setView([lat, lng], zoom);
 
@@ -164,15 +171,18 @@ export default function AddHostelPage() {
         if (!p) return;
         setFormData(prev => ({ ...prev, lat: String(p.lat), lng: String(p.lng) }));
       });
-    } else {
-      // update view/marker
-      leafletMapRef.current.setView([lat, lng], zoom);
-      if (leafletMarkerRef.current) {
-        leafletMarkerRef.current.setLatLng([lat, lng]);
-      } else {
-        leafletMarkerRef.current = L.marker([lat, lng], { draggable: true }).addTo(leafletMapRef.current);
-      }
+
+      return;
     }
+
+    // update view/marker when coords change
+    leafletMapRef.current.setView([lat, lng], zoom);
+    if (leafletMarkerRef.current) {
+      leafletMarkerRef.current.setLatLng([lat, lng]);
+    } else {
+      leafletMarkerRef.current = L.marker([lat, lng], { draggable: true }).addTo(leafletMapRef.current);
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.lat, formData.lng]);
 
