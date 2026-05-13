@@ -27,7 +27,9 @@ export default function AddHostelPage() {
     managerGender: 'male',
     facilities: '',
     commissionType: 'split',
-    platformFee: ''
+    platformFee: '',
+    lat: '',
+    lng: ''
   });
 
   const [gallery, setGallery] = useState<{ file?: File, previewUrl: string, desc: string, isUploading: boolean, uploadedUrl?: string }[]>([]);
@@ -101,7 +103,9 @@ export default function AddHostelPage() {
         manager_password: formData.managerPassword,
         manager_gender: formData.managerGender,
         commission_type: formData.commissionType,
-        platform_fee: formData.commissionType === 'flat' ? parseFloat(formData.platformFee) || 0 : 0
+        platform_fee: formData.commissionType === 'flat' ? parseFloat(formData.platformFee) || 0 : 0,
+        lat: formData.lat !== '' ? Number(formData.lat) : null,
+        lng: formData.lng !== '' ? Number(formData.lng) : null
       });
 
       if (response.status === 'success') {
@@ -149,6 +153,24 @@ export default function AddHostelPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400"/> Address</label>
                   <input value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="123 Campus Road" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude (lat)</label>
+                  <input
+                    value={formData.lat}
+                    onChange={e => setFormData({ ...formData, lat: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                    placeholder="e.g. 5.6037"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude (lng)</label>
+                  <input
+                    value={formData.lng}
+                    onChange={e => setFormData({ ...formData, lng: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                    placeholder="e.g. -0.1870"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400"/> Price Range</label>

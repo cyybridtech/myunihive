@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -28,6 +28,10 @@ export default function HostelDetailsPage() {
   const [showGallery, setShowGallery] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
 
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const leafletMapRef = useRef<any>(null);
+  const leafletMarkerRef = useRef<any>(null);
+
   const selectedRoomData = selectedRoom ? filteredRooms.find(r => r.id === selectedRoom) : undefined;
 
   const filteredHostelRooms = hostelRooms.filter(room => {
@@ -41,6 +45,41 @@ export default function HostelDetailsPage() {
       setSelectedRoom(null);
     }
   }, [filteredHostelRooms, selectedRoom]);
+
+  useEffect(() => {
+    const lat = (hostel as any)?.lat;
+    const lng = (hostel as any)?.lng;
+
+    if (!lat || !lng) return;
+    if (!mapContainerRef.current) return;
+    if (!(window as any).L) return;
+
+    const L = (window as any).L;
+
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return;
+
+    const zoom = 15;
+
+    if (!leafletMapRef.current) {
+      leafletMapRef.current = L.map(mapContainerRef.current).setView([latNum, lngNum], zoom);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(leafletMapRef.current);
+
+      leafletMarkerRef.current = L.marker([latNum, lngNum]).addTo(leafletMapRef.current);
+    } else {
+      leafletMapRef.current.setView([latNum, lngNum], zoom);
+      if (leafletMarkerRef.current) {
+        leafletMarkerRef.current.setLatLng([latNum, lngNum]);
+      } else {
+        leafletMarkerRef.current = L.marker([latNum, lngNum]).addTo(leafletMapRef.current);
+      }
+    }
+  }, [hostel?.lat, hostel?.lng, id]);
 
   if (!hostel) {
     return (
@@ -269,6 +308,16 @@ export default function HostelDetailsPage() {
                     )}
                   </div>
                   <p className="text-gray-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {hostel.address} • {hostel.distanceFromCampus} from {uni?.name}</p>
+
+                  {(hostel as any)?.lat && (hostel as any)?.lng && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-bold text-gray-800 mb-2">Location</h3>
+                      <div
+                        ref={mapContainerRef}
+                        className="w-full h-56 rounded-xl border border-gray-100 overflow-hidden"
+                      />
+                    </div>
+                  )}
                 </div>
                 {isAuthenticated && (
                     <button aria-label={isSaved ? 'Remove saved hostel' : 'Save hostel'} onClick={() => toggleSaveHostel(hostel.id)} className={`p-3 rounded-full border transition-colors ${isSaved ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-white'}`}>
