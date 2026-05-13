@@ -95,6 +95,10 @@ export default function HostelDetailsPage() {
   const facilityIcons: Record<string, typeof Wifi> = { WiFi: Wifi, Security: Shield, Generator: Zap, 'Water Tank': Droplets, 'Study Room': BookOpen };
   const isSaved = savedHostels.includes(hostel.id);
 
+  const hostelLat = Number((hostel as any)?.lat);
+  const hostelLng = Number((hostel as any)?.lng);
+  const hasHostelCoords = Number.isFinite(hostelLat) && Number.isFinite(hostelLng);
+
   const cleanupPendingBooking = async (bookingId: string) => {
     try {
       const response = await deleteBooking(bookingId);
@@ -309,15 +313,51 @@ export default function HostelDetailsPage() {
                   </div>
                   <p className="text-gray-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {hostel.address} • {hostel.distanceFromCampus} from {uni?.name}</p>
 
-                  {(hostel as any)?.lat && (hostel as any)?.lng && (
-                    <div className="mt-4">
-                      <h3 className="text-sm font-bold text-gray-800 mb-2">Location</h3>
-                      <div
-                        ref={mapContainerRef}
-                        className="w-full h-56 rounded-xl border border-gray-100 overflow-hidden"
-                      />
-                    </div>
-                  )}
+                  {(() => {
+                    const lat = Number((hostel as any)?.lat);
+                    const lng = Number((hostel as any)?.lng);
+                    const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+                    return hasCoords ? (
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between gap-4 mb-2">
+                          <h3 className="text-sm font-bold text-gray-800">Location</h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">View</span>
+                            <select
+                              aria-label="Map view"
+                              className="text-xs px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                              defaultValue="satellite"
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const map = leafletMapRef.current;
+                                if (!map) return;
+
+                                // layers stored on map instance (set below during init)
+                                const satelliteLayer = (map as any).__satelliteLayer;
+                                const labelsLayer = (map as any).__labelsLayer;
+
+                                if (v === 'satellite') {
+                                  if (satelliteLayer) map.addLayer(satelliteLayer);
+                                  if (labelsLayer) map.removeLayer(labelsLayer);
+                                } else if (v === 'labels') {
+                                  if (satelliteLayer) map.removeLayer(satelliteLayer);
+                                  if (labelsLayer) map.addLayer(labelsLayer);
+                                }
+                              }}
+                            >
+                              <option value="satellite">Satellite</option>
+                              <option value="labels">Street/Labels</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div
+                          ref={mapContainerRef}
+                          className="w-full h-56 rounded-xl border border-gray-100 overflow-hidden"
+                        />
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
                 {isAuthenticated && (
                     <button aria-label={isSaved ? 'Remove saved hostel' : 'Save hostel'} onClick={() => toggleSaveHostel(hostel.id)} className={`p-3 rounded-full border transition-colors ${isSaved ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-white'}`}>
