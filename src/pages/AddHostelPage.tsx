@@ -149,9 +149,26 @@ export default function AddHostelPage() {
     if (!leafletMapRef.current) {
       leafletMapRef.current = L.map(mapContainerRef.current).setView([lat, lng], zoom);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-      }).addTo(leafletMapRef.current);
+      // default: satellite (so admin pin looks like the student view)
+      const satelliteUrl =
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      const labelsUrl =
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+
+      const satelliteLayer = L.tileLayer(satelliteUrl, {
+        attribution: 'Tiles © Esri',
+        maxZoom: 19,
+      });
+      const labelsLayer = L.tileLayer(labelsUrl, {
+        attribution: 'Street & labels © Esri',
+        maxZoom: 19,
+      });
+
+      (leafletMapRef.current as any).__satelliteLayer = satelliteLayer;
+      (leafletMapRef.current as any).__labelsLayer = labelsLayer;
+
+      // start with satellite
+      satelliteLayer.addTo(leafletMapRef.current);
 
       leafletMarkerRef.current = L.marker([lat, lng], { draggable: true }).addTo(leafletMapRef.current);
 

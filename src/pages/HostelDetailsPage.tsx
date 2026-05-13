@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -9,13 +9,13 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live
 export default function HostelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { filteredHostels, filteredRooms, reviews, universities, isAuthenticated, savedHostels, toggleSaveHostel, addBooking, removeBooking, user, addReview, refreshBookings, refreshData, refreshNotifications } = useApp();
-
-  const hostel = filteredHostels.find(h => h.id === id);
-  const hostelRooms = filteredRooms.filter(r => r.hostelId === id);
-  const hostelReviews = reviews.filter(r => r.hostelId === id);
-  const uni = universities.find(u => u.id === hostel?.universityId);
-
+  const {
+    filteredHostels,
+    filteredRooms,
+    reviews,
+    universities,
+    isAuthenticated,
+    savedHostels,
   const [activeImage, setActiveImage] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -28,11 +28,11 @@ export default function HostelDetailsPage() {
   const [showGallery, setShowGallery] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
 
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const leafletMapRef = useRef<any>(null);
-  const leafletMarkerRef = useRef<any>(null);
-
   const selectedRoomData = selectedRoom ? filteredRooms.find(r => r.id === selectedRoom) : undefined;
+
+  const hostelLat = Number((hostel as any)?.lat);
+  const hostelLng = Number((hostel as any)?.lng);
+  const hasHostelCoords = Number.isFinite(hostelLat) && Number.isFinite(hostelLng);
 
   const filteredHostelRooms = hostelRooms.filter(room => {
     if (roomGenderFilter === 'all') return true;
@@ -46,40 +46,7 @@ export default function HostelDetailsPage() {
     }
   }, [filteredHostelRooms, selectedRoom]);
 
-  useEffect(() => {
-    const lat = (hostel as any)?.lat;
-    const lng = (hostel as any)?.lng;
-
-    if (!lat || !lng) return;
-    if (!mapContainerRef.current) return;
-    if (!(window as any).L) return;
-
-    const L = (window as any).L;
-
-    const latNum = Number(lat);
-    const lngNum = Number(lng);
-
-    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return;
-
-    const zoom = 15;
-
-    if (!leafletMapRef.current) {
-      leafletMapRef.current = L.map(mapContainerRef.current).setView([latNum, lngNum], zoom);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-      }).addTo(leafletMapRef.current);
-
-      leafletMarkerRef.current = L.marker([latNum, lngNum]).addTo(leafletMapRef.current);
-    } else {
-      leafletMapRef.current.setView([latNum, lngNum], zoom);
-      if (leafletMarkerRef.current) {
-        leafletMarkerRef.current.setLatLng([latNum, lngNum]);
-      } else {
-        leafletMarkerRef.current = L.marker([latNum, lngNum]).addTo(leafletMapRef.current);
-      }
-    }
-  }, [hostel?.lat, hostel?.lng, id]);
+  // Embedded map removed (use “Open in Google Maps” button instead)
 
   if (!hostel) {
     return (
@@ -317,46 +284,27 @@ export default function HostelDetailsPage() {
                     const lat = Number((hostel as any)?.lat);
                     const lng = Number((hostel as any)?.lng);
                     const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
-                    return hasCoords ? (
+
+                    if (!hasCoords) return null;
+
+                    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+
+                    return (
                       <div className="mt-4">
-                        <div className="flex items-center justify-between gap-4 mb-2">
+                        <div className="flex items-center justify-between gap-4">
                           <h3 className="text-sm font-bold text-gray-800">Location</h3>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">View</span>
-                            <select
-                              aria-label="Map view"
-                              className="text-xs px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                              defaultValue="satellite"
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                const map = leafletMapRef.current;
-                                if (!map) return;
-
-                                // layers stored on map instance (set below during init)
-                                const satelliteLayer = (map as any).__satelliteLayer;
-                                const labelsLayer = (map as any).__labelsLayer;
-
-                                if (v === 'satellite') {
-                                  if (satelliteLayer) map.addLayer(satelliteLayer);
-                                  if (labelsLayer) map.removeLayer(labelsLayer);
-                                } else if (v === 'labels') {
-                                  if (satelliteLayer) map.removeLayer(satelliteLayer);
-                                  if (labelsLayer) map.addLayer(labelsLayer);
-                                }
-                              }}
-                            >
-                              <option value="satellite">Satellite</option>
-                              <option value="labels">Street/Labels</option>
-                            </select>
-                          </div>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs px-3 py-2 border border-amber-200 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors"
+                            aria-label="View in Google Maps"
+                          >
+                            View in Google Maps
+                          </a>
                         </div>
-
-                        <div
-                          ref={mapContainerRef}
-                          className="w-full h-56 rounded-xl border border-gray-100 overflow-hidden"
-                        />
                       </div>
-                    ) : null;
+                    );
                   })()}
                 </div>
                 {isAuthenticated && (
