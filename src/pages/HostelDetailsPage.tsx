@@ -16,6 +16,19 @@ export default function HostelDetailsPage() {
     universities,
     isAuthenticated,
     savedHostels,
+    user,
+    hostel,
+    hostelRooms,
+    hostelReviews,
+    toggleSaveHostel,
+    refreshBookings,
+    refreshNotifications,
+    refreshData,
+    addBooking,
+    removeBooking,
+    addReview,
+  } = useApp();
+
   const [activeImage, setActiveImage] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
