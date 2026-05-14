@@ -43,11 +43,8 @@ export default function HostelDetailsPage() {
 
   const selectedRoomData = selectedRoom ? filteredRooms.find(r => r.id === selectedRoom) : undefined;
 
-  const hostelLat = Number((hostel as any)?.lat);
-  const hostelLng = Number((hostel as any)?.lng);
-  const hasHostelCoords = Number.isFinite(hostelLat) && Number.isFinite(hostelLng);
-
   const filteredHostelRooms = hostelRooms.filter(room => {
+
     if (roomGenderFilter === 'all') return true;
     return room.gender === roomGenderFilter;
   });
