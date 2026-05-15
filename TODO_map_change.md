@@ -1,23 +1,17 @@
-# TODO: Replace embedded hostels map with “Open in Google Maps” button
+# TODO_map_change.md
 
-## Step 1: Update Hostel details UI
-- [ ] Edit `src/pages/HostelDetailsPage.tsx`
-  - Remove/disable embedded Leaflet “Location” map section (the `mapContainerRef` + `useEffect` Leaflet init + JSX map block).
-  - Add a button (only when `hostel.lat/lng` are finite numbers):
-    - “View in Google Maps”
-    - Link: `https://www.google.com/maps?q={lat},{lng}`
-  - Open via `window.open(url, '_blank')` or `a href` with `target="_blank"`.
+## Google Maps location feature
 
-## Step 2: Keep Add Hostel pin picker using google maps 
-- [ ] Ensure `src/pages/AddHostelPage.tsx` continues to collect/save `lat/lng` via the existing pin-by-map picker.
+- [ ] Update `src/pages/AddHostelPage.tsx`
+  - [ ] Add Google Maps picker (click-to-select)
+  - [ ] Persist selected `lat`/`lng` in `createHostel` payload
+  - [ ] Show lat/lng inputs (read-only) + validation
 
-## Step 3: Manual verification (critical path)
-- [ ] Add hostel → pin on map → publish
-- [ ] Open hostel details → confirm the Google Maps button appears
-- [ ] Click button → confirm it opens Google Maps at the pinned coordinates
-- [ ] Open hostel that has no coords → confirm the button is hidden (no blank/empty map)
+- [ ] Update `src/pages/HostelDetailsPage.tsx`
+  - [ ] Add Google Map preview (marker)
+  - [ ] Add “Get Directions” button (uses hostel lat/lng)
+  - [ ] Hide map/actions gracefully when `lat/lng` missing
 
-## Step 4: Commit & push
-- [ ] `git add` updated files
-- [ ] `git commit -m "Replace embedded hostel map with Google Maps link"`
-- [ ] `git push origin main`
+- [ ] Ensure env var `VITE_GOOGLE_MAPS_API_KEY` is used
+
+

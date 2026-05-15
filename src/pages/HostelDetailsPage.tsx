@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+
 import { useApp } from '../context/AppContext';
 import { createBooking, verifyPayment, submitReview, deleteBooking } from '../api/api.js';
 
@@ -15,6 +17,10 @@ export default function HostelDetailsPage() {
   const hostelRooms = filteredRooms.filter(r => r.hostelId === id);
   const hostelReviews = reviews.filter(r => r.hostelId === id);
   const uni = universities.find(u => u.id === hostel?.universityId);
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+  });
 
   const [activeImage, setActiveImage] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
@@ -285,6 +291,48 @@ export default function HostelDetailsPage() {
                   <span className="text-gray-500 text-sm">({hostel.reviewCount} reviews)</span>
                 </div>
               </div>
+            </div>
+
+            {/* Map Preview */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Location</h2>
+                  <p className="text-sm text-gray-500">{hostel.address}</p>
+                </div>
+                {hostel.lat != null && hostel.lng != null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = `https://www.google.com/maps/dir/?api=1&destination=${hostel.lat},${hostel.lng}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600"
+                  >
+                    Get Directions
+                  </button>
+                )}
+              </div>
+
+              {hostel.lat != null && hostel.lng != null ? (
+                <div className="w-full h-[260px] rounded-xl overflow-hidden border border-gray-100">
+                  {isLoaded ? (
+                    <GoogleMap
+                      mapContainerStyle={{ width: '100%', height: '100%' }}
+                      zoom={15}
+                      center={{ lat: hostel.lat as number, lng: hostel.lng as number }}
+                    >
+                      <Marker position={{ lat: hostel.lat as number, lng: hostel.lng as number }} />
+                    </GoogleMap>
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-500">
+                      Loading map...
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Map location not available for this hostel yet.</p>
+              )}
             </div>
 
             {/* Description */}

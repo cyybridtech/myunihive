@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createHostel, uploadImage } from '../api/api.js';
 import { Building2, Plus, X, UploadCloud, MapPin, DollarSign, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
 
 export default function AddHostelPage() {
   const navigate = useNavigate();
@@ -27,8 +28,38 @@ export default function AddHostelPage() {
     managerGender: 'male',
     facilities: '',
     commissionType: 'split',
-    platformFee: ''
+    platformFee: '',
+    lat: '' as string | number,
+    lng: '' as string | number
   });
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+  });
+
+  const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (!e.latLng) return;
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    setMapLocation({ lat, lng });
+    setFormData(prev => ({ ...prev, lat, lng }));
+  }, []);
+
+  const mapContainerStyle = useMemo(
+    () => ({
+      width: '100%',
+      height: '320px',
+      borderRadius: '14px'
+    }),
+    []
+  );
+
+  const defaultCenter = useMemo(() => ({ lat: 5.6037, lng: -0.1870 }), []);
+
+  const coordinatesMissing = mapLocation == null || formData.lat === '' || formData.lng === '';
+
 
   const [gallery, setGallery] = useState<{ file?: File, previewUrl: string, desc: string, isUploading: boolean, uploadedUrl?: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +103,10 @@ export default function AddHostelPage() {
       return alert('Name and University are required.');
     }
 
+    if (coordinatesMissing) {
+      return alert('Please select a location on the map to set Hostel coordinates (lat/lng).');
+    }
+
     if (gallery.some(g => g.isUploading)) {
       return alert('Please wait for all images to finish uploading.');
     }
@@ -88,6 +123,8 @@ export default function AddHostelPage() {
       const response: any = await createHostel({
         name: formData.name,
         university_id: formData.universityId,
+        lat: formData.lat === '' ? undefined : Number(formData.lat),
+        lng: formData.lng === '' ? undefined : Number(formData.lng),
         address: formData.address,
         description: formData.description,
         facilities: formData.facilities,
@@ -139,6 +176,54 @@ export default function AddHostelPage() {
             {/* Basic Info */}
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-4">Basic Information</h2>
+
+              {/* Location Picker */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Hostel Location (lat/lng)</h3>
+                {isLoaded ? (
+                  <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    zoom={13}
+                    center={mapLocation || defaultCenter}
+                    onClick={onMapClick}
+                  >
+                    {mapLocation && <Marker position={mapLocation} />}
+                  </GoogleMap>
+                ) : (
+                  <div className="w-full h-[320px] bg-gray-100 rounded-xl flex items-center justify-center text-gray-500">
+                    Loading map...
+                  </div>
+                )}
+
+                <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude</label>
+                    <input
+                      value={formData.lat}
+                      readOnly
+                      placeholder="Click on map"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude</label>
+                    <input
+                      value={formData.lng}
+                      readOnly
+                      placeholder="Click on map"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {!coordinatesMissing && (
+                  <p className="text-xs text-green-700 mt-2">Coordinates selected successfully.</p>
+                )}
+                {coordinatesMissing && (
+                  <p className="text-xs text-gray-500 mt-2">Click on the map to set Hostel coordinates.</p>
+                )}
+              </div>
+
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Hostel Name *</label>
