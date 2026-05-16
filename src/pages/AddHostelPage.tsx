@@ -186,24 +186,30 @@ export default function AddHostelPage() {
               <div className="mb-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Hostel Location (lat/lng)</h3>
                 <div className="rounded-xl overflow-hidden border border-gray-100 shadow-inner">
-                  <Map
-                    initialViewState={{
-                      longitude: mapLocation?.lng || defaultCenter.lng,
-                      latitude: mapLocation?.lat || defaultCenter.lat,
-                      zoom: 13
-                    }}
-                    style={mapContainerStyle}
-                    mapStyle="mapbox://styles/mapbox/streets-v12"
-                    mapboxAccessToken={MAPBOX_TOKEN}
-                    onClick={handleMapClick}
-                    cursor="pointer"
-                  >
-                    {mapLocation && (
-                      <Marker longitude={mapLocation.lng} latitude={mapLocation.lat} anchor="bottom">
-                        <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
-                      </Marker>
-                    )}
-                  </Map>
+                  {MAPBOX_TOKEN ? (
+                    <Map
+                      initialViewState={{
+                        longitude: mapLocation?.lng || defaultCenter.lng,
+                        latitude: mapLocation?.lat || defaultCenter.lat,
+                        zoom: 13
+                      }}
+                      style={mapContainerStyle}
+                      mapStyle="mapbox://styles/mapbox/streets-v12"
+                      mapboxAccessToken={MAPBOX_TOKEN}
+                      onClick={handleMapClick}
+                      cursor="pointer"
+                    >
+                      {mapLocation && (
+                        <Marker longitude={mapLocation.lng} latitude={mapLocation.lat} anchor="bottom">
+                          <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
+                        </Marker>
+                      )}
+                    </Map>
+                  ) : (
+                    <div style={mapContainerStyle} className="bg-gray-100 flex items-center justify-center p-6 text-center">
+                      <p className="text-gray-500 font-medium">Map cannot load: VITE_MAPBOX_TOKEN is missing in the environment variables.</p>
+                    </div>
+                  )}
                 </div>
 
 

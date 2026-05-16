@@ -319,20 +319,26 @@ export default function HostelDetailsPage() {
 
               {hostel.lat != null && hostel.lng != null ? (
                 <div className="w-full h-[260px] rounded-xl overflow-hidden border border-gray-100 shadow-inner">
-                  <Map
-                    initialViewState={{
-                      longitude: hostel.lng as number,
-                      latitude: hostel.lat as number,
-                      zoom: 15
-                    }}
-                    style={{ width: '100%', height: '100%' }}
-                    mapStyle="mapbox://styles/mapbox/streets-v12"
-                    mapboxAccessToken={MAPBOX_TOKEN}
-                  >
-                    <Marker longitude={hostel.lng as number} latitude={hostel.lat as number} anchor="bottom">
-                      <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
-                    </Marker>
-                  </Map>
+                  {MAPBOX_TOKEN ? (
+                    <Map
+                      initialViewState={{
+                        longitude: hostel.lng as number,
+                        latitude: hostel.lat as number,
+                        zoom: 15
+                      }}
+                      style={{ width: '100%', height: '100%' }}
+                      mapStyle="mapbox://styles/mapbox/streets-v12"
+                      mapboxAccessToken={MAPBOX_TOKEN}
+                    >
+                      <Marker longitude={hostel.lng as number} latitude={hostel.lat as number} anchor="bottom">
+                        <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
+                      </Marker>
+                    </Map>
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center p-6 text-center">
+                      <p className="text-gray-500 font-medium">Map cannot load: VITE_MAPBOX_TOKEN is missing in the environment variables.</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">Map location not available for this hostel yet.</p>
