@@ -35,17 +35,21 @@ const transportOptions = {
 
 const transporter = nodemailer.createTransport(transportOptions);
 
-transporter.verify()
-    .then(() => {
-        console.log('[EMAIL] SMTP transporter verified successfully');
-    })
-    .catch(error => {
-        console.error('[EMAIL] SMTP transporter verification FAILED');
-        console.error('[EMAIL] Error message:', error?.message || error);
-        console.error('[EMAIL] Error code:', error?.code);
-        console.error('[EMAIL] Error command:', error?.command);
-        console.error('[EMAIL] Full error:', error);
-    });
+if (!process.env.BREVO_API_KEY) {
+    transporter.verify()
+        .then(() => {
+            console.log('[EMAIL] SMTP transporter verified successfully');
+        })
+        .catch(error => {
+            console.error('[EMAIL] SMTP transporter verification FAILED');
+            console.error('[EMAIL] Error message:', error?.message || error);
+            console.error('[EMAIL] Error code:', error?.code);
+            console.error('[EMAIL] Error command:', error?.command);
+            console.error('[EMAIL] Note: If you are hosted on Render free tier, SMTP ports are blocked. Please configure BREVO_API_KEY to use the HTTP API fallback.');
+        });
+} else {
+    console.log('[EMAIL] BREVO_API_KEY detected. Bypassing SMTP transporter verification.');
+}
 
 function buildHtmlEmail(title, intro, contentHtml, closing) {
     return `<!DOCTYPE html>
