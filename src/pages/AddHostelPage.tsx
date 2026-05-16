@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createHostel, uploadImage } from '../api/api.js';
 import { Building2, Plus, X, UploadCloud, MapPin, DollarSign, Image as ImageIcon, ArrowLeft } from 'lucide-react';
-import Map, { Marker } from 'react-map-gl';
+import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
