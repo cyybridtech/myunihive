@@ -39,17 +39,17 @@ export default function AddHostelPage() {
 
   const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-const handleMapClick = useCallback((e: any) => {
+  const handlePickLocation = useCallback((lat: number, lng: number) => {
+    setMapLocation({ lat, lng });
+    setFormData(prev => ({ ...prev, lat, lng }));
+  }, []);
+
+  const handleMapClick = useCallback((e: any) => {
     if (e.lngLat) {
       const { lng, lat } = e.lngLat;
       handlePickLocation(lat, lng);
     }
   }, [handlePickLocation]);
-
-  const handlePickLocation = useCallback((lat: number, lng: number) => {
-    setMapLocation({ lat, lng });
-    setFormData(prev => ({ ...prev, lat, lng }));
-  }, []);
 
 
   const mapContainerStyle = useMemo(
