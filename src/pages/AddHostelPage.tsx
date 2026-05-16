@@ -4,17 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createHostel, uploadImage } from '../api/api.js';
 import { Building2, Plus, X, UploadCloud, MapPin, DollarSign, Image as ImageIcon, ArrowLeft } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import Map, { Marker } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Leaflet marker icon fix for bundlers (Vite/React)
-// Prevents markers from disappearing due to missing default icon URLs.
-L.Icon.Default.mergeOptions({
-  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString(),
-  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString(),
-  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString(),
-});
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 
 export default function AddHostelPage() {
@@ -46,14 +39,12 @@ export default function AddHostelPage() {
 
   const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-const LeafletClickHandler = ({ onPick }: { onPick: (lat: number, lng: number) => void }) => {
-    useMapEvents({
-      click: (e) => {
-        onPick(e.latlng.lat, e.latlng.lng);
-      },
-    });
-    return null;
-  };
+const handleMapClick = useCallback((e: any) => {
+    if (e.lngLat) {
+      const { lng, lat } = e.lngLat;
+      handlePickLocation(lat, lng);
+    }
+  }, [handlePickLocation]);
 
   const handlePickLocation = useCallback((lat: number, lng: number) => {
     setMapLocation({ lat, lng });
@@ -194,19 +185,26 @@ const LeafletClickHandler = ({ onPick }: { onPick: (lat: number, lng: number) =>
               {/* Location Picker */}
               <div className="mb-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Hostel Location (lat/lng)</h3>
-                <MapContainer
-                  style={mapContainerStyle}
-                  center={mapLocation || defaultCenter}
-                  zoom={13}
-                  scrollWheelZoom={false}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; OpenStreetMap contributors'
-                  />
-                  <LeafletClickHandler onPick={handlePickLocation} />
-                  {mapLocation && <Marker position={[mapLocation.lat, mapLocation.lng]} />}
-                </MapContainer>
+                <div className="rounded-xl overflow-hidden border border-gray-100 shadow-inner">
+                  <Map
+                    initialViewState={{
+                      longitude: mapLocation?.lng || defaultCenter.lng,
+                      latitude: mapLocation?.lat || defaultCenter.lat,
+                      zoom: 13
+                    }}
+                    style={mapContainerStyle}
+                    mapStyle="mapbox://styles/mapbox/streets-v12"
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    onClick={handleMapClick}
+                    cursor="pointer"
+                  >
+                    {mapLocation && (
+                      <Marker longitude={mapLocation.lng} latitude={mapLocation.lat} anchor="bottom">
+                        <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
+                      </Marker>
+                    )}
+                  </Map>
+                </div>
 
 
                 <div className="grid sm:grid-cols-2 gap-4 mt-4">

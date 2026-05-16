@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import Map, { Marker } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Leaflet marker icon fix for bundlers (Vite/React)
-// Prevents markers from disappearing due to missing default icon URLs.
-L.Icon.Default.mergeOptions({
-  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString(),
-  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString(),
-  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString(),
-});
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 
 import { useApp } from '../context/AppContext';
@@ -325,19 +318,21 @@ export default function HostelDetailsPage() {
               </div>
 
               {hostel.lat != null && hostel.lng != null ? (
-                <div className="w-full h-[260px] rounded-xl overflow-hidden border border-gray-100">
-                  <MapContainer
+                <div className="w-full h-[260px] rounded-xl overflow-hidden border border-gray-100 shadow-inner">
+                  <Map
+                    initialViewState={{
+                      longitude: hostel.lng as number,
+                      latitude: hostel.lat as number,
+                      zoom: 15
+                    }}
                     style={{ width: '100%', height: '100%' }}
-                    zoom={15}
-                    center={[hostel.lat as number, hostel.lng as number]}
-                    scrollWheelZoom={false}
+                    mapStyle="mapbox://styles/mapbox/streets-v12"
+                    mapboxAccessToken={MAPBOX_TOKEN}
                   >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; OpenStreetMap contributors'
-                    />
-                    <Marker position={[hostel.lat as number, hostel.lng as number]} />
-                  </MapContainer>
+                    <Marker longitude={hostel.lng as number} latitude={hostel.lat as number} anchor="bottom">
+                      <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
+                    </Marker>
+                  </Map>
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">Map location not available for this hostel yet.</p>
