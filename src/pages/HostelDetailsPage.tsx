@@ -306,7 +306,7 @@ export default function HostelDetailsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const url = `https://www.openstreetmap.org/directions?to=${hostel.lat},${hostel.lng}`;
+                      const url = `https://www.google.com/maps/dir/?api=1&destination=${hostel.lat},${hostel.lng}`;
                       window.open(url, '_blank');
                     }}
                     className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600"
