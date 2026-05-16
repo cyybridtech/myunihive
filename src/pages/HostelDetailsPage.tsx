@@ -1,7 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
-import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Leaflet marker icon fix for bundlers (Vite/React)
+// Prevents markers from disappearing due to missing default icon URLs.
+L.Icon.Default.mergeOptions({
+  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString(),
+  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString(),
+  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString(),
+});
+
 
 import { useApp } from '../context/AppContext';
 import { createBooking, verifyPayment, submitReview, deleteBooking } from '../api/api.js';
@@ -18,9 +29,7 @@ export default function HostelDetailsPage() {
   const hostelReviews = reviews.filter(r => r.hostelId === id);
   const uni = universities.find(u => u.id === hostel?.universityId);
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  });
+
 
   const [activeImage, setActiveImage] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
@@ -304,7 +313,7 @@ export default function HostelDetailsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const url = `https://www.google.com/maps/dir/?api=1&destination=${hostel.lat},${hostel.lng}`;
+                      const url = `https://www.openstreetmap.org/directions?to=${hostel.lat},${hostel.lng}`;
                       window.open(url, '_blank');
                     }}
                     className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600"
@@ -312,27 +321,28 @@ export default function HostelDetailsPage() {
                     Get Directions
                   </button>
                 )}
+
               </div>
 
               {hostel.lat != null && hostel.lng != null ? (
                 <div className="w-full h-[260px] rounded-xl overflow-hidden border border-gray-100">
-                  {isLoaded ? (
-                    <GoogleMap
-                      mapContainerStyle={{ width: '100%', height: '100%' }}
-                      zoom={15}
-                      center={{ lat: hostel.lat as number, lng: hostel.lng as number }}
-                    >
-                      <Marker position={{ lat: hostel.lat as number, lng: hostel.lng as number }} />
-                    </GoogleMap>
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-500">
-                      Loading map...
-                    </div>
-                  )}
+                  <MapContainer
+                    style={{ width: '100%', height: '100%' }}
+                    zoom={15}
+                    center={[hostel.lat as number, hostel.lng as number]}
+                    scrollWheelZoom={false}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; OpenStreetMap contributors'
+                    />
+                    <Marker position={[hostel.lat as number, hostel.lng as number]} />
+                  </MapContainer>
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">Map location not available for this hostel yet.</p>
               )}
+
             </div>
 
             {/* Description */}

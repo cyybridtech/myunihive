@@ -4,7 +4,18 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createHostel, uploadImage } from '../api/api.js';
 import { Building2, Plus, X, UploadCloud, MapPin, DollarSign, Image as ImageIcon, ArrowLeft } from 'lucide-react';
-import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Leaflet marker icon fix for bundlers (Vite/React)
+// Prevents markers from disappearing due to missing default icon URLs.
+L.Icon.Default.mergeOptions({
+  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString(),
+  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString(),
+  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString(),
+});
+
 
 export default function AddHostelPage() {
   const navigate = useNavigate();
@@ -33,19 +44,22 @@ export default function AddHostelPage() {
     lng: '' as string | number
   });
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  });
-
   const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
-    if (!e.latLng) return;
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
+const LeafletClickHandler = ({ onPick }: { onPick: (lat: number, lng: number) => void }) => {
+    useMapEvents({
+      click: (e) => {
+        onPick(e.latlng.lat, e.latlng.lng);
+      },
+    });
+    return null;
+  };
+
+  const handlePickLocation = useCallback((lat: number, lng: number) => {
     setMapLocation({ lat, lng });
     setFormData(prev => ({ ...prev, lat, lng }));
   }, []);
+
 
   const mapContainerStyle = useMemo(
     () => ({
@@ -180,20 +194,20 @@ export default function AddHostelPage() {
               {/* Location Picker */}
               <div className="mb-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Hostel Location (lat/lng)</h3>
-                {isLoaded ? (
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    zoom={13}
-                    center={mapLocation || defaultCenter}
-                    onClick={onMapClick}
-                  >
-                    {mapLocation && <Marker position={mapLocation} />}
-                  </GoogleMap>
-                ) : (
-                  <div className="w-full h-[320px] bg-gray-100 rounded-xl flex items-center justify-center text-gray-500">
-                    Loading map...
-                  </div>
-                )}
+                <MapContainer
+                  style={mapContainerStyle}
+                  center={mapLocation || defaultCenter}
+                  zoom={13}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap contributors'
+                  />
+                  <LeafletClickHandler onPick={handlePickLocation} />
+                  {mapLocation && <Marker position={[mapLocation.lat, mapLocation.lng]} />}
+                </MapContainer>
+
 
                 <div className="grid sm:grid-cols-2 gap-4 mt-4">
                   <div>
