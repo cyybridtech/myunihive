@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
+import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share } from 'lucide-react';
 import Map, { Marker, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -33,6 +33,7 @@ export default function HostelDetailsPage() {
   const [roomGenderFilter, setRoomGenderFilter] = useState<'all' | 'male' | 'female'>(user?.gender || 'all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [reviewComment, setReviewComment] = useState('');
+  const [isAnonymousReview, setIsAnonymousReview] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -198,7 +199,8 @@ export default function HostelDetailsPage() {
       const response = await submitReview({
         hostel_id: hostel.id,
         rating: reviewRating,
-        comment: reviewComment
+        comment: reviewComment,
+        is_anonymous: isAnonymousReview
       });
       if (response.status === 'success') {
         // Add to local state
@@ -209,12 +211,13 @@ export default function HostelDetailsPage() {
           rating: reviewRating,
           comment: reviewComment,
           date: new Date().toISOString().split('T')[0],
-          userName: user.name,
-          userAvatar: user.avatar,
+          userName: isAnonymousReview ? 'Anonymous Student' : user.name,
+          userAvatar: isAnonymousReview ? 'A' : user.avatar,
         });
         setShowReviewModal(false);
         setReviewComment('');
         setReviewRating(5);
+        setIsAnonymousReview(false);
       } else {
         alert(response.message || 'Failed to submit review');
       }
@@ -241,6 +244,19 @@ export default function HostelDetailsPage() {
       alert('Error resetting rooms: ' + e.message);
     } finally {
       setIsResetting(false);
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${hostel.name} on UniHive`,
+        text: `Check out ${hostel.name} on UniHive! It's a great verified hostel.`,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Hostel link copied to clipboard!');
     }
   };
 
@@ -301,11 +317,16 @@ export default function HostelDetailsPage() {
                   </div>
                   <p className="text-gray-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {hostel.address} • {hostel.distanceFromCampus} from {uni?.name}</p>
                 </div>
-                {isAuthenticated && (
-                    <button aria-label={isSaved ? 'Remove saved hostel' : 'Save hostel'} onClick={() => toggleSaveHostel(hostel.id)} className={`p-3 rounded-full border transition-colors ${isSaved ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-white'}`}>
-                    <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500' : ''}`} />
+                <div className="flex gap-2">
+                  <button aria-label="Share hostel" onClick={handleShare} className="p-3 rounded-full border transition-colors bg-gray-50 border-gray-200 text-gray-500 hover:bg-white hover:text-amber-500">
+                    <Share className="w-5 h-5" />
                   </button>
-                )}
+                  {isAuthenticated && (
+                      <button aria-label={isSaved ? 'Remove saved hostel' : 'Save hostel'} onClick={() => toggleSaveHostel(hostel.id)} className={`p-3 rounded-full border transition-colors ${isSaved ? 'bg-red-50 border-red-200 text-red-500' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-white'}`}>
+                      <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500' : ''}`} />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
@@ -561,6 +582,17 @@ export default function HostelDetailsPage() {
                 >
                   {isAuthenticated ? 'Book This Room' : 'Sign In to Book'}
                 </button>
+                {hostelRooms.filter(r => r.available).length === 0 && (
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) navigate('/login');
+                      else alert("You've been added to the waitlist! We will email you the moment a room becomes available here.");
+                    }}
+                    className="w-full mt-3 py-3.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition-all shadow-lg text-sm flex items-center justify-center gap-2"
+                  >
+                    Notify Me When Available
+                  </button>
+                )}
               </div>
 
               <div className="bg-white rounded-2xl p-6 border border-gray-100">
@@ -637,6 +669,10 @@ export default function HostelDetailsPage() {
             <div className="mb-5">
               <p className="text-sm text-gray-500 mb-2">Your Review</p>
               <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={4} placeholder="Share your experience..." className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+            </div>
+            <div className="mb-5 flex items-center gap-2">
+              <input type="checkbox" id="anonymous" checked={isAnonymousReview} onChange={e => setIsAnonymousReview(e.target.checked)} className="w-4 h-4 text-amber-500 rounded border-gray-300 focus:ring-amber-500" />
+              <label htmlFor="anonymous" className="text-sm text-gray-700 cursor-pointer">Submit anonymously</label>
             </div>
             <button onClick={handleSubmitReview} disabled={!reviewComment.trim() || loadingReview} className="w-full py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400">
               {loadingReview ? 'Submitting...' : 'Submit Review'}

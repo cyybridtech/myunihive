@@ -19,7 +19,7 @@ async function reviewsHandler(req, res) {
 }
 
 async function createReview(req, res) {
-    const { hostel_id, rating, comment } = req.body || {};
+    const { hostel_id, rating, comment, is_anonymous } = req.body || {};
     const user_id = req.user_id;
 
     if (!user_id) {
@@ -49,8 +49,8 @@ async function createReview(req, res) {
 
         // Insert review
         const [result] = await pool.execute(
-            `INSERT INTO reviews (user_id, hostel_id, rating, comment, review_date) VALUES (?, ?, ?, ?, CURDATE())`,
-            [user_id, hostel_id, ratingNum, comment || '']
+            `INSERT INTO reviews (user_id, hostel_id, rating, comment, is_anonymous, review_date) VALUES (?, ?, ?, ?, ?, CURDATE())`,
+            [user_id, hostel_id, ratingNum, comment || '', is_anonymous ? 1 : 0]
         );
 
         res.json({
@@ -76,7 +76,9 @@ async function getReviews(req, res) {
 
     try {
         const [reviews] = await pool.execute(
-            `SELECT r.*, u.full_name as user_name, SUBSTRING(u.email, 1, 1) as user_avatar
+            `SELECT r.*, 
+                    IF(r.is_anonymous, 'Anonymous Student', u.full_name) as user_name, 
+                    IF(r.is_anonymous, 'A', SUBSTRING(u.email, 1, 1)) as user_avatar
              FROM reviews r
              JOIN users u ON r.user_id = u.id
              WHERE r.hostel_id = ?
