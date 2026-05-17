@@ -38,7 +38,7 @@ export default function HostelDetailsPage() {
   const [isResetting, setIsResetting] = useState(false);
   const mapRef = useRef<any>(null);
   
-  const isManagerOrAdmin = user?.role === 'admin' || user?.id === hostel.managerId;
+  const isManagerOrAdmin = user?.role === 'admin' || user?.id === hostel?.managerId;
 
   const selectedRoomData = selectedRoom ? filteredRooms.find(r => r.id === selectedRoom) : undefined;
 
