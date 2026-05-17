@@ -7,7 +7,7 @@ import { getUniversities, requestOtp } from '../api/api.js';
 export default function RegisterPage() {
   const { register, loading } = useAuth();
   const navigate = useNavigate();
-    const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '', universityId: '', gender: '' });
+    const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', countryCode: '+233', password: '', confirmPassword: '', universityId: '', gender: '' });
   // idPhotoFile removed
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -79,7 +79,8 @@ export default function RegisterPage() {
 
     setOtpLoading(true);
     try {
-      await register(formData.firstName, formData.lastName, formData.firstName + ' ' + formData.lastName, formData.email, formData.phone, formData.universityId, formData.password, formData.gender, otp);
+      const fullPhone = formData.countryCode + formData.phone.replace(/^0+/, '');
+      await register(formData.firstName, formData.lastName, formData.firstName + ' ' + formData.lastName, formData.email, fullPhone, formData.universityId, formData.password, formData.gender, otp);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Registration failed. Try again.');
@@ -141,9 +142,25 @@ export default function RegisterPage() {
 
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1.5 block">Phone Number *</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input type="tel" value={formData.phone} onChange={e => updateField('phone', e.target.value)} placeholder="+233 24 123 4567" required className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm" />
+                <div className="flex bg-gray-50 rounded-xl border border-gray-200 focus-within:ring-2 focus-within:ring-amber-400 overflow-hidden">
+                  <div className="relative flex items-center border-r border-gray-200 bg-gray-100/50">
+                    <select
+                      value={formData.countryCode}
+                      onChange={e => updateField('countryCode', e.target.value)}
+                      className="pl-3 pr-8 py-3 bg-transparent text-sm focus:outline-none appearance-none font-medium text-gray-700 cursor-pointer"
+                    >
+                      <option value="+233">🇬🇭 +233</option>
+                      <option value="+234">🇳🇬 +234</option>
+                      <option value="+228">🇹🇬 +228</option>
+                      <option value="+225">🇨🇮 +225</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+1">🇺🇸 +1</option>
+                    </select>
+                    <div className="absolute right-2 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
+                  <input type="tel" value={formData.phone} onChange={e => updateField('phone', e.target.value)} placeholder="24 123 4567" required className="flex-1 px-4 py-3 bg-transparent focus:outline-none text-sm" />
                 </div>
               </div>
 

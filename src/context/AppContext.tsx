@@ -158,16 +158,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const isManagerRole = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
-    if (isManagerRole) {
-      const interval = window.setInterval(() => {
-        loadHostels();
-        loadRooms();
-      }, 20000);
-      return () => window.clearInterval(interval);
-    }
-    return undefined;
-  }, [auth.user?.role]);
+    // Auto-refresh data for all users every 30 seconds so the app always feels live
+    const interval = window.setInterval(() => {
+      refreshData();
+      if (auth.user) {
+        refreshBookings();
+        refreshNotifications();
+      }
+    }, 30000);
+    return () => window.clearInterval(interval);
+  }, [auth.user]);
 
   // Sync user + bookings + notifications whenever auth.user changes
   useEffect(() => {

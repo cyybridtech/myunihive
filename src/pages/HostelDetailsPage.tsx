@@ -327,7 +327,7 @@ export default function HostelDetailsPage() {
                         zoom: 15
                       }}
                       style={{ width: '100%', height: '100%' }}
-                      mapStyle="mapbox://styles/mapbox/streets-v12"
+                      mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
                       mapboxAccessToken={MAPBOX_TOKEN}
                     >
                       <Marker longitude={hostel.lng as number} latitude={hostel.lat as number} anchor="bottom">

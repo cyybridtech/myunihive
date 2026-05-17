@@ -194,7 +194,7 @@ export default function AddHostelPage() {
                         zoom: 13
                       }}
                       style={mapContainerStyle}
-                      mapStyle="mapbox://styles/mapbox/streets-v12"
+                      mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
                       mapboxAccessToken={MAPBOX_TOKEN}
                       onClick={handleMapClick}
                       cursor="pointer"
