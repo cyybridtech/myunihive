@@ -31,6 +31,7 @@ const updateRoomHandler = require('./api/updateRoom');
 const updateHostelHandler = require('./api/updateHostel');
 const deleteHostelHandler = require('./api/deleteHostel');
 const deleteUniversityHandler = require('./api/deleteUniversity');
+const resetHostelRoomsHandler = require('./api/resetHostelRooms');
 const bookingsHandler = require('./api/bookings');
 const getAllBookingsHandler = require('./api/getAllBookings');
 const getUserBookingsHandler = require('./api/getUserBookings');
@@ -149,6 +150,7 @@ app.post('/api/deleteRoom', wrapHandler(deleteRoomHandler));
 app.post('/api/deleteHostel', wrapHandler(deleteHostelHandler));
 app.post('/api/updateHostel', wrapHandler(updateHostelHandler));
 app.post('/api/deleteUniversity', wrapHandler(deleteUniversityHandler));
+app.post('/api/resetHostelRooms', wrapHandler(resetHostelRoomsHandler));
 
 // Bookings
 app.get('/api/bookings', wrapHandler(bookingsHandler));

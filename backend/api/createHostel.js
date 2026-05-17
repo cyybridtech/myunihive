@@ -16,7 +16,7 @@ async function createHostelHandler(req, res) {
 
     const { name, university_id, address, description, distance_from_campus, price_range, main_image, 
            bank_code, account_number, manager_full_name, manager_email, manager_password, manager_phone, manager_gender,
-           lat, lng } = req.body || {};
+           lat, lng, payment_period } = req.body || {};
     const user_role = req.role;
     const user_id = req.user_id;
 
@@ -106,7 +106,7 @@ async function createHostelHandler(req, res) {
             'price_range', 'main_image', 'gallery',
             'lat', 'lng',
             'verified', 'manager_id', 'subaccount_code', 'bank_name', 'account_number',
-            'commission_type', 'platform_fee'
+            'commission_type', 'platform_fee', 'payment_period'
         ];
 
         const allVals = [
@@ -127,7 +127,8 @@ async function createHostelHandler(req, res) {
             bank_code || '',
             account_number || '',
             req.body.commission_type || 'split',
-            req.body.platform_fee != null ? req.body.platform_fee : 0
+            req.body.platform_fee != null ? req.body.platform_fee : 0,
+            payment_period || 'semester'
         ];
 
         // Filter to only columns that exist

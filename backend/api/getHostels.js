@@ -46,6 +46,7 @@ async function getHostelsHandler(req, res) {
             subaccountCode: h.subaccount_code || null,
             commissionType: h.commission_type || 'split',
             platformFee: parseFloat(h.platform_fee) || 0,
+            paymentPeriod: h.payment_period || 'semester',
             verified: Boolean(h.verified),
             rating: parseFloat(h.rating) || 0,
             reviewCount: parseInt(h.review_count) || 0

@@ -256,14 +256,14 @@ export default function HomePage() {
             <div>
               <h4 className="text-white font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm">
-                <li>support@unihive.com</li>
-                <li>+233 20 000 0000</li>
+                <li>cyybridtechnnology@gmail.com</li>
+                <li>+233 53 314 3634</li>
                 <li>Accra, Ghana</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-sm">
-            <p>&copy; 2026 UniHive. All rights reserved. Built with ❤️ for students.</p>
+            <p>&copy; 2026 UniHive by Cyybrid Technology. All rights reserved. Built with ❤️ for students.</p>
           </div>
         </div>
       </footer>

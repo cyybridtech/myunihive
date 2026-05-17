@@ -23,6 +23,7 @@ export interface Hostel {
   managerId?: string;
   commissionType?: 'split' | 'flat';
   platformFee?: number;
+  paymentPeriod?: 'semester' | 'academic_year';
   rating: number;
   reviewCount: number;
   lat?: number;

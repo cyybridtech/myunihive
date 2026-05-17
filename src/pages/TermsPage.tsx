@@ -8,7 +8,7 @@ export default function TermsPage() {
         <div className="bg-amber-500 px-6 py-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-white">UniHive</p>
+              <p className="text-sm text-white">UniHive by Cyybrid Technology</p>
               <h1 className="text-3xl font-bold text-white">Terms of Service & Privacy Policy</h1>
             </div>
             <Link to="/" className="inline-flex items-center gap-2 text-white/90 hover:text-white text-sm font-medium">

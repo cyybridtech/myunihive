@@ -187,6 +187,14 @@ export const deleteHostel = async (hostelId) => {
   });
 };
 
+export const resetHostelRooms = async (hostelId) => {
+  return fetchJson(`${BASE_URL}/resetHostelRooms`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hostel_id: hostelId })
+  });
+};
+
 // ============ ROOM APIS ============
 
 export const getRooms = async () => {

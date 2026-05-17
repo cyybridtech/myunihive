@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft } from 'lucide-react';
-import Map, { Marker } from 'react-map-gl/mapbox';
+import Map, { Marker, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA4ZDZyZDIwb2ZmMnFzZnNpZjJ0aHF2In0.wPt2DmSb2voR6LjTI7vfyg';
 
 
 import { useApp } from '../context/AppContext';
-import { createBooking, verifyPayment, submitReview, deleteBooking } from '../api/api.js';
+import { createBooking, verifyPayment, submitReview, deleteBooking, resetHostelRooms } from '../api/api.js';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
 
@@ -35,6 +35,10 @@ export default function HostelDetailsPage() {
   const [reviewComment, setReviewComment] = useState('');
   const [showGallery, setShowGallery] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const mapRef = useRef<any>(null);
+  
+  const isManagerOrAdmin = user?.role === 'admin' || user?.id === hostel.managerId;
 
   const selectedRoomData = selectedRoom ? filteredRooms.find(r => r.id === selectedRoom) : undefined;
 
@@ -221,6 +225,25 @@ export default function HostelDetailsPage() {
     }
   };
 
+  const handleResetRooms = async () => {
+    if (!window.confirm('Are you sure you want to reset all rooms for a new term? This will set all rooms to available and mark past bookings as expired.')) return;
+    setIsResetting(true);
+    try {
+      const res = await resetHostelRooms(hostel.id);
+      if (res.status === 'success') {
+        alert('All rooms have been successfully reset.');
+        refreshData();
+        refreshBookings();
+      } else {
+        alert('Failed to reset rooms: ' + res.message);
+      }
+    } catch (e: any) {
+      alert('Error resetting rooms: ' + e.message);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Image Gallery */}
@@ -292,6 +315,11 @@ export default function HostelDetailsPage() {
                   <span className="ml-1 font-bold text-gray-800">{hostel.rating}</span>
                   <span className="text-gray-500 text-sm">({hostel.reviewCount} reviews)</span>
                 </div>
+                {isManagerOrAdmin && (
+                  <button onClick={handleResetRooms} disabled={isResetting} className="ml-auto px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg text-sm font-bold transition-colors disabled:opacity-50">
+                    {isResetting ? 'Resetting...' : 'Reset Rooms for New Term'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -321,15 +349,45 @@ export default function HostelDetailsPage() {
                 <div className="w-full h-[260px] rounded-xl overflow-hidden border border-gray-100 shadow-inner">
                   {MAPBOX_TOKEN ? (
                     <Map
+                      ref={mapRef}
                       initialViewState={{
                         longitude: hostel.lng as number,
                         latitude: hostel.lat as number,
-                        zoom: 15
+                        zoom: 12,
+                        pitch: 0,
+                        bearing: 0
+                      }}
+                      onLoad={() => {
+                        setTimeout(() => {
+                          mapRef.current?.flyTo({
+                            center: [hostel.lng, hostel.lat],
+                            zoom: 17,
+                            pitch: 65,
+                            bearing: -17.6,
+                            duration: 2500,
+                            essential: true
+                          });
+                        }, 500);
                       }}
                       style={{ width: '100%', height: '100%' }}
                       mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
                       mapboxAccessToken={MAPBOX_TOKEN}
+                      antialias={true}
                     >
+                      <Layer
+                        id="3d-buildings"
+                        source="composite"
+                        source-layer="building"
+                        filter={['==', 'extrude', 'true']}
+                        type="fill-extrusion"
+                        minzoom={15}
+                        paint={{
+                          'fill-extrusion-color': '#aaa',
+                          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
+                          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+                          'fill-extrusion-opacity': 0.6
+                        }}
+                      />
                       <Marker longitude={hostel.lng as number} latitude={hostel.lat as number} anchor="bottom">
                         <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
                       </Marker>
@@ -408,7 +466,7 @@ export default function HostelDetailsPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-amber-600">GH₵{room.price.toLocaleString()}</p>
-                            <p className="text-xs text-gray-400">per semester</p>
+                            <p className="text-xs text-gray-400">per {hostel.paymentPeriod === 'academic_year' ? 'academic year' : 'semester'}</p>
                           </div>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">{room.description}</p>
@@ -467,7 +525,7 @@ export default function HostelDetailsPage() {
                 <div className="text-center mb-4">
                   <p className="text-sm text-gray-500 mb-1">Price range</p>
                   <p className="text-2xl font-bold text-amber-600">{hostel.priceRange}</p>
-                  <p className="text-xs text-gray-400">per semester</p>
+                  <p className="text-xs text-gray-400">per {hostel.paymentPeriod === 'academic_year' ? 'academic year' : 'semester'}</p>
                 </div>
                 <div className="border-t border-gray-100 pt-4 space-y-3 mb-5">
                   <div className="flex justify-between text-sm">
@@ -487,7 +545,7 @@ export default function HostelDetailsPage() {
                   <div className="bg-amber-50 rounded-xl p-3 mb-4">
                     <p className="text-xs text-amber-600 font-medium mb-1">Selected Room</p>
                     <p className="font-bold text-gray-800">{selectedRoomData?.type} - Room {selectedRoomData?.roomNumber}</p>
-                    <p className="text-amber-600 font-bold mb-1">GH₵{selectedRoomData?.price.toLocaleString()}/semester</p>
+                    <p className="text-amber-600 font-bold mb-1">GH₵{selectedRoomData?.price.toLocaleString()}/{hostel.paymentPeriod === 'academic_year' ? 'academic year' : 'semester'}</p>
                     <p className="text-xs font-semibold text-gray-600 bg-amber-100/50 inline-block px-2 py-1 rounded">
                       {selectedRoomData ? (selectedRoomData.capacity - (selectedRoomData.occupancy || 0)) : 0} bed(s) remaining out of {selectedRoomData?.capacity}
                     </p>

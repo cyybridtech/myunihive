@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createHostel, uploadImage } from '../api/api.js';
 import { Building2, Plus, X, UploadCloud, MapPin, DollarSign, Image as ImageIcon, ArrowLeft } from 'lucide-react';
-import Map, { Marker } from 'react-map-gl/mapbox';
+import Map, { Marker, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA4ZDZyZDIwb2ZmMnFzZnNpZjJ0aHF2In0.wPt2DmSb2voR6LjTI7vfyg';
@@ -33,6 +33,7 @@ export default function AddHostelPage() {
     facilities: '',
     commissionType: 'split',
     platformFee: '',
+    paymentPeriod: 'semester',
     lat: '' as string | number,
     lng: '' as string | number
   });
@@ -191,14 +192,31 @@ export default function AddHostelPage() {
                       initialViewState={{
                         longitude: mapLocation?.lng || defaultCenter.lng,
                         latitude: mapLocation?.lat || defaultCenter.lat,
-                        zoom: 13
+                        zoom: 16,
+                        pitch: 60,
+                        bearing: -17.6
                       }}
                       style={mapContainerStyle}
                       mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
                       mapboxAccessToken={MAPBOX_TOKEN}
                       onClick={handleMapClick}
                       cursor="pointer"
+                      antialias={true}
                     >
+                      <Layer
+                        id="3d-buildings"
+                        source="composite"
+                        source-layer="building"
+                        filter={['==', 'extrude', 'true']}
+                        type="fill-extrusion"
+                        minzoom={15}
+                        paint={{
+                          'fill-extrusion-color': '#aaa',
+                          'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
+                          'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+                          'fill-extrusion-opacity': 0.6
+                        }}
+                      />
                       {mapLocation && (
                         <Marker longitude={mapLocation.lng} latitude={mapLocation.lat} anchor="bottom">
                           <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
@@ -262,6 +280,13 @@ export default function AddHostelPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400"/> Price Range</label>
                   <input value={formData.priceRange} onChange={e => setFormData({ ...formData, priceRange: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="GH₵1000 - GH₵2000" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Payment Period</label>
+                  <select value={formData.paymentPeriod} onChange={e => setFormData({ ...formData, paymentPeriod: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none cursor-pointer">
+                    <option value="semester">Per Semester</option>
+                    <option value="academic_year">Per Academic Year</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">Distance from Campus</label>

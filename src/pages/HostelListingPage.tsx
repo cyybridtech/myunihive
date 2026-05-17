@@ -2,6 +2,11 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Star, MapPin, CheckCircle, SlidersHorizontal, X, Heart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import Map, { Marker, Popup, Layer } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { useRef } from 'react';
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA4ZDZyZDIwb2ZmMnFzZnNpZjJ0aHF2In0.wPt2DmSb2voR6LjTI7vfyg';
 
 export default function HostelListingPage() {
   const { filteredHostels, universities, filteredRooms, selectedUniversity, setSelectedUniversity, savedHostels, toggleSaveHostel, isAuthenticated, user } = useApp();
@@ -12,6 +17,9 @@ export default function HostelListingPage() {
   const [roomGenderFilter, setRoomGenderFilter] = useState<'any' | 'male' | 'female'>(user?.gender ?? 'any');
   const [sortBy, setSortBy] = useState<'rating' | 'price-low' | 'price-high' | 'distance'>('rating');
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [popupInfo, setPopupInfo] = useState<any>(null);
+  const mapRef = useRef<any>(null);
 
   const allFacilities = ['WiFi', 'Security', 'Water Tank', 'Study Room', 'Kitchen', 'Laundry', 'Parking', 'Generator', 'AC', 'CCTV', 'Gym', 'Swimming Pool'];
 
@@ -93,6 +101,10 @@ export default function HostelListingPage() {
               ))}
             </select>
             <div className="flex gap-2">
+              <div className="flex items-center bg-gray-100 rounded-xl p-1">
+                <button onClick={() => setViewMode('grid')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${viewMode === 'grid' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Grid</button>
+                <button onClick={() => setViewMode('map')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${viewMode === 'map' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Map</button>
+              </div>
               <select aria-label="Sort hostels" value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)} className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium appearance-none cursor-pointer">
                 <option value="rating">Top Rated</option>
                 <option value="price-low">Price: Low to High</option>
@@ -178,6 +190,86 @@ export default function HostelListingPage() {
             <h3 className="text-xl font-bold text-gray-800 mb-2">No hostels found</h3>
             <p className="text-gray-500 mb-6">Try adjusting your filters or searching for a different university.</p>
             <button onClick={() => { setSearch(''); setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); }} className="text-amber-600 font-semibold hover:text-amber-700">Clear all filters</button>
+          </div>
+        ) : viewMode === 'map' ? (
+          <div className="h-[calc(100vh-250px)] min-h-[500px] w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative">
+            <Map
+              ref={mapRef}
+              initialViewState={{
+                longitude: filtered.length > 0 && filtered[0].lng ? filtered[0].lng : -0.1870,
+                latitude: filtered.length > 0 && filtered[0].lat ? filtered[0].lat : 5.6037,
+                zoom: 14,
+                pitch: 60,
+                bearing: -17.6
+              }}
+              mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+              mapboxAccessToken={MAPBOX_TOKEN}
+              antialias={true}
+            >
+              <Layer
+                id="3d-buildings"
+                source="composite"
+                source-layer="building"
+                filter={['==', 'extrude', 'true']}
+                type="fill-extrusion"
+                minzoom={15}
+                paint={{
+                  'fill-extrusion-color': '#aaa',
+                  'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
+                  'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+                  'fill-extrusion-opacity': 0.6
+                }}
+              />
+              
+              {filtered.filter(h => h.lat && h.lng).map(hostel => (
+                <Marker
+                  key={hostel.id}
+                  longitude={hostel.lng as number}
+                  latitude={hostel.lat as number}
+                  anchor="bottom"
+                  onClick={e => {
+                    e.originalEvent.stopPropagation();
+                    setPopupInfo(hostel);
+                    mapRef.current?.flyTo({ center: [hostel.lng, hostel.lat], zoom: 17, pitch: 65, duration: 2000 });
+                  }}
+                >
+                  <div className="group cursor-pointer">
+                    <div className="bg-white border-2 border-amber-500 text-amber-600 font-bold px-2 py-1 rounded-full shadow-lg text-xs whitespace-nowrap group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                      GH₵ {parseInt(hostel.priceRange.split('-')[0].replace(/\D/g,''))}
+                    </div>
+                    <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-amber-500 mx-auto group-hover:border-t-amber-600"></div>
+                  </div>
+                </Marker>
+              ))}
+
+              {popupInfo && (
+                <Popup
+                  anchor="top"
+                  longitude={popupInfo.lng as number}
+                  latitude={popupInfo.lat as number}
+                  onClose={() => setPopupInfo(null)}
+                  className="z-50"
+                  closeButton={false}
+                  maxWidth="260px"
+                >
+                  <div className="p-0 rounded-2xl overflow-hidden shadow-2xl min-w-[240px]">
+                    <div className="relative h-32">
+                      <img src={popupInfo.mainImage} alt={popupInfo.name} className="w-full h-full object-cover" />
+                      <button onClick={() => setPopupInfo(null)} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/80">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="p-3 bg-white">
+                      <h3 className="font-bold text-gray-900 text-base">{popupInfo.name}</h3>
+                      <p className="text-amber-600 font-bold text-sm mb-2">{popupInfo.priceRange} / sem</p>
+                      <Link to={`/hostels/${popupInfo.id}`} className="block w-full text-center bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg text-sm font-semibold transition-colors">
+                        View Details
+                      </Link>
+                    </div>
+                  </div>
+                </Popup>
+              )}
+            </Map>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
