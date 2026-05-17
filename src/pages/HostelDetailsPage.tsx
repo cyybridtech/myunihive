@@ -606,7 +606,7 @@ export default function HostelDetailsPage() {
                     }}
                     className="w-full mt-3 py-3.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition-all shadow-lg text-sm flex items-center justify-center gap-2"
                   >
-                    Notify Me When Available
+                    <Bell className="w-5 h-5" /> Notify Me When Available
                   </button>
                 )}
               </div>

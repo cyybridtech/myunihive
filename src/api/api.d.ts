@@ -35,3 +35,7 @@ export declare const approveBooking: (bookingId: string | number, status: string
 export declare const getReviewsForHostel: (hostelId: string) => Promise<any>;
 export declare const submitReview: (reviewData: any) => Promise<any>;
 export declare const uploadImage: (file: File) => Promise<any>;
+export declare const resetHostelRooms: (hostelId: string) => Promise<any>;
+export declare const getMessages: (chatWithId?: string | null) => Promise<any>;
+export declare const sendMessage: (receiverId: string, content: string) => Promise<any>;
+export declare const subscribeToPush: (subscription: any) => Promise<any>;
