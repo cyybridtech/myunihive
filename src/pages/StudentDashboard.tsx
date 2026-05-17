@@ -1,9 +1,22 @@
 import { useState } from 'react';
 import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { verifyPayment } from '../api/api.js';
+import { verifyPayment, subscribeToPush } from '../api/api.js';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
+const VAPID_PUBLIC_KEY = 'BEE90AIGS9HcdCmGywp5CXHdNlELSVjR93xMop7gQbKP34yjYCKnS1MKa7HVTemmxvKmloDdDvxNSU31NBJ3S3s';
+
+// Utility function
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 type Tab = 'overview' | 'bookings' | 'payments' | 'notifications' | 'saved';
 
@@ -11,6 +24,31 @@ export default function StudentDashboard() {
   // 1. ALL HOOKS AT THE TOP
   const { user, bookings, notifications, hostels, rooms, universities, savedHostels, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshNotifications, cancelBooking } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [pushEnabled, setPushEnabled] = useState(Notification.permission === 'granted');
+
+  const enablePushNotifications = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          });
+        }
+        await subscribeToPush(subscription);
+        setPushEnabled(true);
+        alert('Push notifications enabled!');
+      } else {
+        alert('Push notifications were denied.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to enable push notifications.');
+    }
+  };
 
   // 2. CONDITIONAL REDIRECT
   if (!user) {
@@ -102,12 +140,19 @@ export default function StudentDashboard() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-bold">{user.avatar}</div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-              <p className="text-gray-500 text-sm">{uni?.name} • Member since {user.joinDate}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-bold">{user.avatar}</div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                <p className="text-gray-500 text-sm">{uni?.name} • Member since {user.joinDate}</p>
+              </div>
             </div>
+            {!pushEnabled && (
+              <button onClick={enablePushNotifications} className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
+                <Bell className="w-4 h-4" /> Enable Push Alerts
+              </button>
+            )}
           </div>
         </div>
 

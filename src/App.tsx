@@ -14,7 +14,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import DebugPage from './pages/DebugPage';
-import MessagingPage from './pages/MessagingPage';
+import MessagesPage from './pages/MessagesPage';
 import AddHostelPage from './pages/AddHostelPage';
 import AddRoomPage from './pages/AddRoomPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -137,7 +137,7 @@ function AppLayout() {
           path="/messages"
           element={
             <ProtectedRoute>
-              <MessagingPage />
+              <MessagesPage />
             </ProtectedRoute>
           }
         />

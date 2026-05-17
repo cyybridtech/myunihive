@@ -31,7 +31,10 @@ const updateRoomHandler = require('./api/updateRoom');
 const updateHostelHandler = require('./api/updateHostel');
 const deleteHostelHandler = require('./api/deleteHostel');
 const deleteUniversityHandler = require('./api/deleteUniversity');
+const deleteBookingHandler = require('./api/deleteBooking');
 const resetHostelRoomsHandler = require('./api/resetHostelRooms');
+const messagesHandler = require('./api/messages');
+const { pushHandler } = require('./api/push');
 const bookingsHandler = require('./api/bookings');
 const getAllBookingsHandler = require('./api/getAllBookings');
 const getUserBookingsHandler = require('./api/getUserBookings');
@@ -182,6 +185,13 @@ app.post('/api/createUniversity', wrapHandler(createUniversityHandler));
 // Reviews
 app.get('/api/reviews', wrapHandler(reviewsHandler));
 app.post('/api/reviews', wrapHandler(reviewsHandler));
+
+// Messages
+app.get('/api/messages', wrapHandler(messagesHandler));
+app.post('/api/messages', wrapHandler(messagesHandler));
+
+// Push Notifications
+app.post('/api/push/subscribe', wrapHandler(pushHandler));
 
 // Notifications
 app.get('/api/getNotifications', wrapHandler(getNotificationsHandler));

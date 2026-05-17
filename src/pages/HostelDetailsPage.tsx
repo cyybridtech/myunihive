@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share } from 'lucide-react';
+import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell } from 'lucide-react';
 import Map, { Marker, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -37,6 +37,7 @@ export default function HostelDetailsPage() {
   const [showGallery, setShowGallery] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [walkingDistance, setWalkingDistance] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
   
   const isManagerOrAdmin = user?.role === 'admin' || user?.id === hostel?.managerId;
@@ -54,6 +55,21 @@ export default function HostelDetailsPage() {
       setSelectedRoom(null);
     }
   }, [filteredHostelRooms, selectedRoom]);
+
+  useEffect(() => {
+    if (hostel?.lat && hostel?.lng && uni && (uni as any).lat && (uni as any).lng && MAPBOX_TOKEN) {
+      fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${hostel.lng},${hostel.lat};${(uni as any).lng},${(uni as any).lat}?access_token=${MAPBOX_TOKEN}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.routes && data.routes[0]) {
+            const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
+            const durationMin = Math.round(data.routes[0].duration / 60);
+            setWalkingDistance(`${distanceKm}km (${durationMin} min walk)`);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [hostel?.lat, hostel?.lng, uni]);
 
   if (!hostel) {
     return (
@@ -315,7 +331,7 @@ export default function HostelDetailsPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {hostel.address} • {hostel.distanceFromCampus} from {uni?.name}</p>
+                  <p className="text-gray-500 flex items-center gap-1"><MapPin className="w-4 h-4" /> {hostel.address} • {walkingDistance || hostel.distanceFromCampus} from {uni?.name}</p>
                 </div>
                 <div className="flex gap-2">
                   <button aria-label="Share hostel" onClick={handleShare} className="p-3 rounded-full border transition-colors bg-gray-50 border-gray-200 text-gray-500 hover:bg-white hover:text-amber-500">
@@ -551,7 +567,7 @@ export default function HostelDetailsPage() {
                 <div className="border-t border-gray-100 pt-4 space-y-3 mb-5">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Distance</span>
-                    <span className="font-medium text-gray-800">{hostel.distanceFromCampus}</span>
+                    <span className="font-medium text-gray-800">{walkingDistance || hostel.distanceFromCampus}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Available rooms</span>
@@ -603,6 +619,21 @@ export default function HostelDetailsPage() {
                   <div className="flex items-center gap-2 text-sm text-gray-600"><CheckCircle className="w-4 h-4 text-green-500" /> Direct messaging available</div>
                   <div className="flex items-center gap-2 text-sm text-gray-600"><CheckCircle className="w-4 h-4 text-green-500" /> Student-verified reviews</div>
                 </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 mt-4">
+                <h3 className="font-bold text-gray-900 mb-3">Hostel Manager</h3>
+                <p className="text-sm text-gray-600 mb-4">Have questions about the rooms, facilities, or policies?</p>
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) { navigate('/login'); return; }
+                    if (!hostel.managerId) { alert('This hostel has not been claimed by a manager yet.'); return; }
+                    navigate('/messages', { state: { startChatWith: hostel.managerId } });
+                  }}
+                  className="w-full py-3 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
+                >
+                  <MessageSquare className="w-4 h-4" /> Message Manager
+                </button>
               </div>
             </div>
           </div>

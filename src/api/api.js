@@ -195,6 +195,27 @@ export const resetHostelRooms = async (hostelId) => {
   });
 };
 
+export const sendMessage = async (receiverId, content) => {
+  return fetchJson(`${BASE_URL}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ receiver_id: receiverId, content }),
+  });
+};
+
+export const getMessages = async (chatWithId = null) => {
+  const query = chatWithId ? `?chat_with_id=${encodeURIComponent(chatWithId)}` : '';
+  return fetchJson(`${BASE_URL}/messages${query}`);
+};
+
+export const subscribeToPush = async (subscription) => {
+  return fetchJson(`${BASE_URL}/push/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(subscription),
+  });
+};
+
 // ============ ROOM APIS ============
 
 export const getRooms = async () => {

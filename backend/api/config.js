@@ -56,6 +56,8 @@ async function initSchema() {
         await p.execute("ALTER TABLE hostels ADD COLUMN IF NOT EXISTS commission_type VARCHAR(20) DEFAULT 'split'");
         await p.execute("ALTER TABLE hostels ADD COLUMN IF NOT EXISTS platform_fee DECIMAL(10,2) DEFAULT 0");
         await p.execute("ALTER TABLE hostels ADD COLUMN IF NOT EXISTS payment_period ENUM('semester', 'academic_year') DEFAULT 'semester'");
+        await p.execute("ALTER TABLE universities ADD COLUMN IF NOT EXISTS lat DOUBLE DEFAULT NULL");
+        await p.execute("ALTER TABLE universities ADD COLUMN IF NOT EXISTS lng DOUBLE DEFAULT NULL");
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS gender ENUM('male','female','unisex') DEFAULT 'unisex'");
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS manual_occupancy INT DEFAULT 0");
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS gallery JSON DEFAULT NULL");
@@ -69,6 +71,30 @@ async function initSchema() {
                 email VARCHAR(100) NOT NULL UNIQUE,
                 otp_code VARCHAR(10) NOT NULL,
                 expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // Create messages table
+        await p.execute(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sender_id VARCHAR(50) NOT NULL,
+                receiver_id VARCHAR(50) NOT NULL,
+                content TEXT NOT NULL,
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // Create push subscriptions table
+        await p.execute(`
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                endpoint VARCHAR(500) NOT NULL,
+                p256dh VARCHAR(200) NOT NULL,
+                auth VARCHAR(200) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
