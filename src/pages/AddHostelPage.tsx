@@ -16,6 +16,10 @@ export default function AddHostelPage() {
   const { universities, addHostel, refreshData } = useApp();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const mapRef = useRef<any>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     universityId: universities.length > 0 ? universities[0].id : '',
@@ -163,7 +167,28 @@ export default function AddHostelPage() {
     }
   };
 
-
+  const handleSearchLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || !MAPBOX_TOKEN) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${MAPBOX_TOKEN}&country=gh`);
+      const data = await res.json();
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        setMapLocation({ lat, lng });
+        setFormData(prev => ({ ...prev, lat: lat.toString(), lng: lng.toString() }));
+        mapRef.current?.flyTo({ center: [lng, lat], zoom: 16, duration: 2000 });
+      } else {
+        alert('Location not found. Try a different search term.');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('Error searching for location.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
@@ -185,10 +210,35 @@ export default function AddHostelPage() {
 
               {/* Location Picker */}
               <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Hostel Location (lat/lng)</h3>
-                <div className="rounded-xl overflow-hidden border border-gray-100 shadow-inner">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Hostel Location</h3>
+                    <p className="text-sm text-gray-500">Search for a place or click on the map to drop a pin.</p>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <input 
+                      type="text" 
+                      placeholder="Search location..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearchLocation(e); }}
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-sm w-full sm:w-64 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleSearchLocation} 
+                      disabled={isSearching}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {isSearching ? '...' : 'Search'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl overflow-hidden border border-gray-100 shadow-inner relative">
                   {MAPBOX_TOKEN ? (
                     <Map
+                      ref={mapRef}
                       initialViewState={{
                         longitude: mapLocation?.lng || defaultCenter.lng,
                         latitude: mapLocation?.lat || defaultCenter.lat,
