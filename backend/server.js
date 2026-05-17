@@ -40,7 +40,6 @@ const getAllBookingsHandler = require('./api/getAllBookings');
 const getUserBookingsHandler = require('./api/getUserBookings');
 const approveBookingHandler = require('./api/approveBooking');
 const verifyPaymentHandler = require('./api/verifyPayment');
-const deleteBookingHandler = require('./api/deleteBooking');
 const updateRoomStatusHandler = require('./api/updateRoomStatus');
 const updateRoomOccupancyHandler = require('./api/updateRoomOccupancy');
 const getUniversitiesHandler = require('./api/getUniversities');
