@@ -58,6 +58,12 @@ async function initSchema() {
         await p.execute("ALTER TABLE hostels ADD COLUMN IF NOT EXISTS payment_period ENUM('semester', 'academic_year') DEFAULT 'semester'");
         await p.execute("ALTER TABLE universities ADD COLUMN IF NOT EXISTS lat DOUBLE DEFAULT NULL");
         await p.execute("ALTER TABLE universities ADD COLUMN IF NOT EXISTS lng DOUBLE DEFAULT NULL");
+        
+        // Ensure manager role exists in users table
+        try {
+            await p.execute("ALTER TABLE users MODIFY COLUMN role ENUM('student', 'admin', 'manager', 'hostel_manager') DEFAULT 'student'");
+        } catch(e) { console.warn('Could not modify users role enum:', e.message); }
+        
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS gender ENUM('male','female','unisex') DEFAULT 'unisex'");
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS manual_occupancy INT DEFAULT 0");
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS gallery JSON DEFAULT NULL");
