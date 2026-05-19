@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Star, MapPin, CheckCircle, SlidersHorizontal, X, Heart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Map, { Marker, Popup, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { useRef } from 'react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA4ZDZyZDIwb2ZmMnFzZnNpZjJ0aHF2In0.wPt2DmSb2voR6LjTI7vfyg';
 
@@ -24,7 +23,7 @@ export default function HostelListingPage() {
   const allFacilities = ['WiFi', 'Security', 'Water Tank', 'Study Room', 'Kitchen', 'Laundry', 'Parking', 'Generator', 'AC', 'CCTV', 'Gym', 'Swimming Pool'];
 
   const filtered = useMemo(() => {
-    let result = filteredHostels.filter(h => h.universityId === selectedUniversity);
+    let result = filteredHostels.filter(h => String(h.universityId) === String(selectedUniversity));
 
     if (search) {
       const s = search.toLowerCase();
@@ -70,6 +69,20 @@ export default function HostelListingPage() {
   }, [filteredHostels, filteredRooms, selectedUniversity, search, priceRange, selectedFacilities, minRating, sortBy]);
 
   const currentUni = universities.find(u => u.id === selectedUniversity);
+
+  // Re-center map when changing universities
+  useEffect(() => {
+    if (viewMode === 'map' && mapRef.current && filtered.length > 0) {
+      const firstHostel = filtered.find(h => h.lat && h.lng);
+      if (firstHostel) {
+        mapRef.current.flyTo({
+          center: [firstHostel.lng, firstHostel.lat],
+          zoom: 14,
+          duration: 1500
+        });
+      }
+    }
+  }, [selectedUniversity, viewMode, filtered]);
 
   return (
     <div className="min-h-screen bg-gray-50">
