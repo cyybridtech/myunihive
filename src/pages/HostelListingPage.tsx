@@ -166,16 +166,28 @@ export default function HostelListingPage() {
               </div>
             </div>
             {(selectedFacilities.length > 0 || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 5000) && (
-              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
-                <span className="text-xs text-gray-500">Active filters:</span>
-                {selectedFacilities.map(f => (
-                  <span key={f} className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">
-                    {f} <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedFacilities(prev => prev.filter(x => x !== f))} />
-                  </span>
-                ))}
-                <button onClick={() => { setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); }} className="text-xs text-red-500 hover:text-red-600 ml-2 font-medium">Clear all</button>
+              <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500">Active filters:</span>
+                  {selectedFacilities.map(f => (
+                    <span key={f} className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">
+                      {f} <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedFacilities(prev => prev.filter(x => x !== f))} />
+                    </span>
+                  ))}
+                  <button onClick={() => { setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); setRoomGenderFilter('any'); }} className="text-xs text-red-500 hover:text-red-600 ml-2 font-medium">Clear all</button>
+                </div>
               </div>
             )}
+            
+            {/* Show Results Button */}
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setShowFilters(false)}
+                className="w-full sm:w-auto px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                Show {filtered.length} Hostels
+              </button>
+            </div>
           </div>
         </div>
       )}

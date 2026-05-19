@@ -42,7 +42,7 @@ export default function StudentDashboard() {
         setPushEnabled(true);
         alert('Push notifications enabled!');
       } else {
-        alert('Push notifications were denied.');
+        alert('Push notifications are blocked. Please click the padlock icon in your browser address bar to allow notifications, then try again.');
       }
     } catch (e) {
       console.error(e);
