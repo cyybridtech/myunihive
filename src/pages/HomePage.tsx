@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Shield, Star, MapPin, CreditCard, MessageCircle, ChevronRight, CheckCircle, Users, Building2, Award, Hexagon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -16,6 +16,10 @@ export default function HomePage() {
     navigate('/hostels');
   };
 
+  useEffect(() => {
+    document.title = "UNIHIVE - Student Hostel Booking Platform in Ghana";
+  }, []);
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -30,10 +34,10 @@ export default function HomePage() {
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-6">
               Find Your Perfect<br />
-              <span className="text-amber-200">Student Hostel</span>
+              <span className="text-amber-200">Student Hostel in Ghana</span>
             </h1>
             <p className="text-lg md:text-xl text-amber-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Discover verified, safe, and affordable hostels near your university. No scams, no surprises — just trusted accommodation.
+              UNIHIVE helps students book affordable, verified hostels in Ghana near University of Ghana, KNUST, UCC and other major campuses. No scams, no surprises — just trusted accommodation.
             </p>
 
             <div className="bg-white rounded-2xl shadow-2xl p-3 max-w-2xl mx-auto">

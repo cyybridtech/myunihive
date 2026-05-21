@@ -57,6 +57,12 @@ export default function HostelDetailsPage() {
   }, [filteredHostelRooms, selectedRoom]);
 
   useEffect(() => {
+    if (hostel) {
+      document.title = `${hostel.name} - UNIHIVE`;
+    }
+  }, [hostel]);
+
+  useEffect(() => {
     if (hostel?.lat && hostel?.lng && uni && (uni as any).lat && (uni as any).lng && MAPBOX_TOKEN) {
       fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${hostel.lng},${hostel.lat};${(uni as any).lng},${(uni as any).lat}?access_token=${MAPBOX_TOKEN}`)
         .then(res => res.json())
