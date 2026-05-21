@@ -1,6 +1,6 @@
 // API Base URL
 // - Development: use Vite proxy (/api -> localhost:3001)
-// - Production: always use Render backend (or env override)
+// - Production: defaults to relative /api (uses same origin on Vercel)
 const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   if (envUrl) return envUrl;
@@ -8,8 +8,8 @@ const getBaseUrl = () => {
   // Dev: let Vite proxy handle it
   if (import.meta.env.DEV) return '/api';
 
-  // Prod fallback
-  return 'https://unihive-9k0l.onrender.com';
+  // Prod fallback (Vercel serverless routing)
+  return '/api';
 };
 const BASE_URL = getBaseUrl();
 const defaultFetchOptions = { credentials: 'include' };
