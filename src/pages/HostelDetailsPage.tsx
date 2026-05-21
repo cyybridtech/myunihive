@@ -514,6 +514,15 @@ export default function HostelDetailsPage() {
                             {room.available ? `Available • ${room.occupancy || 0}/${room.capacity} booked` : `Occupied • ${room.capacity}/${room.capacity} booked`}
                           </span>
                         </div>
+                        {(room as any).amenities && (room as any).amenities.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {(room as any).amenities.map((amenity: string, idx: number) => (
+                              <span key={idx} className="bg-gray-100 text-gray-600 text-[10px] uppercase font-bold px-2 py-0.5 rounded">
+                                {amenity}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

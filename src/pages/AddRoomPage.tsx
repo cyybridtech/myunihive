@@ -21,7 +21,8 @@ export default function AddRoomPage() {
     price: '',
     type: 'Standard',
     gender: 'unisex' as 'male' | 'female' | 'unisex',
-    description: ''
+    description: '',
+    amenities: ''
   });
 
   const [gallery, setGallery] = useState<{ file?: File, previewUrl: string, desc: string, isUploading: boolean, uploadedUrl?: string }[]>([]);
@@ -85,6 +86,7 @@ export default function AddRoomPage() {
         gender: formData.gender,
         type: formData.type,
         description: formData.description,
+        amenities: formData.amenities,
         image: main_image,
         gallery: galleryData
       });
@@ -132,7 +134,7 @@ export default function AddRoomPage() {
                   <input required value={formData.roomNumber} onChange={e => setFormData({ ...formData, roomNumber: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="101" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400"/> Semester Rent (GH₵) *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400"/> Room Price (GH₵) *</label>
                   <input type="number" required value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="1500" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -154,6 +156,10 @@ export default function AddRoomPage() {
                   <input value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="Standard, Ensuite, etc." />
                 </div>
                 <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Room Amenities</label>
+                  <input value={formData.amenities} onChange={e => setFormData({ ...formData, amenities: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="AC, Fridge, TV, Study Desk (comma separated)" />
+                </div>
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
                   <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none resize-none" placeholder="e.g. Spacious room with balcony..." />
                 </div>

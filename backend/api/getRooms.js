@@ -30,6 +30,17 @@ async function getRoomsHandler(req, res) {
                 } catch(e){}
             }
 
+            let parsedAmenities = [];
+            if (r.amenities) {
+                try {
+                    parsedAmenities = typeof r.amenities === 'string' 
+                        ? (r.amenities.startsWith('[') ? JSON.parse(r.amenities) : r.amenities.split(',').map(f => f.trim()))
+                        : r.amenities;
+                } catch(e) {
+                    parsedAmenities = typeof r.amenities === 'string' ? r.amenities.split(',').map(f => f.trim()) : [];
+                }
+            }
+
             return {
                 id: r.id,
                 hostelId: r.hostel_id,
@@ -43,7 +54,8 @@ async function getRoomsHandler(req, res) {
                 description: (r.type || 'Standard') + ' room',
                 image: r.image || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
                 gallery: galleryImages,
-                type: r.type
+                type: r.type,
+                amenities: Array.isArray(parsedAmenities) ? parsedAmenities : []
             };
         });
 

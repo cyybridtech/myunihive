@@ -216,7 +216,20 @@ export default function RoomDetailsPage() {
             <div className="space-y-5">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Room details</h3>
-                <p className="text-gray-600 leading-relaxed">{room.description || `Comfortable ${room.type.toLowerCase()} room near campus with {hostel.name}.`}</p>
+                <p className="text-gray-600 leading-relaxed mb-4">{room.description || `Comfortable ${room.type.toLowerCase()} room near campus with ${hostel.name}.`}</p>
+                
+                {(room as any).amenities && (room as any).amenities.length > 0 && (
+                  <div>
+                    <h4 className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-3">Room Amenities</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(room as any).amenities.map((amenity: string, idx: number) => (
+                        <span key={idx} className="bg-amber-50 border border-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-lg">
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="rounded-3xl bg-gray-50 p-5">

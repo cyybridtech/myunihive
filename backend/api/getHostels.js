@@ -28,6 +28,17 @@ async function getHostelsHandler(req, res) {
                     if (Array.isArray(parsed)) galleryImages = parsed;
                 } catch (e) {}
             }
+            let parsedFacilities = [];
+            if (h.facilities) {
+                try {
+                    parsedFacilities = typeof h.facilities === 'string' 
+                        ? (h.facilities.startsWith('[') ? JSON.parse(h.facilities) : h.facilities.split(',').map(f => f.trim()))
+                        : h.facilities;
+                } catch(e) {
+                    parsedFacilities = typeof h.facilities === 'string' ? h.facilities.split(',').map(f => f.trim()) : [];
+                }
+            }
+
             return {
             id: h.id,
             name: h.name,
@@ -37,7 +48,7 @@ async function getHostelsHandler(req, res) {
             // optional geo coords (map only renders when both exist)
             lat: h.lat ?? null,
             lng: h.lng ?? null,
-            facilities: ['WiFi', 'Security'],
+            facilities: Array.isArray(parsedFacilities) ? parsedFacilities : [],
             distanceFromCampus: h.distance_from_campus,
             priceRange: h.price_range,
             mainImage: h.main_image,

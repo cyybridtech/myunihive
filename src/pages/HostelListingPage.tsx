@@ -344,7 +344,7 @@ export default function HostelListingPage() {
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       <div>
                         <span className="text-amber-600 font-bold">{hostel.priceRange}</span>
-                        <span className="text-xs text-gray-400 block">per semester</span>
+                        <span className="text-xs text-gray-400 block">per {hostel.paymentPeriod === 'academic_year' ? 'academic year' : 'semester'}</span>
                       </div>
                       <div className="text-right">
                         <span className={`text-xs font-semibold ${availableRooms > 0 ? 'text-green-600' : 'text-red-500'}`}>

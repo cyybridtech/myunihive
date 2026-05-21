@@ -106,8 +106,19 @@ async function createHostelHandler(req, res) {
             'price_range', 'main_image', 'gallery',
             'lat', 'lng',
             'verified', 'manager_id', 'subaccount_code', 'bank_name', 'account_number',
-            'commission_type', 'platform_fee', 'payment_period'
+            'commission_type', 'platform_fee', 'payment_period', 'facilities'
         ];
+
+        let facilities_json = null;
+        if (req.body.facilities) {
+            try {
+                // Front end sends a comma-separated string
+                const arr = req.body.facilities.split(',').map(f => f.trim()).filter(Boolean);
+                facilities_json = JSON.stringify(arr);
+            } catch (e) {
+                console.error("Facilities parse error", e);
+            }
+        }
 
         const allVals = [
             id,
@@ -128,7 +139,8 @@ async function createHostelHandler(req, res) {
             account_number || '',
             req.body.commission_type || 'split',
             req.body.platform_fee != null ? req.body.platform_fee : 0,
-            payment_period || 'semester'
+            payment_period || 'semester',
+            facilities_json
         ];
 
         // Filter to only columns that exist

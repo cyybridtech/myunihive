@@ -44,12 +44,22 @@ async function createRoomHandler(req, res) {
             gallery_json = JSON.stringify(req.body.gallery);
         }
 
+        let amenities_json = null;
+        if (req.body.amenities) {
+            try {
+                const arr = req.body.amenities.split(',').map(f => f.trim()).filter(Boolean);
+                amenities_json = JSON.stringify(arr);
+            } catch (e) {
+                console.error("Amenities parse error", e);
+            }
+        }
+
         // Insert room
         await pool.execute(
-            `INSERT INTO rooms (id, hostel_id, room_number, capacity, price, available, gender, type, image, gallery) 
-             VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+            `INSERT INTO rooms (id, hostel_id, room_number, capacity, price, available, gender, type, image, gallery, amenities) 
+             VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
             [id, hostel_id, room_number, capacity || 1, price, gender || 'unisex', type || 'Standard', 
-             image || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80', gallery_json]
+             image || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80', gallery_json, amenities_json]
         );
 
         res.json({ status: 'success', id: id });
