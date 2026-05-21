@@ -398,3 +398,21 @@ export const uploadImage = async (file) => {
     body: formData
   });
 };
+
+// ============ ROOMMATE APIS ============
+
+export const getRoommateProfile = async () => {
+  return fetchJson(`${BASE_URL}/roommate/profile`);
+};
+
+export const saveRoommateProfile = async (profileData) => {
+  return fetchJson(`${BASE_URL}/roommate/profile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profileData)
+  });
+};
+
+export const getRoommateMatches = async () => {
+  return fetchJson(`${BASE_URL}/roommate/matches`);
+};

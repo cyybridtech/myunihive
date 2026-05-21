@@ -106,6 +106,20 @@ async function initSchema() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+
+        // Create roommate profiles table
+        await p.execute(`
+            CREATE TABLE IF NOT EXISTS roommate_profiles (
+                user_id VARCHAR(50) PRIMARY KEY,
+                sleep_habit ENUM('early_bird', 'night_owl') NOT NULL,
+                study_habit ENUM('silent', 'background_noise') NOT NULL,
+                cleanliness ENUM('neat_freak', 'moderate', 'relaxed') NOT NULL,
+                social_level ENUM('introvert', 'extrovert', 'balanced') NOT NULL,
+                bio TEXT,
+                contact_info VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
     } catch (e) {
         // Ignore errors if columns already exist
         console.warn("Schema init error (often safe to ignore):", e.message);

@@ -20,6 +20,7 @@ import AddRoomPage from './pages/AddRoomPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useEffect, type ReactNode } from 'react';
 import InstallPWA from './components/InstallPWA';
+import RoommateFinderPage from './pages/RoommateFinderPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -138,6 +139,15 @@ function AppLayout() {
           element={
             <ProtectedRoute>
               <MessagesPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/roommate-finder"
+          element={
+            <ProtectedRoute>
+              <RoommateFinderPage />
             </ProtectedRoute>
           }
         />

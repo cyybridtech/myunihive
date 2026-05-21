@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell } from 'lucide-react';
-import Map, { Marker, Layer } from 'react-map-gl/mapbox';
+import Map, { Marker, Source, Layer } from 'react-map-gl/mapbox';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -39,6 +39,7 @@ export default function HostelDetailsPage() {
   const [loadingReview, setLoadingReview] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [walkingDistance, setWalkingDistance] = useState<string | null>(null);
+  const [routeGeometry, setRouteGeometry] = useState<any>(null);
   const mapRef = useRef<any>(null);
   
   const isManagerOrAdmin = user?.role === 'admin' || user?.id === hostel?.managerId;
@@ -138,13 +139,14 @@ export default function HostelDetailsPage() {
 
   useEffect(() => {
     if (hostel?.lat && hostel?.lng && uni && (uni as any).lat && (uni as any).lng && MAPBOX_TOKEN) {
-      fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${hostel.lng},${hostel.lat};${(uni as any).lng},${(uni as any).lat}?access_token=${MAPBOX_TOKEN}`)
+      fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${hostel.lng},${hostel.lat};${(uni as any).lng},${(uni as any).lat}?geometries=geojson&access_token=${MAPBOX_TOKEN}`)
         .then(res => res.json())
         .then(data => {
           if (data.routes && data.routes[0]) {
             const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
             const durationMin = Math.round(data.routes[0].duration / 60);
             setWalkingDistance(`${distanceKm}km (${durationMin} min walk)`);
+            setRouteGeometry(data.routes[0].geometry);
           }
         })
         .catch(console.error);
@@ -506,8 +508,34 @@ export default function HostelDetailsPage() {
                         }}
                       />
                       <Marker longitude={hostel.lng as number} latitude={hostel.lat as number} anchor="bottom">
-                        <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full" />
+                        <MapPin className="w-8 h-8 text-amber-500 fill-amber-500 shadow-md rounded-full animate-bounce" />
                       </Marker>
+
+                      {uni && (uni as any).lng && (uni as any).lat && (
+                        <Marker longitude={(uni as any).lng} latitude={(uni as any).lat} anchor="bottom">
+                          <div className="bg-orange-500 p-2 rounded-full shadow-lg border-2 border-white text-white flex items-center justify-center transform hover:scale-110 transition-transform">
+                            <BookOpen className="w-5 h-5" />
+                          </div>
+                        </Marker>
+                      )}
+
+                      {routeGeometry && (
+                        <Source id="route-source" type="geojson" data={{
+                          type: 'Feature',
+                          properties: {},
+                          geometry: routeGeometry
+                        }}>
+                          <Layer
+                            id="route-layer"
+                            type="line"
+                            paint={{
+                              'line-color': '#f59e0b',
+                              'line-width': 5,
+                              'line-opacity': 0.85
+                            }}
+                          />
+                        </Source>
+                      )}
                     </Map>
                   ) : (
                     <div className="w-full h-full bg-gray-100 flex items-center justify-center p-6 text-center">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, User, LogOut, Shield, Home, Search, MessageSquare, Heart, Hexagon, CheckCircle } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut, Shield, Home, Search, MessageSquare, Heart, Hexagon, CheckCircle, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -46,6 +46,10 @@ export default function Navbar() {
 
             {isAuthenticated && (
               <>
+                <Link to="/roommate-finder" className="text-gray-600 hover:text-amber-600 flex items-center gap-1.5 text-sm font-medium transition-colors">
+                  <Users className="w-4 h-4" /> Roommates
+                </Link>
+
                 <Link to="/messages" className="text-gray-600 hover:text-amber-600 flex items-center gap-1.5 text-sm font-medium transition-colors">
                   <MessageSquare className="w-4 h-4" /> Messages
                 </Link>
@@ -111,6 +115,14 @@ export default function Navbar() {
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
                       >
                         <User className="w-4 h-4" /> My Dashboard
+                      </Link>
+
+                      <Link
+                        to="/roommate-finder"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
+                      >
+                        <Users className="w-4 h-4" /> Roommate Finder
                       </Link>
 
                       {isAdmin && (
@@ -179,6 +191,10 @@ export default function Navbar() {
 
             {isAuthenticated && (
               <>
+                <Link to="/roommate-finder" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-amber-50 text-sm font-medium">
+                  <Users className="w-4 h-4" /> Roommate Finder
+                </Link>
+
                 <Link to="/messages" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-amber-50 text-sm font-medium">
                   <MessageSquare className="w-4 h-4" /> Messages
                 </Link>

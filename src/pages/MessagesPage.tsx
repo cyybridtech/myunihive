@@ -2,11 +2,12 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getMessages, sendMessage } from '../api/api';
 import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function MessagesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [chats, setChats] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -29,6 +30,49 @@ export default function MessagesPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-start chat with roommate from roommate finder page
+  useEffect(() => {
+    if (location.state?.startChatWith) {
+      const startChatWith = location.state.startChatWith;
+      const startChatName = location.state.startChatName;
+      
+      const selectChat = async () => {
+        let currentChats = chats;
+        if (chats.length === 0) {
+          try {
+            const res = await getMessages();
+            if (res.status === 'success') {
+              currentChats = res.chats || [];
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        
+        const existingChat = currentChats.find(c => String(c.chat_with_id) === String(startChatWith));
+        if (existingChat) {
+          handleSelectChat(existingChat);
+          if (chats.length === 0) {
+            setChats(currentChats);
+          }
+        } else {
+          const virtualChat = {
+            chat_with_id: startChatWith,
+            chat_with_name: startChatName,
+            chat_with_role: 'student',
+            unread_count: 0
+          };
+          setChats([virtualChat, ...currentChats]);
+          handleSelectChat(virtualChat);
+        }
+        // Clear navigation state
+        navigate(location.pathname, { replace: true, state: {} });
+      };
+      
+      selectChat();
+    }
+  }, [location.state]);
 
   const loadChats = async (silent = false) => {
     if (!silent) setIsLoading(true);

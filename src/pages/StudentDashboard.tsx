@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock, Users, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { verifyPayment, subscribeToPush } from '../api/api.js';
 
@@ -200,6 +201,26 @@ export default function StudentDashboard() {
                   <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
                 </div>
               ))}
+            </div>
+
+            {/* HiveMatch AI Roommate Finder CTA Banner */}
+            <div className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg shadow-amber-500/10 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-xl transform translate-x-10 -translate-y-10"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10 shrink-0">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">HiveMatch AI Roommate Finder</h3>
+                  <p className="text-amber-50 text-sm mt-0.5">Find compatible students who share your schedule, social habits, and cleanliness level!</p>
+                </div>
+              </div>
+              <Link 
+                to="/roommate-finder" 
+                className="relative z-10 px-5 py-2.5 bg-white hover:bg-amber-50 text-amber-600 font-bold rounded-xl text-sm transition-all shadow-md shrink-0 flex items-center gap-2"
+              >
+                <Users className="w-4 h-4" /> Match Roommates Now
+              </Link>
             </div>
           </div>
         )}

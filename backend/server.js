@@ -49,6 +49,7 @@ const getNotificationsHandler = require('./api/getNotifications');
 const markNotificationReadHandler = require('./api/markNotificationRead');
 const uploadImageHandler = require('./api/uploadImage');
 const testEmailHandler = require('./api/testEmail');
+const roommateHandler = require('./api/roommate');
 const auth = require('./api/auth');
 const { getPool, initSchema } = require('./api/config');
 
@@ -204,6 +205,11 @@ app.get('/api/health', (req, res) => {
 
 // Test email delivery endpoint
 app.post('/api/test-email', wrapHandler(testEmailHandler));
+
+// Roommate Matching
+app.get('/api/roommate/profile', wrapHandler(roommateHandler));
+app.post('/api/roommate/profile', wrapHandler(roommateHandler));
+app.get('/api/roommate/matches', wrapHandler(roommateHandler));
 
 // Serve uploaded images and public static assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
