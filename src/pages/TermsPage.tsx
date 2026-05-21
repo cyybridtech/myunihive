@@ -1,7 +1,15 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { updateMetaTags } from '../utils/seo';
 
 export default function TermsPage() {
+  useEffect(() => {
+    updateMetaTags({
+      title: "Terms of Service & Privacy Policy | UNIHIVE",
+      description: "Read the Terms of Service and Privacy Policy for UNIHIVE. Understand our student accommodation booking terms, privacy protection, and usage guidelines.",
+    });
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto bg-white shadow-xl rounded-3xl border border-gray-200 overflow-hidden">

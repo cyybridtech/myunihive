@@ -1,9 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Hexagon, ArrowLeft } from 'lucide-react';
 import { forgotPassword, resetPassword } from '../api/api.js';
+import { updateMetaTags } from '../utils/seo';
 
 export default function ForgotPasswordPage() {
+  useEffect(() => {
+    updateMetaTags({
+      title: "Reset Your Password | UNIHIVE",
+      description: "Recover or reset your UNIHIVE account password to access student accommodation bookings, management dashboard, and secure messages.",
+    });
+  }, []);
   const navigate = useNavigate();
   const [step, setStep] = useState<'email' | 'otp' | 'reset'>('email');
   

@@ -1,14 +1,25 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Star, MapPin, CheckCircle, SlidersHorizontal, X, Heart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Map, { Marker, Popup, Layer } from 'react-map-gl/mapbox';
+import { updateMetaTags } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA4ZDZyZDIwb2ZmMnFzZnNpZjJ0aHF2In0.wPt2DmSb2voR6LjTI7vfyg';
 
 export default function HostelListingPage() {
   const { filteredHostels, universities, filteredRooms, selectedUniversity, setSelectedUniversity, savedHostels, toggleSaveHostel, isAuthenticated, user } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const universityParam = searchParams.get('university');
+
+  useEffect(() => {
+    if (universityParam && universityParam !== selectedUniversity) {
+      setSelectedUniversity(universityParam);
+    } else if (!universityParam && selectedUniversity) {
+      setSearchParams({ university: selectedUniversity }, { replace: true });
+    }
+  }, [universityParam, selectedUniversity, setSearchParams, setSelectedUniversity]);
   const [search, setSearch] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
@@ -84,6 +95,20 @@ export default function HostelListingPage() {
     }
   }, [selectedUniversity, viewMode, filtered]);
 
+  // Dynamic SEO metadata updates
+  useEffect(() => {
+    const uniName = currentUni ? currentUni.name : "Universities";
+    const title = `Student Hostels & Accommodation near ${uniName} | UNIHIVE`;
+    const description = `Find verified student hostels and private rooms near ${uniName}. Search and filter by price range, distance from campus, security, WiFi, and more.`;
+    const keywords = `student hostels near ${uniName}, unihive student housing, hostels in ghana, ug hostels, knust hostels, ucc hostels, student accommodation`;
+    
+    updateMetaTags({
+      title,
+      description,
+      keywords,
+    });
+  }, [currentUni, selectedUniversity]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -106,7 +131,11 @@ export default function HostelListingPage() {
             <select
               aria-label="Select university"
               value={selectedUniversity}
-              onChange={e => setSelectedUniversity(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                setSelectedUniversity(val);
+                setSearchParams({ university: val });
+              }}
               className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm font-medium appearance-none cursor-pointer min-w-[200px]"
             >
               {universities.map(u => (

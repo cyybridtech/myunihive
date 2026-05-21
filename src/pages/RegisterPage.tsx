@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Hexagon, User, Phone, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUniversities, requestOtp } from '../api/api.js';
+import { updateMetaTags } from '../utils/seo';
 
 export default function RegisterPage() {
   const { register, loading } = useAuth();
@@ -16,6 +17,13 @@ export default function RegisterPage() {
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [otp, setOtp] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
+
+  useEffect(() => {
+    updateMetaTags({
+      title: "Create a Student Account | UNIHIVE",
+      description: "Create your student account on UNIHIVE to find and book secure, vetted student hostels near Legon, KNUST, UCC, and more. Simple booking, guaranteed security.",
+    });
+  }, []);
 
   useEffect(() => {
     const fetchUnis = async () => {

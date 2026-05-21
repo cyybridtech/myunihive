@@ -2,6 +2,7 @@ import { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Hexagon } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { updateMetaTags } from '../utils/seo';
 
 export default function LoginPage() {
   const auth = useContext(AuthContext);
@@ -12,6 +13,13 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    updateMetaTags({
+      title: "Sign In to Your Account | UNIHIVE",
+      description: "Sign in to your UNIHIVE account to search and book verified student hostels near UG, KNUST, UCC, and other major Ghanaian universities.",
+    });
+  }, []);
 
   useEffect(() => {
     console.log('LoginPage auth.user update', auth.user);

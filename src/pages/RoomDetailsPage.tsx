@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, CheckCircle, Heart, ArrowLeft, Wifi, Shield, Zap, Droplets, BookOpen, Users, DoorOpen, CreditCard, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { createBooking, verifyPayment, deleteBooking } from '../api/api.js';
+import { updateMetaTags, injectJsonLd } from '../utils/seo';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
 
@@ -23,6 +24,62 @@ export default function RoomDetailsPage() {
   useEffect(() => {
     setActiveImage(0);
   }, [room?.id]);
+
+  useEffect(() => {
+    if (room && hostel) {
+      const uniName = university ? university.name : "Campus";
+      const title = `${room.name} at ${hostel.name} | UNIHIVE`;
+      const description = `Book the ${room.name} student room at ${hostel.name} near ${uniName}. Capacity: ${room.capacity || 1} student(s). Gender: ${room.gender}. Price: GHS ${room.price}. Vetted and verified accommodation.`;
+      const keywords = `${room.name}, ${hostel.name}, student hostel room, hostel near ${uniName}, unihive, student booking ghana`;
+      
+      updateMetaTags({
+        title,
+        description,
+        keywords,
+        image: room.image || (hostel.images && hostel.images.length > 0 ? hostel.images[0] : undefined),
+      });
+
+      // Prepare schema.org Apartment JSON-LD data
+      const schemaData: any = {
+        "@context": "https://schema.org",
+        "@type": "Apartment",
+        "name": `${room.name} in ${hostel.name}`,
+        "description": `Book the ${room.name} student room at ${hostel.name} near ${uniName}. Vetted and verified by UNIHIVE.`,
+        "numberOfRooms": 1,
+        "occupancy": {
+          "@type": "QuantitativeValue",
+          "value": room.capacity || 1
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": room.price,
+          "priceCurrency": "GHS",
+          "availability": room.available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "url": window.location.href
+        },
+        "containedInPlace": {
+          "@type": "LodgingBusiness",
+          "name": hostel.name,
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": hostel.address || "Ghana",
+            "addressLocality": uniName,
+            "addressCountry": "GH"
+          }
+        }
+      };
+
+      if (room.image) {
+        schemaData.image = [room.image];
+      }
+
+      // Inject and clean up JSON-LD block
+      const cleanup = injectJsonLd(`room-schema-${room.id}`, schemaData);
+      return () => {
+        cleanup();
+      };
+    }
+  }, [room, hostel, university]);
 
   if (!room || !hostel) {
     return (

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Shield, Star, MapPin, CreditCard, MessageCircle, ChevronRight, CheckCircle, Users, Building2, Award, Hexagon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { updateMetaTags, injectJsonLd } from '../utils/seo';
 
 export default function HomePage() {
   const { filteredHostels, universities, reviews, selectedUniversity, setSelectedUniversity } = useApp();
@@ -13,11 +14,52 @@ export default function HomePage() {
 
   const handleSearch = () => {
     setSelectedUniversity(searchUni);
-    navigate('/hostels');
+    navigate(`/hostels?university=${searchUni}`);
   };
 
   useEffect(() => {
-    document.title = "UNIHIVE - Student Hostel Booking Platform in Ghana";
+    updateMetaTags({
+      title: "UNIHIVE | Student Hostel Booking & Accommodation Platform in Ghana",
+      description: "Search and book 100% verified student hostels and private rooms in Ghana near UG Legon, KNUST, UCC, and more. Secure reservation, scam-free booking.",
+      keywords: "student hostels ghana, unihive, booking student accommodation, hostels near legon, hostels near knust, hostels near ucc, verified student rooms ghana",
+    });
+
+    const schemaData = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://unihivegh.com/#website",
+          "url": "https://unihivegh.com/",
+          "name": "UNIHIVE",
+          "description": "Student Hostel Booking & Accommodation Platform in Ghana",
+          "publisher": {
+            "@id": "https://unihivegh.com/#organization"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://unihivegh.com/#organization",
+          "name": "UNIHIVE",
+          "url": "https://unihivegh.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://unihivegh.com/icons/icon-192.png"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+233-53-314-3634",
+            "contactType": "customer service",
+            "email": "cyybridtechnnology@gmail.com"
+          }
+        }
+      ]
+    };
+
+    const cleanup = injectJsonLd("home-global-schema", schemaData);
+    return () => {
+      cleanup();
+    };
   }, []);
 
   return (

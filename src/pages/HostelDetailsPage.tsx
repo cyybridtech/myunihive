@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell } from 'lucide-react';
 import Map, { Marker, Layer } from 'react-map-gl/mapbox';
+import { updateMetaTags, injectJsonLd } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA4ZDZyZDIwb2ZmMnFzZnNpZjJ0aHF2In0.wPt2DmSb2voR6LjTI7vfyg';
@@ -58,9 +59,82 @@ export default function HostelDetailsPage() {
 
   useEffect(() => {
     if (hostel) {
-      document.title = `${hostel.name} - UNIHIVE`;
+      const uniName = uni ? uni.name : "Campus";
+      const minPrice = hostelRooms.length > 0 ? Math.min(...hostelRooms.map(r => r.price)) : 0;
+      const priceText = minPrice > 0 ? ` starting from GHS ${minPrice}` : "";
+      
+      const title = `${hostel.name} | Verified Hostel near ${uniName} | UNIHIVE`;
+      const description = `Book student accommodation at ${hostel.name} near ${uniName}${priceText}. Highly rated hostel featuring ${hostel.facilities.slice(0, 5).join(', ')}. Secure verified booking.`;
+      const keywords = `${hostel.name}, student hostel ${uniName}, unihive, hostel booking ghana, student accommodation ghana`;
+      
+      // Update standard and social tags
+      updateMetaTags({
+        title,
+        description,
+        keywords,
+        image: hostel.images && hostel.images.length > 0 ? hostel.images[0] : undefined,
+      });
+
+      // Prepare JSON-LD schema markup
+      const schemaData: any = {
+        "@context": "https://schema.org",
+        "@type": "LodgingBusiness",
+        "name": hostel.name,
+        "description": hostel.description || `Verified student accommodation at ${hostel.name} located near ${uniName}.`,
+        "image": hostel.images || [],
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": hostel.address || "Ghana",
+          "addressLocality": uniName,
+          "addressCountry": "GH"
+        },
+        "url": window.location.href,
+        "priceRange": hostelRooms.length > 0 
+          ? `GHS ${Math.min(...hostelRooms.map(r => r.price))} - GHS ${Math.max(...hostelRooms.map(r => r.price))}`
+          : "Price Varies",
+        "amenityFeature": hostel.facilities.map((f: string) => ({
+          "@type": "LocationFeatureSpecification",
+          "name": f,
+          "value": true
+        }))
+      };
+
+      if (hostel.lat && hostel.lng) {
+        schemaData.geo = {
+          "@type": "GeoCoordinates",
+          "latitude": hostel.lat,
+          "longitude": hostel.lng
+        };
+      }
+
+      if (hostelReviews.length > 0) {
+        schemaData.aggregateRating = {
+          "@type": "AggregateRating",
+          "ratingValue": hostel.rating || 5,
+          "reviewCount": hostelReviews.length
+        };
+        schemaData.review = hostelReviews.slice(0, 5).map((rev: any) => ({
+          "@type": "Review",
+          "author": {
+            "@type": "Person",
+            "name": rev.userName || "Student"
+          },
+          "datePublished": rev.createdAt || new Date().toISOString(),
+          "reviewBody": rev.comment || "",
+          "reviewRating": {
+            "@type": "Rating",
+            "ratingValue": rev.rating || 5
+          }
+        }));
+      }
+
+      // Inject and clean up
+      const cleanup = injectJsonLd(`hostel-schema-${hostel.id}`, schemaData);
+      return () => {
+        cleanup();
+      };
     }
-  }, [hostel]);
+  }, [hostel, uni, hostelRooms, hostelReviews]);
 
   useEffect(() => {
     if (hostel?.lat && hostel?.lng && uni && (uni as any).lat && (uni as any).lng && MAPBOX_TOKEN) {
