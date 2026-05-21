@@ -1,2 +1,3 @@
 unihive_dump.sql
 *.sql
+**/*.php
