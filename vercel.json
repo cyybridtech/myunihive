@@ -5,6 +5,8 @@
       "source": "/api/:path*",
       "destination": "/api/index.cjs"
     }
-  ]
+  ],
+  "cleanUrls": false
 }
+
 
