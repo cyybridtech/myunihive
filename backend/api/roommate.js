@@ -118,7 +118,7 @@ async function getMatches(req, res) {
         // 3. Compute dynamic compatibility percentage
         const matches = otherProfiles.map(other => {
             let matchesCount = 0;
-            const details: string[] = [];
+            const details = [];
 
             if (other.sleep_habit === userProfile.sleep_habit) {
                 matchesCount++;
