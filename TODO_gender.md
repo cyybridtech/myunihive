@@ -1,5 +1,5 @@
 # Gender Verification + OCR Plan
-Steps: 0/12
+Steps: 0/12 steps 
 
 1. [x] DB: users.gender, id_photo, verified + rooms.gender
 2. [x] register.php: OCR verification
