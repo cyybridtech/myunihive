@@ -1,5 +1,4 @@
 # TODO - UniHive Email OTP + Booking Confirmation Fix
-
 ## Step 1: Verify current email flow wiring
 - [x] Identify OTP generation endpoint: `backend/api/requestOtp.js`
 - [x] Identify email sender module: `backend/api/sendEmail.js`
