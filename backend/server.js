@@ -61,6 +61,21 @@ app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type',
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Lazy schema initialization for serverless / local environments
+let schemaInitialized = false;
+app.use(async (req, res, next) => {
+    if (!schemaInitialized) {
+        schemaInitialized = true;
+        try {
+            await initSchema();
+            console.log('Database schema initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize database schema:', error);
+        }
+    }
+    next();
+});
+
 // Debug route for OTP checking, enabled only when DEBUG_EMAIL=true
 if (process.env.DEBUG_EMAIL === 'true') {
     app.get('/api/debug-otp/:email', async (req, res) => {
@@ -234,30 +249,23 @@ app.use((req, res, next) => {
 });
 
 
-
 // Error handler
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
 });
 
-// Start server
-app.listen(PORT, async () => {
-    // Initialize database schema
-    try {
-        await initSchema();
-        console.log('Database schema initialized successfully');
-    } catch (error) {
-        console.error('Failed to initialize database schema:', error);
-    }
-
-    console.log(`
+// Only start listening when running locally (not on Vercel serverless)
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`
 ╔═══════════════════════════════════════════════════╗
 ║         UniHive API Server Started               ║
 ║         http://localhost:${PORT}                   ║
 ╚═══════════════════════════════════════════════════╝
-    `);
-});
+        `);
+    });
+}
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {

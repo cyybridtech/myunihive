@@ -61,7 +61,7 @@ async function verifyPaymentHandler(req, res) {
                 return res.status(401).json({ status: 'error', message: 'Authentication required' });
             }
 
-            if (details.user_id !== user_id && user_role !== 'admin') {
+            if (String(details.user_id) !== String(user_id) && user_role !== 'admin') {
                 await connection.rollback();
                 connection.release();
                 return res.status(403).json({ status: 'error', message: 'You are not authorized to verify this booking' });
@@ -104,7 +104,11 @@ async function verifyPaymentHandler(req, res) {
                 [booking_id]
             );
             
-            if (occupancyResult[0].count + 1 >= roomResult[0].capacity) {
+            if (
+                roomResult && roomResult.length > 0 && 
+                occupancyResult && occupancyResult.length > 0 && 
+                occupancyResult[0].count >= roomResult[0].capacity
+            ) {
                 await connection.execute(
                     `UPDATE rooms SET available = 0 WHERE id = (SELECT room_id FROM bookings WHERE id = ?)`,
                     [booking_id]
