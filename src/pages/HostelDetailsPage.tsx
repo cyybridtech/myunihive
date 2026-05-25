@@ -5,7 +5,7 @@ import Map, { Marker, Source, Layer } from 'react-map-gl/mapbox';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA4ZDZyZDIwb2ZmMnFzZnNpZjJ0aHF2In0.wPt2DmSb2voR6LjTI7vfyg';
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA3a2Z4NTcwdHY1MnBzOTd4MmIxem04In0.Fy1GZDtHXGf2INyt0_f8Kw';
 
 
 import { useApp } from '../context/AppContext';

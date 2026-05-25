@@ -139,8 +139,8 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto h-[calc(100vh-100px)] min-h-[600px] flex bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="h-[calc(100vh-64px)] bg-gray-50 flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden">
+      <div className="max-w-6xl w-full mx-auto flex-1 flex bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden min-h-0">
         
         {/* Sidebar */}
         <div className={`w-full sm:w-1/3 border-r border-gray-100 flex flex-col ${activeChat ? 'hidden sm:flex' : 'flex'}`}>
@@ -213,13 +213,14 @@ export default function MessagesPage() {
                   <p className="text-center text-gray-500">Loading messages...</p>
                 ) : (
                   messages.map((msg: any) => {
-                    const isMine = msg.sender_id === user?.id;
+                    const isMine = String(msg.sender_id) === String(user?.id);
+                    const msgDate = msg.timestamp || msg.created_at;
                     return (
                       <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[70%] rounded-2xl px-5 py-3 shadow-sm ${isMine ? 'bg-amber-500 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'}`}>
                           <p className="text-sm break-words whitespace-pre-wrap">{msg.content}</p>
                           <p className={`text-[10px] mt-2 text-right ${isMine ? 'text-amber-100' : 'text-gray-400'}`}>
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {msgDate ? new Date(msgDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                           </p>
                         </div>
                       </div>

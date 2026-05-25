@@ -64,11 +64,11 @@ async function getMessages(req, res) {
                 JOIN users u ON m.sender_id = u.id
                 WHERE (m.sender_id = ? AND m.receiver_id = ?)
                    OR (m.sender_id = ? AND m.receiver_id = ?)
-                ORDER BY m.created_at ASC
+                ORDER BY m.timestamp ASC
             `, [user_id, chat_with_id, chat_with_id, user_id]);
 
             // Mark as read
-            await pool.execute(`UPDATE messages SET is_read = TRUE WHERE receiver_id = ? AND sender_id = ?`, [user_id, chat_with_id]);
+            await pool.execute(`UPDATE messages SET read_status = 1 WHERE receiver_id = ? AND sender_id = ?`, [user_id, chat_with_id]);
 
             res.json({ status: 'success', messages });
         } else {
@@ -78,8 +78,8 @@ async function getMessages(req, res) {
                     u.id as chat_with_id, 
                     u.full_name as chat_with_name, 
                     u.role as chat_with_role,
-                    MAX(m.created_at) as last_message_time,
-                    SUM(CASE WHEN m.receiver_id = ? AND m.is_read = FALSE THEN 1 ELSE 0 END) as unread_count
+                    MAX(m.timestamp) as last_message_time,
+                    SUM(CASE WHEN m.receiver_id = ? AND m.read_status = 0 THEN 1 ELSE 0 END) as unread_count
                 FROM messages m
                 JOIN users u ON (u.id = m.sender_id OR u.id = m.receiver_id) AND u.id != ?
                 WHERE m.sender_id = ? OR m.receiver_id = ?
