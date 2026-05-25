@@ -2,13 +2,16 @@
 // - Development: use Vite proxy (/api -> localhost:3001)
 // - Production: defaults to relative /api (uses same origin on Vercel)
 const getBaseUrl = () => {
+  // In production (Vercel unified hosting), always communicate via relative '/api'
+  // endpoints of the same origin to bypass stale VITE_API_BASE_URL environment variables.
+  if (!import.meta.env.DEV) {
+    return '/api';
+  }
+
   const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   if (envUrl) return envUrl;
 
   // Dev: let Vite proxy handle it
-  if (import.meta.env.DEV) return '/api';
-
-  // Prod fallback (Vercel serverless routing)
   return '/api';
 };
 const BASE_URL = getBaseUrl();
