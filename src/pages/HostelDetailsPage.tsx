@@ -202,8 +202,7 @@ export default function HostelDetailsPage() {
         throw new Error('Payment system initializing... Please refresh the page once and try again.');
       }
 
-      const PLATFORM_FEE_PERCENTAGE = 0.05; // 5% markup
-      const platformFee = Math.round(room.price * PLATFORM_FEE_PERCENTAGE);
+      const platformFee = hostel.platformFee || 0;
       const totalAmount = room.price + platformFee;
 
       const handler = (window as any).PaystackPop.setup({

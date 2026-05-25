@@ -69,19 +69,15 @@ async function createBooking(req, res) {
             }
 
             const [hostels] = await connection.execute(
-                'SELECT name, commission_type, platform_fee FROM hostels WHERE id = ?',
+                'SELECT name, platform_fee FROM hostels WHERE id = ?',
                 [hostel_id]
             );
             const hostelRecord = hostels[0] || {};
             const hostelName = hostelRecord.name || 'your hostel';
-            const commissionType = hostelRecord.commission_type || 'split';
             const platformFee = parseFloat(hostelRecord.platform_fee || 0);
 
             const roomPrice = parseFloat(rooms[0].price);
-            let totalAmount = roomPrice;
-            if (commissionType === 'flat' && platformFee > 0) {
-                totalAmount = roomPrice + platformFee;
-            }
+            const totalAmount = roomPrice + platformFee;
 
             // Do not mark room as unavailable here. It will be marked unavailable in verifyPayment when capacity is reached.
 
