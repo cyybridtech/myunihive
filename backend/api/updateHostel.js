@@ -41,6 +41,11 @@ async function updateHostelHandler(req, res) {
         if (price_range !== undefined) { updates.push('price_range = ?'); values.push(price_range); }
         if (main_image !== undefined) { updates.push('main_image = ?'); values.push(main_image); }
         if (verified !== undefined) { updates.push('verified = ?'); values.push(verified ? 1 : 0); }
+        if (req.body.commission_type !== undefined) { updates.push('commission_type = ?'); values.push(req.body.commission_type); }
+        if (req.body.platform_fee !== undefined) { updates.push('platform_fee = ?'); values.push(req.body.platform_fee); }
+        if (req.body.bank_name !== undefined) { updates.push('bank_name = ?'); values.push(req.body.bank_name); }
+        if (req.body.account_number !== undefined) { updates.push('account_number = ?'); values.push(req.body.account_number); }
+        if (req.body.subaccount_code !== undefined) { updates.push('subaccount_code = ?'); values.push(req.body.subaccount_code); }
 
         if (updates.length === 0) {
             return res.status(400).json({ status: 'error', message: 'No fields to update' });

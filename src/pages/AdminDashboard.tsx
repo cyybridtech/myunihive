@@ -32,7 +32,7 @@ export default function AdminDashboard() {
 
   // Edit states for Hostels and Rooms
   const [editingHostel, setEditingHostel] = useState<Hostel | null>(null);
-  const [editHostelData, setEditHostelData] = useState({ name: '', address: '', description: '', distanceFromCampus: '', priceRange: '' });
+  const [editHostelData, setEditHostelData] = useState({ name: '', address: '', description: '', distanceFromCampus: '', priceRange: '', platformFee: '' });
 
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editRoomData, setEditRoomData] = useState({ roomNumber: '', type: '', price: '', capacity: '', gender: 'unisex' as 'male' | 'female' | 'unisex', description: '' });
@@ -182,6 +182,7 @@ export default function AdminDashboard() {
       description: hostel.description || '',
       distanceFromCampus: hostel.distanceFromCampus || '',
       priceRange: hostel.priceRange || '',
+      platformFee: hostel.platformFee !== undefined ? String(hostel.platformFee) : '0',
     });
   };
 
@@ -194,6 +195,7 @@ export default function AdminDashboard() {
         description: editHostelData.description,
         distance_from_campus: editHostelData.distanceFromCampus,
         price_range: editHostelData.priceRange,
+        platform_fee: parseFloat(editHostelData.platformFee) || 0,
       });
 
       if (response.status === 'success') {
@@ -203,7 +205,8 @@ export default function AdminDashboard() {
           address: editHostelData.address,
           description: editHostelData.description,
           distanceFromCampus: editHostelData.distanceFromCampus,
-          priceRange: editHostelData.priceRange
+          priceRange: editHostelData.priceRange,
+          platformFee: parseFloat(editHostelData.platformFee) || 0,
         });
         setEditingHostel(null);
       } else {
@@ -889,6 +892,10 @@ export default function AdminDashboard() {
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Price Range</label>
                   <input value={editHostelData.priceRange} onChange={e => setEditHostelData({ ...editHostelData, priceRange: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. GH₵2,000 - 3,500" />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Platform / Booking Fee (GH₵)</label>
+                <input type="number" value={editHostelData.platformFee} onChange={e => setEditHostelData({ ...editHostelData, platformFee: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. 300" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
