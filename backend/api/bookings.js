@@ -68,16 +68,20 @@ async function createBooking(req, res) {
                 return res.status(400).json({ status: 'error', message: 'Sorry, this room has just been booked by someone else.' });
             }
 
-            const roomPrice = parseFloat(rooms[0].price);
-            const PLATFORM_FEE_PERCENTAGE = 0.05; // 5% markup
-            const platformFee = Math.round(roomPrice * PLATFORM_FEE_PERCENTAGE);
-            const totalAmount = roomPrice + platformFee;
-
             const [hostels] = await connection.execute(
-                'SELECT name FROM hostels WHERE id = ?',
+                'SELECT name, commission_type, platform_fee FROM hostels WHERE id = ?',
                 [hostel_id]
             );
-            const hostelName = hostels[0]?.name || 'your hostel';
+            const hostelRecord = hostels[0] || {};
+            const hostelName = hostelRecord.name || 'your hostel';
+            const commissionType = hostelRecord.commission_type || 'split';
+            const platformFee = parseFloat(hostelRecord.platform_fee || 0);
+
+            const roomPrice = parseFloat(rooms[0].price);
+            let totalAmount = roomPrice;
+            if (commissionType === 'flat' && platformFee > 0) {
+                totalAmount = roomPrice + platformFee;
+            }
 
             // Do not mark room as unavailable here. It will be marked unavailable in verifyPayment when capacity is reached.
 

@@ -51,7 +51,7 @@ async function getRoomsHandler(req, res) {
                 occupancy: totalOccupancy,
                 manualOccupancy: manualOccupancy,
                 gender: r.gender || 'unisex',
-                description: (r.type || 'Standard') + ' room',
+                description: r.description || ((r.type || 'Standard') + ' room'),
                 image: r.image || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80',
                 gallery: galleryImages,
                 type: r.type,

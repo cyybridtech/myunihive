@@ -29,6 +29,14 @@ export default function AdminDashboard() {
   const [newUniversity, setNewUniversity] = useState({ name: '', city: '', country: 'Ghana' });
   const [hostelSearch, setHostelSearch] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
+
+  // Edit states for Hostels and Rooms
+  const [editingHostel, setEditingHostel] = useState<Hostel | null>(null);
+  const [editHostelData, setEditHostelData] = useState({ name: '', address: '', description: '', distanceFromCampus: '', priceRange: '' });
+
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [editRoomData, setEditRoomData] = useState({ roomNumber: '', type: '', price: '', capacity: '', gender: 'unisex' as 'male' | 'female' | 'unisex', description: '' });
+
   const filteredHostels = visibleHostels.filter(h => {
     const query = hostelSearch.trim().toLowerCase();
     if (!query) return true;
@@ -166,24 +174,38 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateHostel = async (hostel: Hostel) => {
-    const name = window.prompt('Enter hostel name', hostel.name) ?? hostel.name;
-    const address = window.prompt('Enter address', hostel.address) ?? hostel.address;
-    const description = window.prompt('Enter description', hostel.description) ?? hostel.description;
-    const distanceFromCampus = window.prompt('Enter distance from campus', hostel.distanceFromCampus) ?? hostel.distanceFromCampus;
-    const priceRange = window.prompt('Enter price range', hostel.priceRange) ?? hostel.priceRange;
+  const handleUpdateHostel = (hostel: Hostel) => {
+    setEditingHostel(hostel);
+    setEditHostelData({
+      name: hostel.name,
+      address: hostel.address,
+      description: hostel.description || '',
+      distanceFromCampus: hostel.distanceFromCampus || '',
+      priceRange: hostel.priceRange || '',
+    });
+  };
 
+  const handleSaveHostelEdit = async () => {
+    if (!editingHostel) return;
     try {
-      const response = await updateHostelApi(hostel.id, {
-        name,
-        address,
-        description,
-        distance_from_campus: distanceFromCampus,
-        price_range: priceRange,
+      const response = await updateHostelApi(editingHostel.id, {
+        name: editHostelData.name,
+        address: editHostelData.address,
+        description: editHostelData.description,
+        distance_from_campus: editHostelData.distanceFromCampus,
+        price_range: editHostelData.priceRange,
       });
 
       if (response.status === 'success') {
-        updateHostel({ ...hostel, name, address, description, distanceFromCampus, priceRange });
+        updateHostel({
+          ...editingHostel,
+          name: editHostelData.name,
+          address: editHostelData.address,
+          description: editHostelData.description,
+          distanceFromCampus: editHostelData.distanceFromCampus,
+          priceRange: editHostelData.priceRange
+        });
+        setEditingHostel(null);
       } else {
         alert(response.message || 'Failed to update hostel');
       }
@@ -192,26 +214,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateRoom = async (room: Room) => {
-    const roomNumber = window.prompt('Room number', room.roomNumber) ?? room.roomNumber;
-    const type = window.prompt('Room type', room.type) ?? room.type;
-    const price = Number(window.prompt('Room price', String(room.price)) ?? room.price);
-    const capacity = Number(window.prompt('Room capacity', String(room.capacity)) ?? room.capacity);
-    const gender = window.prompt('Room gender (male/female)', room.gender) as 'male' | 'female' || room.gender;
-    const description = window.prompt('Room description', room.description) ?? room.description;
+  const handleUpdateRoom = (room: Room) => {
+    setEditingRoom(room);
+    setEditRoomData({
+      roomNumber: room.roomNumber,
+      type: room.type || 'Standard',
+      price: String(room.price),
+      capacity: String(room.capacity),
+      gender: (room.gender === 'mixed' ? 'unisex' : room.gender || 'unisex') as 'male' | 'female' | 'unisex',
+      description: room.description || '',
+    });
+  };
 
+  const handleSaveRoomEdit = async () => {
+    if (!editingRoom) return;
     try {
-      const response = await updateRoomApi(room.id, {
-        room_number: roomNumber,
-        type,
-        price,
-        capacity,
-        gender,
-        description,
+      const response = await updateRoomApi(editingRoom.id, {
+        room_number: editRoomData.roomNumber,
+        type: editRoomData.type,
+        price: Number(editRoomData.price),
+        capacity: Number(editRoomData.capacity),
+        gender: editRoomData.gender,
+        description: editRoomData.description,
       });
 
       if (response.status === 'success') {
-        updateRoom({ ...room, roomNumber, type, price, capacity, gender, description });
+        updateRoom({
+          ...editingRoom,
+          roomNumber: editRoomData.roomNumber,
+          type: editRoomData.type,
+          price: Number(editRoomData.price),
+          capacity: Number(editRoomData.capacity),
+          gender: editRoomData.gender,
+          description: editRoomData.description
+        });
+        setEditingRoom(null);
       } else {
         alert(response.message || 'Failed to update room');
       }
@@ -819,6 +856,100 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Edit Hostel Modal */}
+      {editingHostel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-bold text-gray-900">Edit Hostel: {editingHostel.name}</h3>
+              <button onClick={() => setEditingHostel(null)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Hostel Name *</label>
+                <input value={editHostelData.name} onChange={e => setEditHostelData({ ...editHostelData, name: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Address *</label>
+                <input value={editHostelData.address} onChange={e => setEditHostelData({ ...editHostelData, address: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+                <textarea value={editHostelData.description} onChange={e => setEditHostelData({ ...editHostelData, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Distance from Campus</label>
+                  <input value={editHostelData.distanceFromCampus} onChange={e => setEditHostelData({ ...editHostelData, distanceFromCampus: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. 0.5 km" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Price Range</label>
+                  <input value={editHostelData.priceRange} onChange={e => setEditHostelData({ ...editHostelData, priceRange: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. GH₵2,000 - 3,500" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setEditingHostel(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSaveHostelEdit} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Room Modal */}
+      {editingRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-bold text-gray-900">Edit Room: {editingRoom.roomNumber}</h3>
+              <button onClick={() => setEditingRoom(null)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Room Number *</label>
+                  <input value={editRoomData.roomNumber} onChange={e => setEditRoomData({ ...editRoomData, roomNumber: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Room Type</label>
+                  <input value={editRoomData.type} onChange={e => setEditRoomData({ ...editRoomData, type: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. Standard, Executive" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Price (GH₵) *</label>
+                  <input type="number" value={editRoomData.price} onChange={e => setEditRoomData({ ...editRoomData, price: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Capacity (Beds) *</label>
+                  <input type="number" value={editRoomData.capacity} onChange={e => setEditRoomData({ ...editRoomData, capacity: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Gender *</label>
+                <select value={editRoomData.gender} onChange={e => setEditRoomData({ ...editRoomData, gender: e.target.value as 'male' | 'female' | 'unisex' })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none bg-white">
+                  <option value="male">Male only</option>
+                  <option value="female">Female only</option>
+                  <option value="unisex">Unisex / Mixed</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+                <textarea value={editRoomData.description} onChange={e => setEditRoomData({ ...editRoomData, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. Spacious with private balcony..." />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setEditingRoom(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSaveRoomEdit} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

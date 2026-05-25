@@ -7,7 +7,7 @@
 const { getPool } = require('./config');
 
 async function createRoomHandler(req, res) {
-    const { hostel_id, room_number, capacity, price, gender, type, image } = req.body || {};
+    const { hostel_id, room_number, capacity, price, gender, type, image, description } = req.body || {};
     const user_role = req.role;
     const user_id = req.user_id;
 
@@ -56,10 +56,10 @@ async function createRoomHandler(req, res) {
 
         // Insert room
         await pool.execute(
-            `INSERT INTO rooms (id, hostel_id, room_number, capacity, price, available, gender, type, image, gallery, amenities) 
-             VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+            `INSERT INTO rooms (id, hostel_id, room_number, capacity, price, available, gender, type, image, gallery, amenities, description) 
+             VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
             [id, hostel_id, room_number, capacity || 1, price, gender || 'unisex', type || 'Standard', 
-             image || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80', gallery_json, amenities_json]
+             image || 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80', gallery_json, amenities_json, description || null]
         );
 
         res.json({ status: 'success', id: id });
