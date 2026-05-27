@@ -5,7 +5,13 @@
 
 // Set this to your Express server URL when running
 // When running locally with Vite dev server, use proxy or local server
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+const getApiBaseUrl = () => {
+  if (!import.meta.env.DEV) {
+    return ''; // Use relative paths in production for unified hosting
+  }
+  return import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+};
+const API_BASE_URL = getApiBaseUrl();
 
 const getAuthToken = () => {
     try {

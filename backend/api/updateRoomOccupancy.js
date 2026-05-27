@@ -54,12 +54,18 @@ async function updateRoomOccupancyHandler(req, res) {
             if (appOccupancy + manualOccupancy >= capacity) {
                 return res.status(400).json({ status: 'error', message: 'Room has reached its capacity limit.' });
             }
-            await pool.execute('UPDATE rooms SET manual_occupancy = manual_occupancy + 1 WHERE id = ?', [room_id]);
+            const newManual = manualOccupancy + 1;
+            const isFull = (appOccupancy + newManual) >= capacity;
+            await pool.execute('UPDATE rooms SET manual_occupancy = ?, available = ? WHERE id = ?',
+                [newManual, isFull ? 0 : 1, room_id]);
         } else if (action === 'decrement') {
             if (manualOccupancy <= 0) {
                 return res.status(400).json({ status: 'error', message: 'No manual beds to release.' });
             }
-            await pool.execute('UPDATE rooms SET manual_occupancy = manual_occupancy - 1 WHERE id = ?', [room_id]);
+            const newManual = manualOccupancy - 1;
+            const isFull = (appOccupancy + newManual) >= capacity;
+            await pool.execute('UPDATE rooms SET manual_occupancy = ?, available = ? WHERE id = ?',
+                [newManual, isFull ? 0 : 1, room_id]);
         }
 
         res.json({

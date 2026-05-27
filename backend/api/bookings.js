@@ -52,7 +52,7 @@ async function createBooking(req, res) {
 
         try {
             const [rooms] = await connection.execute(
-                'SELECT available, price FROM rooms WHERE id = ? FOR UPDATE',
+                'SELECT available, price, capacity, manual_occupancy FROM rooms WHERE id = ? FOR UPDATE',
                 [room_id]
             );
 
@@ -62,10 +62,19 @@ async function createBooking(req, res) {
                 return res.status(404).json({ status: 'error', message: 'Room not found' });
             }
 
-            if (!rooms[0].available) {
+            const room = rooms[0];
+
+            // REAL-TIME OCCUPANCY CHECK
+            const [occResult] = await connection.execute(
+                "SELECT COUNT(*) as count FROM bookings WHERE room_id = ? AND (payment_status = 'paid' OR status = 'approved')",
+                [room_id]
+            );
+            const totalOccupancy = (parseInt(occResult[0].count) || 0) + (parseInt(room.manual_occupancy) || 0);
+
+            if (totalOccupancy >= (parseInt(room.capacity) || 1) || !room.available) {
                 await connection.rollback();
                 connection.release();
-                return res.status(400).json({ status: 'error', message: 'Sorry, this room has just been booked by someone else.' });
+                return res.status(400).json({ status: 'error', message: 'Sorry, this room is already full or unavailable.' });
             }
 
             const [hostels] = await connection.execute(
