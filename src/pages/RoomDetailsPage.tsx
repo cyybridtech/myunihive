@@ -449,5 +449,6 @@ export default function RoomDetailsPage() {
         </div>
       )}
     </div>
+    </div>
   );
 }
