@@ -20,7 +20,7 @@ export default function InstallPWA() {
       setIsInstalled(true);
     }
 
-    return () => window.removeEventListener('transitionend', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const onClick = (evt: React.MouseEvent<HTMLButtonElement>) => {

@@ -139,16 +139,16 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-gray-50 flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden">
-      <div className="max-w-6xl w-full mx-auto flex-1 flex bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden min-h-0">
+    <div className="h-[calc(100vh-64px)] bg-gray-50 flex flex-col p-0 sm:p-6 lg:p-8 overflow-hidden">
+      <div className="max-w-6xl w-full mx-auto flex-1 flex bg-white sm:rounded-3xl shadow-sm border-b sm:border border-gray-100 overflow-hidden min-h-0">
         
         {/* Sidebar */}
         <div className={`w-full sm:w-1/3 border-r border-gray-100 flex flex-col ${activeChat ? 'hidden sm:flex' : 'flex'}`}>
-          <div className="p-6 border-b border-gray-100">
-            <button onClick={() => navigate('/dashboard')} className="mb-4 text-sm text-gray-500 hover:text-gray-900 flex items-center gap-2">
+          <div className="p-5 sm:p-6 border-b border-gray-100">
+            <button onClick={() => navigate('/dashboard')} className="mb-3 sm:mb-4 text-sm text-gray-500 hover:text-gray-900 flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" /> Back to Dashboard
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Messages</h1>
           </div>
           <div className="overflow-y-auto flex-1 p-4 space-y-2">
             {isLoading && chats.length === 0 ? (
@@ -194,21 +194,21 @@ export default function MessagesPage() {
           ) : (
             <>
               {/* Chat Header */}
-              <div className="p-6 border-b border-gray-100 flex items-center gap-4 bg-white">
-                <button onClick={() => setActiveChat(null)} className="sm:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-full">
+              <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center gap-3 sm:gap-4 bg-white">
+                <button onClick={() => setActiveChat(null)} className="sm:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center">
+                <div className="w-9 h-9 sm:w-10 h-10 rounded-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center shrink-0">
                   {activeChat.chat_with_name.charAt(0)}
                 </div>
-                <div>
-                  <h2 className="font-bold text-gray-900">{activeChat.chat_with_name}</h2>
-                  <p className="text-xs text-gray-500">{activeChat.chat_with_role === 'manager' || activeChat.chat_with_role === 'admin' ? 'Hostel Manager' : 'Student'}</p>
+                <div className="overflow-hidden">
+                  <h2 className="font-bold text-gray-900 truncate">{activeChat.chat_with_name}</h2>
+                  <p className="text-[10px] sm:text-xs text-gray-500">{activeChat.chat_with_role === 'manager' || activeChat.chat_with_role === 'admin' ? 'Hostel Manager' : 'Student'}</p>
                 </div>
               </div>
 
               {/* Messages List */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
                 {isLoading && messages.length === 0 ? (
                   <p className="text-center text-gray-500">Loading messages...</p>
                 ) : (
@@ -231,14 +231,14 @@ export default function MessagesPage() {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 bg-white border-t border-gray-100">
+              <div className="p-3 sm:p-4 bg-white border-t border-gray-100">
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                   <input
                     type="text"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     placeholder="Type your message..."
-                    className="flex-1 px-5 py-3 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="flex-1 px-4 sm:px-5 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                   />
                   <button
                     type="submit"

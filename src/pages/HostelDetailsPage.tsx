@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import Map, { Marker, Source, Layer } from 'react-map-gl/mapbox';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -396,7 +396,16 @@ export default function HostelDetailsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-2 text-xs font-medium text-gray-500 mb-6 overflow-x-auto whitespace-nowrap pb-2 sm:pb-0">
+          <Link to="/" className="hover:text-amber-600 transition-colors">Home</Link>
+          <ChevronRightIcon className="w-3 h-3 flex-shrink-0" />
+          <Link to="/hostels" className="hover:text-amber-600 transition-colors">Hostels</Link>
+          <ChevronRightIcon className="w-3 h-3 flex-shrink-0" />
+          <span className="text-gray-900 truncate">{hostel.name}</span>
+        </nav>
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -601,7 +610,7 @@ export default function HostelDetailsPage() {
                   <div key={room.id} className={`border rounded-xl p-4 transition-all ${selectedRoom === room.id ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' : 'border-gray-200 hover:border-gray-300'} ${!room.available ? 'opacity-50' : 'cursor-pointer'}`}
                     onClick={() => { if (room.available) navigate(`/rooms/${room.id}`); }}>
                     <div className="flex flex-col sm:flex-row gap-4">
-                      <img src={room.image} alt={room.type} className="w-full sm:w-32 h-24 object-cover rounded-lg" />
+                      <img src={room.image} alt={room.type} className="w-full sm:w-32 h-24 object-cover rounded-lg" loading="lazy" />
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
@@ -649,8 +658,8 @@ export default function HostelDetailsPage() {
                 <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to review!</p>
               ) : (
                 <div className="space-y-5">
-                  {hostelReviews.map(review => (
-                    <div key={review.id} className="border-b border-gray-100 pb-5 last:border-0 last:pb-0">
+                  {hostelReviews.map((review, idx) => (
+                    <div key={review.id} className={`border-b border-gray-100 pb-5 last:border-0 last:pb-0 ${idx >= 3 ? 'hidden md:block' : ''}`}>
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">{review.userAvatar}</div>
                         <div>

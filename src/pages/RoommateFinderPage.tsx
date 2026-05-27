@@ -117,11 +117,11 @@ export default function RoommateFinderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         
         {/* Header card with glassmorphism theme */}
-        <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-3xl p-6 sm:p-10 text-white shadow-xl shadow-amber-500/10 mb-8 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl sm:rounded-3xl p-6 sm:p-10 text-white shadow-xl shadow-amber-500/10 mb-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-2xl transform translate-x-20 -translate-y-20"></div>
           <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-black/5 rounded-full blur-xl"></div>
           
@@ -149,24 +149,24 @@ export default function RoommateFinderPage() {
         {setupRequired ? (
           /* ============ STEPPED QUIZ SETUP WIZARD ============ */
           <div className="max-w-xl mx-auto bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300">
-            <div className="bg-gray-50 px-8 py-5 border-b border-gray-100 flex items-center justify-between">
+            <div className="bg-gray-50 px-5 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Step {step} of 5</span>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className={`w-6 h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'bg-amber-500' : 'bg-gray-200'}`}></div>
+                  <div key={i} className={`w-4 sm:w-6 h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'bg-amber-500' : 'bg-gray-200'}`}></div>
                 ))}
               </div>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="p-8 space-y-6">
+            <form onSubmit={handleSaveProfile} className="p-5 sm:p-8 space-y-6">
               
               {step === 1 && (
                 <div className="space-y-5 animate-fadeIn">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">🌅 What is your sleeping pattern?</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">🌅 What is your sleeping pattern?</h2>
                     <p className="text-gray-500 text-sm mt-1">This helps match quiet hours and bedtime habits.</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {[
                       { value: 'early_bird', label: 'Early Bird', desc: 'Up at dawn, in bed before midnight.', icon: '🌅' },
                       { value: 'night_owl', label: 'Night Owl', desc: 'Active late, sleep in late.', icon: '🦉' }
@@ -175,7 +175,7 @@ export default function RoommateFinderPage() {
                         key={opt.value}
                         type="button"
                         onClick={() => setSleepHabit(opt.value)}
-                        className={`p-6 rounded-2xl border text-left transition-all flex flex-col justify-between h-36 ${sleepHabit === opt.value ? 'border-amber-500 bg-amber-50/40 ring-2 ring-amber-400' : 'border-gray-200 hover:bg-gray-50'}`}
+                        className={`p-4 sm:p-6 rounded-2xl border text-left transition-all flex flex-col justify-between h-32 sm:h-36 ${sleepHabit === opt.value ? 'border-amber-500 bg-amber-50/40 ring-2 ring-amber-400' : 'border-gray-200 hover:bg-gray-50'}`}
                       >
                         <span className="text-3xl">{opt.icon}</span>
                         <div>
@@ -191,10 +191,10 @@ export default function RoommateFinderPage() {
               {step === 2 && (
                 <div className="space-y-5 animate-fadeIn">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">🤫 What is your study environment?</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">🤫 What is your study environment?</h2>
                     <p className="text-gray-500 text-sm mt-1">Noise preferences while reading or doing assignments.</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {[
                       { value: 'silent', label: 'Absolute Silence', desc: 'Need pin-drop silence to concentrate.', icon: '🤫' },
                       { value: 'background_noise', label: 'Background Audio', desc: 'Study fine with music/background talk.', icon: '🎧' }
@@ -203,7 +203,7 @@ export default function RoommateFinderPage() {
                         key={opt.value}
                         type="button"
                         onClick={() => setStudyHabit(opt.value)}
-                        className={`p-6 rounded-2xl border text-left transition-all flex flex-col justify-between h-36 ${studyHabit === opt.value ? 'border-amber-500 bg-amber-50/40 ring-2 ring-amber-400' : 'border-gray-200 hover:bg-gray-50'}`}
+                        className={`p-4 sm:p-6 rounded-2xl border text-left transition-all flex flex-col justify-between h-32 sm:h-36 ${studyHabit === opt.value ? 'border-amber-500 bg-amber-50/40 ring-2 ring-amber-400' : 'border-gray-200 hover:bg-gray-50'}`}
                       >
                         <span className="text-3xl">{opt.icon}</span>
                         <div>
@@ -219,7 +219,7 @@ export default function RoommateFinderPage() {
               {step === 3 && (
                 <div className="space-y-5 animate-fadeIn">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">🧼 Describe your cleanliness level?</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">🧼 Describe your cleanliness level?</h2>
                     <p className="text-gray-500 text-sm mt-1">How often you clean and organize your living space.</p>
                   </div>
                   <div className="grid grid-cols-1 gap-3">
@@ -248,7 +248,7 @@ export default function RoommateFinderPage() {
               {step === 4 && (
                 <div className="space-y-5 animate-fadeIn">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">🛋️ What is your social battery?</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">🛋️ What is your social battery?</h2>
                     <p className="text-gray-500 text-sm mt-1">Preferences for hosting guests and hanging out.</p>
                   </div>
                   <div className="grid grid-cols-1 gap-3">
@@ -277,7 +277,7 @@ export default function RoommateFinderPage() {
               {step === 5 && (
                 <div className="space-y-5 animate-fadeIn">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">✍️ Complete Your Profile</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">✍️ Complete Your Profile</h2>
                     <p className="text-gray-500 text-sm mt-1">Help others learn about you and how to connect.</p>
                   </div>
                   
@@ -371,26 +371,26 @@ export default function RoommateFinderPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {matches.map(match => (
-                  <div key={match.user_id} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden">
-                    <div className="p-6 sm:p-8">
+                  <div key={match.user_id} className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden">
+                    <div className="p-5 sm:p-8">
                       {/* Top profile line & score */}
                       <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 font-extrabold flex items-center justify-center text-xl shrink-0">
+                        <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                          <div className="w-12 h-12 sm:w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 font-extrabold flex items-center justify-center text-lg sm:text-xl shrink-0">
                             {match.avatar || match.full_name.charAt(0)}
                           </div>
-                          <div>
-                            <h3 className="font-extrabold text-gray-900 text-lg leading-tight">{match.full_name}</h3>
-                            <p className="text-xs text-gray-500 mt-1">{match.university_name || 'UCC Student'}</p>
+                          <div className="overflow-hidden">
+                            <h3 className="font-extrabold text-gray-900 text-base sm:text-lg leading-tight truncate">{match.full_name}</h3>
+                            <p className="text-[10px] sm:text-xs text-gray-500 mt-1 truncate">{match.university_name || 'UCC Student'}</p>
                           </div>
                         </div>
                         
                         {/* Compatibility Score Circle */}
                         <div className="flex flex-col items-center shrink-0">
-                          <div className={`w-14 h-14 rounded-full flex flex-col items-center justify-center font-black text-sm border-4 ${match.score >= 75 ? 'border-green-500 text-green-600 bg-green-50/20' : 'border-amber-500 text-amber-600 bg-amber-50/20'}`}>
+                          <div className={`w-11 h-11 sm:w-14 h-14 rounded-full flex flex-col items-center justify-center font-black text-xs sm:text-sm border-4 ${match.score >= 75 ? 'border-green-500 text-green-600 bg-green-50/20' : 'border-amber-500 text-amber-600 bg-amber-50/20'}`}>
                             {match.score}%
                           </div>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1.5">Match</span>
+                          <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1.5">Match</span>
                         </div>
                       </div>
 
