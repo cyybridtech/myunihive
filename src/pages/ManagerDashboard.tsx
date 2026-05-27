@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell } from 'lucide-react';
+import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell, Pencil, Trash2, X, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking } from '../api/api.js';
+import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking, updateRoom as updateRoomApi, updateHostel as updateHostelApi, deleteRoom as deleteRoomApi } from '../api/api.js';
 import { Booking } from '../data/mockData';
 
 type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'notifications';
@@ -36,6 +36,12 @@ export default function ManagerDashboard() {
   const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
   const [roomViewMode, setRoomViewMode] = useState<'card' | 'list'>('card');
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+
+  // Edit states
+  const [editingHostel, setEditingHostel] = useState<any>(null);
+  const [editHostelData, setEditHostelData] = useState({ name: '', address: '', description: '', distanceFromCampus: '', priceRange: '', platformFee: '' });
+  const [editingRoom, setEditingRoom] = useState<any>(null);
+  const [editRoomData, setEditRoomData] = useState({ roomNumber: '', type: '', price: '', capacity: '', gender: 'unisex' as 'male' | 'female' | 'unisex', description: '' });
 
   // Close notification dropdown when clicking outside
   useEffect(() => {
@@ -106,6 +112,108 @@ export default function ManagerDashboard() {
       }
     } catch (error: any) {
       alert(error.message || 'Could not update room status.');
+    }
+  };
+
+  const handleUpdateHostel = (hostel: any) => {
+    setEditingHostel(hostel);
+    setEditHostelData({
+      name: hostel.name,
+      address: hostel.address,
+      description: hostel.description || '',
+      distanceFromCampus: hostel.distanceFromCampus || '',
+      priceRange: hostel.priceRange || '',
+      platformFee: hostel.platformFee !== undefined ? String(hostel.platformFee) : '0',
+    });
+  };
+
+  const handleSaveHostelEdit = async () => {
+    if (!editingHostel) return;
+    try {
+      const response = await updateHostelApi(editingHostel.id, {
+        name: editHostelData.name,
+        address: editHostelData.address,
+        description: editHostelData.description,
+        distance_from_campus: editHostelData.distanceFromCampus,
+        price_range: editHostelData.priceRange,
+        platform_fee: parseFloat(editHostelData.platformFee) || 0,
+      });
+
+      if (response.status === 'success') {
+        updateHostel({
+          ...editingHostel,
+          name: editHostelData.name,
+          address: editHostelData.address,
+          description: editHostelData.description,
+          distanceFromCampus: editHostelData.distanceFromCampus,
+          priceRange: editHostelData.priceRange,
+          platformFee: parseFloat(editHostelData.platformFee) || 0,
+        });
+        setEditingHostel(null);
+        refreshData();
+      } else {
+        alert(response.message || 'Failed to update hostel');
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+    }
+  };
+
+  const handleUpdateRoom = (room: any) => {
+    setEditingRoom(room);
+    setEditRoomData({
+      roomNumber: room.roomNumber,
+      type: room.type || 'Standard',
+      price: String(room.price),
+      capacity: String(room.capacity),
+      gender: (room.gender === 'mixed' ? 'unisex' : room.gender || 'unisex') as 'male' | 'female' | 'unisex',
+      description: room.description || '',
+    });
+  };
+
+  const handleSaveRoomEdit = async () => {
+    if (!editingRoom) return;
+    try {
+      const response = await updateRoomApi(editingRoom.id, {
+        room_number: editRoomData.roomNumber,
+        type: editRoomData.type,
+        price: Number(editRoomData.price),
+        capacity: Number(editRoomData.capacity),
+        gender: editRoomData.gender,
+        description: editRoomData.description,
+      });
+
+      if (response.status === 'success') {
+        updateRoom({
+          ...editingRoom,
+          roomNumber: editRoomData.roomNumber,
+          type: editRoomData.type,
+          price: Number(editRoomData.price),
+          capacity: Number(editRoomData.capacity),
+          gender: editRoomData.gender,
+          description: editRoomData.description
+        });
+        setEditingRoom(null);
+        refreshData();
+      } else {
+        alert(response.message || 'Failed to update room');
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!window.confirm('Delete this room permanently?')) return;
+    try {
+      const response = await deleteRoomApi(roomId);
+      if (response.status === 'success') {
+        refreshData();
+      } else {
+        alert(response.message || 'Failed to delete room');
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
     }
   };
 
@@ -380,7 +488,10 @@ export default function ManagerDashboard() {
                             <td className="px-6 py-4 text-sm text-gray-600">{hostelRooms.length}</td>
                             <td className="px-6 py-4 text-sm text-gray-600"><Star className="w-4 h-4 text-amber-500 fill-amber-500 inline-block mr-1" />{hostel.rating}</td>
                             <td className="px-6 py-4">
-                              <button onClick={() => navigate(`/hostels/${hostel.id}`)} className="text-amber-600 hover:text-amber-700 text-sm font-semibold">View details</button>
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => navigate(`/hostels/${hostel.id}`)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Eye className="w-4 h-4" /></button>
+                                <button onClick={() => handleUpdateHostel(hostel)} className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"><Pencil className="w-4 h-4" /></button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -462,9 +573,14 @@ export default function ManagerDashboard() {
                                 Free manual bed
                               </button>
                             )}
-                            <button onClick={() => navigate(`/hostels/${room.hostelId}`)} className="px-4 py-2 rounded-xl text-sm font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
-                              View hostel
-                            </button>
+                              <div className="flex gap-2 w-full mt-2">
+                                <button onClick={() => handleUpdateRoom(room)} className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition">
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDeleteRoom(room.id)} className="p-2 rounded-xl text-red-600 hover:bg-red-50 transition">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                           </div>
                         </div>
                       );
@@ -503,15 +619,23 @@ export default function ManagerDashboard() {
                                     {room.available ? 'Available' : 'Occupied'}{room.capacity > 1 ? ` • ${occupancy}/${room.capacity}` : ''}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 flex flex-wrap gap-2">
-                                  <button onClick={() => handleUpdateOccupancy(room.id, 'increment')} disabled={occupancy >= room.capacity} className="px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50">
-                                    Reserve bed
-                                  </button>
-                                  {(room.manualOccupancy || 0) > 0 && (
-                                    <button onClick={() => handleUpdateOccupancy(room.id, 'decrement')} className="px-3 py-2 rounded-lg text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200">
-                                      Free bed
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => handleUpdateOccupancy(room.id, 'increment')} disabled={occupancy >= room.capacity} className="px-3 py-2 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50">
+                                      Reserve bed
                                     </button>
-                                  )}
+                                    {(room.manualOccupancy || 0) > 0 && (
+                                      <button onClick={() => handleUpdateOccupancy(room.id, 'decrement')} className="px-3 py-2 rounded-lg text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200">
+                                        Free bed
+                                      </button>
+                                    )}
+                                    <button onClick={() => handleUpdateRoom(room)} className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => handleDeleteRoom(room.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -667,6 +791,100 @@ export default function ManagerDashboard() {
           </div>
         )}
       </div>
+
+      {/* Edit Hostel Modal */}
+      {editingHostel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-bold text-gray-900">Edit Hostel: {editingHostel.name}</h3>
+              <button onClick={() => setEditingHostel(null)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Hostel Name *</label>
+                <input value={editHostelData.name} onChange={e => setEditHostelData({ ...editHostelData, name: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Address *</label>
+                <input value={editHostelData.address} onChange={e => setEditHostelData({ ...editHostelData, address: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+                <textarea value={editHostelData.description} onChange={e => setEditHostelData({ ...editHostelData, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Distance from Campus</label>
+                  <input value={editHostelData.distanceFromCampus} onChange={e => setEditHostelData({ ...editHostelData, distanceFromCampus: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. 0.5 km" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Price Range</label>
+                  <input value={editHostelData.priceRange} onChange={e => setEditHostelData({ ...editHostelData, priceRange: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. GH₵2,000 - 3,500" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setEditingHostel(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSaveHostelEdit} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Room Modal */}
+      {editingRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-bold text-gray-900">Edit Room: {editingRoom.roomNumber}</h3>
+              <button onClick={() => setEditingRoom(null)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Room Number *</label>
+                  <input value={editRoomData.roomNumber} onChange={e => setEditRoomData({ ...editRoomData, roomNumber: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Room Type</label>
+                  <input value={editRoomData.type} onChange={e => setEditRoomData({ ...editRoomData, type: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. Standard, Executive" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Price (GH₵) *</label>
+                  <input type="number" value={editRoomData.price} onChange={e => setEditRoomData({ ...editRoomData, price: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Capacity (Beds) *</label>
+                  <input type="number" value={editRoomData.capacity} onChange={e => setEditRoomData({ ...editRoomData, capacity: e.target.value })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Gender *</label>
+                <select value={editRoomData.gender} onChange={e => setEditRoomData({ ...editRoomData, gender: e.target.value as 'male' | 'female' | 'unisex' })} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none bg-white">
+                  <option value="male">Male only</option>
+                  <option value="female">Female only</option>
+                  <option value="unisex">Unisex / Mixed</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+                <textarea value={editRoomData.description} onChange={e => setEditRoomData({ ...editRoomData, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. Spacious with private balcony..." />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setEditingRoom(null)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSaveRoomEdit} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

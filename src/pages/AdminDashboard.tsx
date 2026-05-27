@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building2, Calendar, CreditCard, Star, BarChart3, Plus, Trash2, CheckCircle, XCircle, Eye, Pencil, GraduationCap, DoorOpen, TrendingUp, AlertCircle, Search, Bell } from 'lucide-react';
+import { Users, Building2, Calendar, CreditCard, Star, BarChart3, Plus, Trash2, CheckCircle, XCircle, Eye, Pencil, GraduationCap, DoorOpen, TrendingUp, AlertCircle, Search, Bell, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { approveBooking, createHostel, createRoom, createUniversity, deleteHostel as deleteHostelApi, deleteRoom as deleteRoomApi, deleteUniversity as deleteUniversityApi, updateRoom as updateRoomApi, updateHostel as updateHostelApi, updateRoomOccupancy, uploadImage } from '../api/api.js';

@@ -103,7 +103,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [universities, setUniversities] = useState<University[]>([]);
-  const [savedHostels, setSavedHostels] = useState<string[]>([]);
+  const [savedHostels, setSavedHostels] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('savedHostels');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const loadUniversities = async () => {
     try {
@@ -298,7 +305,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return hostels;
     }
-    const isManagerRole = user.role === 'manager';
+    const isManagerRole = user.role === 'manager' || user.role === 'hostel_manager';
     if (!isManagerRole) {
       return hostels;
     }
@@ -309,7 +316,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return rooms;
     }
-    const isManagerRole = user.role === 'manager';
+    const isManagerRole = user.role === 'manager' || user.role === 'hostel_manager';
     if (!isManagerRole) {
       return rooms;
     }
@@ -384,7 +391,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleSaveHostel = (id: string) => {
-    setSavedHostels(prev => prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id]);
+    setSavedHostels(prev => {
+      const next = prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id];
+      localStorage.setItem('savedHostels', JSON.stringify(next));
+      return next;
+    });
   };
 
   const addUniversity = (uni: University) => {
@@ -447,7 +458,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       savedHostels,
       logout,
       setSelectedUniversity,
-      isManager: user?.role === 'manager',
+      isManager: user?.role === 'manager' || user?.role === 'hostel_manager',
       filteredHostels,
       filteredRooms,
       addUniversity,

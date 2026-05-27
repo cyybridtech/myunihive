@@ -165,6 +165,9 @@ export default function RoomDetailsPage() {
                 paymentStatus: paid ? 'paid' : 'unpaid',
                 reservationFee: room.price,
                 totalPrice: totalAmount,
+                hostelName: hostel.name,
+                roomNumber: room.roomNumber,
+                roomType: room.type,
               });
               setBookingState('success');
               refreshBookings();
@@ -201,6 +204,9 @@ export default function RoomDetailsPage() {
           paymentStatus: 'unpaid',
           reservationFee: room.price,
           totalPrice: totalAmount,
+          hostelName: hostel.name,
+          roomNumber: room.roomNumber,
+          roomType: room.type,
         });
       }
     }

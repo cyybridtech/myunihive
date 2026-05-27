@@ -230,6 +230,9 @@ export default function HostelDetailsPage() {
                   paymentStatus: 'paid',
                   reservationFee: totalAmount,
                   totalPrice: totalAmount,
+                      hostelName: hostel.name,
+                      roomNumber: selectedRoomData?.roomNumber,
+                      roomType: selectedRoomData?.type,
                 });
                 refreshBookings();
                 refreshNotifications();
@@ -246,6 +249,9 @@ export default function HostelDetailsPage() {
                   paymentStatus: 'unpaid',
                   reservationFee: totalAmount,
                   totalPrice: totalAmount,
+                      hostelName: hostel.name,
+                      roomNumber: selectedRoomData?.roomNumber,
+                      roomType: selectedRoomData?.type,
                 });
                 alert('Payment could not be confirmed: ' + (verification.message || 'Please retry from your dashboard.'));
                 setBookingSuccess(true);
@@ -263,6 +269,9 @@ export default function HostelDetailsPage() {
                 paymentStatus: 'unpaid',
                 reservationFee: totalAmount,
                 totalPrice: totalAmount,
+                    hostelName: hostel.name,
+                    roomNumber: selectedRoomData?.roomNumber,
+                    roomType: selectedRoomData?.type,
               });
               refreshBookings();
               refreshNotifications();
