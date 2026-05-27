@@ -59,42 +59,62 @@ async function approveBookingHandler(req, res) {
         await connection.beginTransaction();
 
         try {
-            // Update booking status
-            await connection.execute(
-                'UPDATE bookings SET status = ? WHERE id = ?',
-                [status, booking_id]
-            );
-
-            // If rejected, completed, or cancelled, make room available again
-            if (['rejected', 'completed', 'cancelled'].includes(status)) {
-                await connection.execute(
-                    'UPDATE rooms r JOIN bookings b ON r.id = b.room_id SET r.available = 1 WHERE b.id = ?',
-                    [booking_id]
-                );
-            }
-
-            // Get details for notification
-            const [details] = await connection.execute(
-                `SELECT b.user_id, h.name as hostel_name, r.room_number
+            // Get booking and room details first
+            const [bookingDetails] = await connection.execute(
+                `SELECT b.*, r.id as room_id, r.room_number, r.capacity, r.manual_occupancy, h.name as hostel_name
                  FROM bookings b
-                 LEFT JOIN hostels h ON b.hostel_id = h.id
-                 LEFT JOIN rooms r ON b.room_id = r.id
-                 WHERE b.id = ?`,
+                 JOIN rooms r ON b.room_id = r.id
+                 JOIN hostels h ON b.hostel_id = h.id
+                 WHERE b.id = ? FOR UPDATE`,
                 [booking_id]
             );
 
-            if (details.length > 0) {
-                const { user_id: notifUserId, hostel_name, room_number } = details[0];
-                const title = status.charAt(0).toUpperCase() + status.slice(1) + ' Booking';
-                const statusText = status === 'approved' ? 'Congratulations! Your booking for' : 'Your booking for';
-                const message = `${statusText} ${hostel_name} (Room ${room_number}) has been ${status}.`;
-
-                await connection.execute(
-                    `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
-                     VALUES (?, ?, ?, 'booking', 0, CURDATE())`,
-                    [notifUserId, title, message]
-                );
+            if (bookingDetails.length === 0) {
+                await connection.rollback();
+                connection.release();
+                return res.status(404).json({ status: 'error', message: 'Booking not found' });
             }
+
+            const booking = bookingDetails[0];
+            let authCode = booking.auth_code;
+
+            // Generate auth_code if approving and none exists
+            if (status === 'approved' && !authCode) {
+                authCode = 'UNH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+
+            // Update booking status
+            await connection.execute(
+                'UPDATE bookings SET status = ?, auth_code = ? WHERE id = ?',
+                [status, authCode, booking_id]
+            );
+
+            // Update room availability based on REAL occupancy
+            const [occResult] = await connection.execute(
+                "SELECT COUNT(*) as count FROM bookings WHERE room_id = ? AND (payment_status = 'paid' OR status = 'approved')",
+                [booking.room_id]
+            );
+            const totalOccupancy = (parseInt(occResult[0].count) || 0) + (parseInt(booking.manual_occupancy) || 0);
+            const isAvailable = totalOccupancy < (parseInt(booking.capacity) || 1);
+
+            await connection.execute(
+                'UPDATE rooms SET available = ? WHERE id = ?',
+                [isAvailable ? 1 : 0, booking.room_id]
+            );
+
+            // Notifications
+            const title = status.charAt(0).toUpperCase() + status.slice(1) + ' Booking';
+            const statusText = status === 'approved' ? 'Congratulations! Your booking for' : 'Your booking for';
+            let message = `${statusText} ${booking.hostel_name} (Room ${booking.room_number}) has been ${status}.`;
+            if (status === 'approved' && authCode) {
+                message += ` Security Code: ${authCode}`;
+            }
+
+            await connection.execute(
+                `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date)
+                 VALUES (?, ?, ?, 'booking', 0, CURDATE())`,
+                [booking.user_id, title, message]
+            );
 
             await connection.commit();
             connection.release();

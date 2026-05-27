@@ -34,8 +34,12 @@ async function verifyPaymentHandler(req, res) {
         await connection.beginTransaction();
 
         try {
+            // Lock the booking and associated room/hostel/user info
             const [bookings] = await connection.execute(
-                `SELECT b.user_id, b.payment_status, b.auth_code, b.total_price, u.email as user_email, u.full_name, u.gender as user_gender, r.room_number, r.type as room_type, h.name as hostel_name, h.manager_id
+                `SELECT b.user_id, b.room_id, b.payment_status, b.auth_code, b.total_price,
+                        u.email as user_email, u.full_name, u.gender as user_gender,
+                        r.room_number, r.type as room_type, r.capacity, r.manual_occupancy,
+                        h.name as hostel_name, h.manager_id
                  FROM bookings b
                  JOIN users u ON b.user_id = u.id
                  JOIN rooms r ON b.room_id = r.id
@@ -88,6 +92,51 @@ async function verifyPaymentHandler(req, res) {
                 });
             }
 
+            // --- CAPACITY CHECK (CRITICAL FOR RACE CONDITIONS) ---
+            // Lock all relevant bookings for this room to get accurate count
+            const [occupancyResult] = await connection.execute(
+                "SELECT COUNT(*) as count FROM bookings WHERE room_id = ? AND (payment_status = 'paid' OR status = 'approved') FOR UPDATE",
+                [details.room_id]
+            );
+
+            const currentAppOccupancy = parseInt(occupancyResult[0].count) || 0;
+            const currentManualOccupancy = parseInt(details.manual_occupancy) || 0;
+            const totalOccupancy = currentAppOccupancy + currentManualOccupancy;
+            const capacity = parseInt(details.capacity) || 1;
+
+            if (totalOccupancy >= capacity) {
+                // Room is full! Mark as paid but keep status pending for manual resolution/refund
+                await connection.execute(
+                    `UPDATE bookings SET payment_status = 'paid' WHERE id = ?`,
+                    [booking_id]
+                );
+
+                const overbookingMsg = `Payment confirmed for booking #${booking_id}, BUT the room reached capacity just before your payment was processed. Please contact support for a refund or room change.`;
+                await connection.execute(
+                    `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date)
+                     VALUES (?, 'Payment Confirmed - ROOM FULL', ?, 'payment', 0, CURDATE())`,
+                    [details.user_id, overbookingMsg]
+                );
+
+                if (details.manager_id) {
+                    await connection.execute(
+                        `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date)
+                         VALUES (?, 'OVERBOOKING ALERT', ?, 'booking', 0, CURDATE())`,
+                        [details.manager_id, `OVERBOOKING: ${details.full_name} paid for room ${details.room_number} but it is now full. Refund required.`]
+                    );
+                }
+
+                await connection.commit();
+                connection.release();
+
+                return res.json({
+                    status: 'overbooked',
+                    message: 'Payment received but room is already full. Please contact support.',
+                    roomDetails: { number: details.room_number, type: details.room_type }
+                });
+            }
+
+            // Room has space - Proceed with approval
             const authCode = 'UNH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
             await connection.execute(
@@ -95,23 +144,11 @@ async function verifyPaymentHandler(req, res) {
                 [authCode, booking_id]
             );
 
-            const [roomResult] = await connection.execute(
-                "SELECT capacity FROM rooms WHERE id = (SELECT room_id FROM bookings WHERE id = ?)",
-                [booking_id]
-            );
-            const [occupancyResult] = await connection.execute(
-                "SELECT COUNT(*) as count FROM bookings WHERE room_id = (SELECT room_id FROM bookings WHERE id = ?) AND (payment_status = 'paid' OR status = 'approved')",
-                [booking_id]
-            );
-            
-            if (
-                roomResult && roomResult.length > 0 && 
-                occupancyResult && occupancyResult.length > 0 && 
-                occupancyResult[0].count >= roomResult[0].capacity
-            ) {
+            // Update room availability if now full
+            if (totalOccupancy + 1 >= capacity) {
                 await connection.execute(
-                    `UPDATE rooms SET available = 0 WHERE id = (SELECT room_id FROM bookings WHERE id = ?)`,
-                    [booking_id]
+                    `UPDATE rooms SET available = 0 WHERE id = ?`,
+                    [details.room_id]
                 );
             }
 
@@ -136,12 +173,20 @@ async function verifyPaymentHandler(req, res) {
             connection.release();
 
             if (!details.user_email) {
-                console.error('[BOOKING] Missing user_email for booking:', booking_id);
+                console.error(`[BOOKING] Payment verification ERROR: Missing user_email for booking ID ${booking_id}. Details:`, {
+                    user_id: details.user_id,
+                    full_name: details.full_name
+                });
             } else {
                 try {
-                    await sendBookingEmail(details.user_email, details.full_name, booking_id, details.room_number, details.hostel_name, authCode);
+                    const emailSent = await sendBookingEmail(details.user_email, details.full_name, booking_id, details.room_number, details.hostel_name, authCode);
+                    if (!emailSent) {
+                        console.error(`[BOOKING] Payment verification WARNING: Booking confirmation email to ${details.user_email} (Booking #${booking_id}) was NOT sent (returned false). Check SMTP configuration.`);
+                    } else {
+                        console.log(`[BOOKING] Confirmation email sent successfully to ${details.user_email} for booking #${booking_id}`);
+                    }
                 } catch (err) {
-                    console.error('[BOOKING] Booking confirmation email failed:', err && err.message ? err.message : err);
+                    console.error(`[BOOKING] Payment verification FATAL: Booking confirmation email failed for ${details.user_email} (Booking #${booking_id}):`, err && err.message ? err.message : err);
                 }
             }
 

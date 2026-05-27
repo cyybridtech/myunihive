@@ -769,8 +769,8 @@ export default function HostelDetailsPage() {
                 <div className="bg-gray-50 rounded-xl p-4 mb-5 space-y-2">
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Hostel</span><span className="font-medium">{hostel.name}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-gray-500">Room</span><span className="font-medium">{selectedRoomData?.type} ({selectedRoomData?.roomNumber})</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-gray-500">Platform Fee</span><span className="font-medium">GH₵{selectedRoomData ? Math.round(selectedRoomData.price * 0.05).toLocaleString() : 0}</span></div>
-                  <div className="border-t border-gray-200 pt-2 flex justify-between text-sm"><span className="text-gray-500">Total Rent & Fees</span><span className="font-bold text-amber-600">GH₵{selectedRoomData ? (selectedRoomData.price + Math.round(selectedRoomData.price * 0.05)).toLocaleString() : 0}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-500">Platform Fee</span><span className="font-medium">GH₵{hostel.platformFee?.toLocaleString() || '0'}</span></div>
+                  <div className="border-t border-gray-200 pt-2 flex justify-between text-sm"><span className="text-gray-500">Total Rent & Fees</span><span className="font-bold text-amber-600">GH₵{selectedRoomData ? (selectedRoomData.price + (hostel.platformFee || 0)).toLocaleString() : 0}</span></div>
                 </div>
                 <p className="text-xs text-gray-500 mb-5">By confirming, you will be prompted to securely pay your full rent via Paystack. Funds are safely held.</p>
                 <div className="flex gap-3">
