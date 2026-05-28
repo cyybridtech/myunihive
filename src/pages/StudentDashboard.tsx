@@ -186,8 +186,8 @@ export default function StudentDashboard() {
           <div className="space-y-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total Bookings', value: userBookings.length.toString(), icon: Calendar, color: 'bg-blue-500' },
-                { label: 'Active Bookings', value: userBookings.filter(b => b.status === 'approved').length.toString(), icon: CheckCircle, color: 'bg-green-500' },
+                { label: 'Total Bookings', value: userBookings.filter(b => b.status !== 'rejected').length.toString(), icon: Calendar, color: 'bg-blue-500' },
+                { label: 'Active Bookings', value: userBookings.filter(b => b.status === 'approved' || b.status === 'completed').length.toString(), icon: CheckCircle, color: 'bg-green-500' },
                 { label: 'Saved Hostels', value: saved.length.toString(), icon: Heart, color: 'bg-red-500' },
                 { label: 'Credit Balance', value: `GH₵${user.credits}`, icon: CreditCard, color: 'bg-amber-500' },
               ].map(stat => (
