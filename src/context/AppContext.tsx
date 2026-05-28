@@ -218,24 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (auth.user) {
       const mappedUser = mapAuthUser(auth.user);
       setUser(mappedUser);
-
-      const fetchBookings = async () => {
-        try {
-          const isManagerRole = mappedUser.role === 'admin' || mappedUser.role === 'manager' || mappedUser.role === 'hostel_manager';
-          const response: any = isManagerRole ? await getAllBookings() : await getUserBookings();
-
-          if (response.status === 'success' && response.bookings) {
-            setBookings(response.bookings.map(mapBooking));
-          } else {
-            setBookings([]);
-          }
-        } catch (error) {
-          console.error('Bookings fetch error:', error);
-          setBookings([]);
-        }
-      };
-
-      fetchBookings();
+      refreshBookings(mappedUser.role);
 
       getNotifications()
         .then((response: any) => {
@@ -326,9 +309,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshBookings = async (): Promise<void> => {
+  const refreshBookings = async (forcedRole?: string): Promise<void> => {
     try {
-      const isManagerRole = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'hostel_manager';
+      const role = forcedRole || user?.role;
+      const isManagerRole = role === 'admin' || role === 'manager' || role === 'hostel_manager';
       const response: any = isManagerRole ? await getAllBookings() : await getUserBookings();
       if (response.status === 'success' && response.bookings) {
         setBookings(response.bookings.map(mapBooking));
@@ -437,15 +421,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addUniversity = (uni: University) => {
-    setUniversities(prev => [...prev, uni]);
+    const normalized = { ...uni, id: String(uni.id) };
+    setUniversities(prev => [...prev, normalized]);
   };
 
   const addHostel = (hostel: Hostel) => {
-    setHostels(prev => [...prev, hostel]);
+    const normalized = mapHostel(hostel);
+    setHostels(prev => [...prev, normalized]);
   };
 
   const addRoom = (room: Room) => {
-    setRooms(prev => [...prev, room]);
+    const normalized = mapRoom(room);
+    setRooms(prev => [...prev, normalized]);
   };
 
   const deleteHostel = (id: string) => {
@@ -467,11 +454,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateRoom = (room: Room) => {
-    setRooms(prev => prev.map(r => r.id === room.id ? room : r));
+    const normalized = mapRoom(room);
+    setRooms(prev => prev.map(r => r.id === normalized.id ? normalized : r));
   };
 
   const updateHostel = (hostel: Hostel) => {
-    setHostels(prev => prev.map(h => h.id === hostel.id ? hostel : h));
+    const normalized = mapHostel(hostel);
+    setHostels(prev => prev.map(h => h.id === normalized.id ? normalized : h));
   };
 
   useEffect(() => {

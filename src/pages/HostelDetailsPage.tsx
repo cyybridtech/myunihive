@@ -16,10 +16,10 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live
 export default function HostelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { filteredHostels, filteredRooms, reviews, universities, isAuthenticated, savedHostels, toggleSaveHostel, addBooking, removeBooking, user, addReview, refreshBookings, refreshData, refreshNotifications } = useApp();
+  const { hostels, rooms, reviews, universities, isAuthenticated, savedHostels, toggleSaveHostel, addBooking, removeBooking, user, addReview, refreshBookings, refreshData, refreshNotifications } = useApp();
 
-  const hostel = filteredHostels.find(h => h.id === id);
-  const hostelRooms = filteredRooms.filter(r => r.hostelId === id);
+  const hostel = hostels.find(h => h.id === id);
+  const hostelRooms = rooms.filter(r => r.hostelId === id);
   const hostelReviews = reviews.filter(r => r.hostelId === id);
   const uni = universities.find(u => u.id === hostel?.universityId);
 
@@ -44,7 +44,7 @@ export default function HostelDetailsPage() {
   
   const isManagerOrAdmin = user?.role === 'admin' || user?.id === hostel?.managerId;
 
-  const selectedRoomData = selectedRoom ? filteredRooms.find(r => r.id === selectedRoom) : undefined;
+  const selectedRoomData = selectedRoom ? rooms.find(r => r.id === selectedRoom) : undefined;
 
   const filteredHostelRooms = hostelRooms.filter(room => {
     if (roomGenderFilter === 'all') return true;

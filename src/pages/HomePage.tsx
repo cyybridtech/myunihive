@@ -5,12 +5,12 @@ import { useApp } from '../context/AppContext';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
 
 export default function HomePage() {
-  const { filteredHostels, universities, reviews, selectedUniversity, setSelectedUniversity } = useApp();
+  const { hostels: allHostels, universities, reviews, selectedUniversity, setSelectedUniversity } = useApp();
   const [searchUni, setSearchUni] = useState(selectedUniversity);
   const navigate = useNavigate();
 
-  const featuredHostels = [...filteredHostels].sort((a, b) => b.rating - a.rating).slice(0, 4);
-  const stats = { students: '12,500+', hostels: filteredHostels.length.toString(), universities: universities.length.toString(), bookings: '8,200+' };
+  const featuredHostels = [...allHostels].sort((a, b) => b.rating - a.rating).slice(0, 4);
+  const stats = { students: '12,500+', hostels: allHostels.length.toString(), universities: universities.length.toString(), bookings: '8,200+' };
 
   const handleSearch = () => {
     setSelectedUniversity(searchUni);
