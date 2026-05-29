@@ -10,8 +10,8 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live
 export default function RoomDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { rooms, hostels, universities, isAuthenticated, user, addBooking, removeBooking, refreshBookings, refreshData, refreshNotifications, toggleSaveHostel, savedHostels } = useApp();
-  const room = rooms.find(r => r.id === id);
+  const { filteredRooms, hostels, universities, isAuthenticated, user, addBooking, removeBooking, refreshBookings, refreshData, refreshNotifications, toggleSaveHostel, savedHostels } = useApp();
+  const room = filteredRooms.find(r => r.id === id);
   const hostel = room ? hostels.find(h => h.id === room.hostelId) : undefined;
   const university = hostel ? universities.find(u => u.id === hostel.universityId) : undefined;
 

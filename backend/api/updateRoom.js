@@ -69,21 +69,6 @@ async function updateRoomHandler(req, res) {
         values.push(room_id);
         await pool.execute(`UPDATE rooms SET ${updates.join(', ')} WHERE id = ?`, values);
 
-        // Sync availability if capacity or availability was not explicitly provided but needs recalculation
-        if (capacity !== undefined) {
-            const [roomStats] = await pool.execute(
-                `SELECT r.capacity, r.manual_occupancy,
-                 (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND (b.status = 'approved' OR b.payment_status = 'paid')) as app_occupancy
-                 FROM rooms r WHERE r.id = ?`,
-                [room_id]
-            );
-            if (roomStats.length > 0) {
-                const r = roomStats[0];
-                const isFull = (parseInt(r.app_occupancy) + parseInt(r.manual_occupancy)) >= parseInt(r.capacity);
-                await pool.execute('UPDATE rooms SET available = ? WHERE id = ?', [isFull ? 0 : 1, room_id]);
-            }
-        }
-
         res.json({ status: 'success', message: 'Room updated' });
     } catch (error) {
         console.error('Update room error:', error);

@@ -9,7 +9,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA3a2Z4NTcwdHY1MnBzOTd4MmIxem04In0.Fy1GZDtHXGf2INyt0_f8Kw';
 
 export default function HostelListingPage() {
-  const { hostels: allHostels, universities, filteredRooms, selectedUniversity, setSelectedUniversity, savedHostels, toggleSaveHostel, isAuthenticated, user } = useApp();
+  const { filteredHostels, universities, filteredRooms, selectedUniversity, setSelectedUniversity, savedHostels, toggleSaveHostel, isAuthenticated, user } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const universityParam = searchParams.get('university');
 
@@ -34,7 +34,7 @@ export default function HostelListingPage() {
   const allFacilities = ['WiFi', 'Security', 'Water Tank', 'Study Room', 'Kitchen', 'Laundry', 'Parking', 'Generator', 'AC', 'CCTV', 'Gym', 'Swimming Pool'];
 
   const filtered = useMemo(() => {
-    let result = allHostels.filter(h => String(h.universityId) === String(selectedUniversity));
+    let result = filteredHostels.filter(h => String(h.universityId) === String(selectedUniversity));
 
     if (search) {
       const s = search.toLowerCase();
