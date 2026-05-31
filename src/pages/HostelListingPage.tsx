@@ -114,7 +114,9 @@ export default function HostelListingPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Hostels near {currentUni?.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            {currentUni ? `Hostels near ${currentUni.name}` : 'Student Hostels in Ghana'}
+          </h1>
           <p className="text-gray-500 text-sm mb-5">{filtered.length} verified hostels available</p>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -254,13 +256,13 @@ export default function HostelListingPage() {
       {/* Results */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {filtered.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20" role="alert" aria-live="polite">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Search className="w-8 h-8 text-gray-400" />
+              <Search className="w-8 h-8 text-gray-400" aria-hidden="true" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No hostels found</h3>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">No hostels found</h2>
             <p className="text-gray-500 mb-6">Try adjusting your filters or searching for a different university.</p>
-            <button onClick={() => { setSearch(''); setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); }} className="text-amber-600 font-semibold hover:text-amber-700">Clear all filters</button>
+            <button onClick={() => { setSearch(''); setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); }} className="text-amber-600 font-semibold hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-lg px-2">Clear all filters</button>
           </div>
         ) : viewMode === 'map' ? (
           <div className="h-[calc(100vh-250px)] min-h-[500px] w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative">
