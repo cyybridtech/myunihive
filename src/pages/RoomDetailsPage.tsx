@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { MapPin, CheckCircle, Heart, ArrowLeft, Wifi, Shield, Zap, Droplets, BookOpen, Users, DoorOpen, CreditCard, X } from 'lucide-react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { MapPin, CheckCircle, Heart, ArrowLeft, Wifi, Shield, Zap, Droplets, BookOpen, Users, DoorOpen, CreditCard, X, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { createBooking, verifyPayment, deleteBooking } from '../api/api.js';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
@@ -165,6 +165,9 @@ export default function RoomDetailsPage() {
                 paymentStatus: paid ? 'paid' : 'unpaid',
                 reservationFee: room.price,
                 totalPrice: totalAmount,
+                hostelName: hostel.name,
+                roomNumber: room.roomNumber,
+                roomType: room.type,
               });
               setBookingState('success');
               refreshBookings();
@@ -201,6 +204,9 @@ export default function RoomDetailsPage() {
           paymentStatus: 'unpaid',
           reservationFee: room.price,
           totalPrice: totalAmount,
+          hostelName: hostel.name,
+          roomNumber: room.roomNumber,
+          roomType: room.type,
         });
       }
     }
@@ -227,7 +233,19 @@ export default function RoomDetailsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-2 text-xs font-medium text-gray-500 mb-6 overflow-x-auto whitespace-nowrap pb-2 sm:pb-0">
+          <Link to="/" className="hover:text-amber-600 transition-colors">Home</Link>
+          <ChevronRight className="w-3 h-3 flex-shrink-0" />
+          <Link to="/hostels" className="hover:text-amber-600 transition-colors">Hostels</Link>
+          <ChevronRight className="w-3 h-3 flex-shrink-0" />
+          <Link to={`/hostels/${hostel.id}`} className="hover:text-amber-600 transition-colors">{hostel.name}</Link>
+          <ChevronRight className="w-3 h-3 flex-shrink-0" />
+          <span className="text-gray-900 truncate">Room {room.roomNumber}</span>
+        </nav>
+
+        <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-3xl overflow-hidden shadow-sm">
             <div className="relative h-[380px] bg-black/5 cursor-pointer" onClick={() => setShowGallery(true)}>
@@ -430,6 +448,7 @@ export default function RoomDetailsPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

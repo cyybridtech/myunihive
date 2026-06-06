@@ -186,8 +186,8 @@ export default function StudentDashboard() {
           <div className="space-y-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total Bookings', value: userBookings.length.toString(), icon: Calendar, color: 'bg-blue-500' },
-                { label: 'Active Bookings', value: userBookings.filter(b => b.status === 'approved').length.toString(), icon: CheckCircle, color: 'bg-green-500' },
+                { label: 'Total Bookings', value: userBookings.filter(b => b.status !== 'rejected').length.toString(), icon: Calendar, color: 'bg-blue-500' },
+                { label: 'Active Bookings', value: userBookings.filter(b => b.status === 'approved' || b.status === 'completed').length.toString(), icon: CheckCircle, color: 'bg-green-500' },
                 { label: 'Saved Hostels', value: saved.length.toString(), icon: Heart, color: 'bg-red-500' },
                 { label: 'Credit Balance', value: `GH₵${user.credits}`, icon: CreditCard, color: 'bg-amber-500' },
               ].map(stat => (
@@ -240,8 +240,8 @@ export default function StudentDashboard() {
                 return (
                   <div key={booking.id} className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col sm:flex-row sm:justify-between shadow-sm gap-4">
                     <div>
-                      <h3 className="font-bold text-gray-900">{hostel?.name || 'Unknown Hostel'}</h3>
-                      <p className="text-sm text-gray-500">Booking ID: #{booking.id.slice(-6)}</p>
+                      <h3 className="font-bold text-gray-900">{hostel?.name || booking.hostelName || 'Unknown Hostel'}</h3>
+                      <p className="text-sm text-gray-500">Booking ID: #{String(booking.id).slice(-6)}</p>
                       <p className="text-sm text-gray-500 mt-2">Room {room?.roomNumber || booking.roomNumber || 'N/A'} • {room?.type || booking.roomType || 'Standard'}</p>
                       {booking.authCode && (
                         <p className="text-sm text-amber-700 mt-2">Your check-in code: <span className="font-semibold">{booking.authCode}</span></p>
@@ -292,7 +292,7 @@ export default function StudentDashboard() {
                         <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-xl"></div>
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-4">
-                            <span className="text-xs font-semibold text-gray-400">RECEIPT #{booking.id.slice(-6)}</span>
+                            <span className="text-xs font-semibold text-gray-400">RECEIPT #{String(booking.id).slice(-6)}</span>
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                               <CheckCircle className="w-3.5 h-3.5" /> PAID & CONFIRMED
                             </span>

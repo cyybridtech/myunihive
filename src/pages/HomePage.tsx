@@ -169,7 +169,7 @@ export default function HomePage() {
               return (
                 <Link to={`/hostels/${hostel.id}`} key={hostel.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
                   <div className="relative h-48 overflow-hidden">
-                    <img src={hostel.mainImage} alt={hostel.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img src={hostel.mainImage} alt={hostel.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     {hostel.verified && (
                       <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" /> Verified

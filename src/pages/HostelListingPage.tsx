@@ -114,7 +114,9 @@ export default function HostelListingPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Hostels near {currentUni?.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            {currentUni ? `Hostels near ${currentUni.name}` : 'Student Hostels in Ghana'}
+          </h1>
           <p className="text-gray-500 text-sm mb-5">{filtered.length} verified hostels available</p>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -162,70 +164,87 @@ export default function HostelListingPage() {
         </div>
       </div>
 
-      {/* Filter Panel */}
+      {/* Filter Panel (Mobile Overlay + Desktop Inline) */}
       {showFilters && (
-        <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-            <div className="grid md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Price Range (GH₵ per semester)</h3>
+        <div className="fixed inset-0 z-[60] md:relative md:inset-auto md:z-auto bg-white overflow-y-auto md:overflow-visible">
+          <div className="sticky top-0 md:hidden flex items-center justify-between p-4 border-b bg-white z-10">
+            <h2 className="text-lg font-bold">Filters</h2>
+            <button onClick={() => setShowFilters(false)} className="p-2 hover:bg-gray-100 rounded-full">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 md:border-b md:border-gray-200 md:shadow-sm">
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Price Range (GH₵)</h3>
                 <div className="flex items-center gap-3">
-                  <input type="number" value={priceRange[0]} onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])} placeholder="Min" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
-                  <span className="text-gray-400">—</span>
-                  <input type="number" value={priceRange[1]} onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])} placeholder="Max" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" />
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">GH₵</span>
+                    <input type="number" value={priceRange[0]} onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])} placeholder="Min" className="w-full pl-12 pr-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none bg-gray-50" />
+                  </div>
+                  <span className="text-gray-400 font-bold">—</span>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">GH₵</span>
+                    <input type="number" value={priceRange[1]} onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])} placeholder="Max" className="w-full pl-12 pr-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none bg-gray-50" />
+                  </div>
                 </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Room Gender</h3>
-                <select aria-label="Filter by room gender" value={roomGenderFilter} onChange={e => setRoomGenderFilter(e.target.value as 'any' | 'male' | 'female')} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                  <option value="any">Any</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
+
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Room Preference</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {['any', 'male', 'female'].map(g => (
+                    <button
+                      key={g}
+                      onClick={() => setRoomGenderFilter(g as any)}
+                      className={`py-2.5 rounded-xl text-sm font-bold border transition-all ${roomGenderFilter === g ? 'bg-amber-500 border-amber-500 text-white' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-amber-300'}`}
+                    >
+                      {g.charAt(0).toUpperCase() + g.slice(1)}
+                    </button>
+                  ))}
+                </div>
                 {user?.gender && user.role === 'student' && roomGenderFilter === user.gender && (
-                  <p className="text-xs text-gray-500 mt-2">Filtering rooms for your gender: {user.gender}.</p>
+                  <p className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> Showing rooms matching your profile ({user.gender})
+                  </p>
                 )}
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Minimum Rating</h3>
-                <div className="flex gap-2">
+
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Minimum Rating</h3>
+                <div className="flex flex-wrap gap-2">
                   {[0, 3, 3.5, 4, 4.5].map(r => (
-                    <button key={r} onClick={() => setMinRating(r)} className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${minRating === r ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      {r === 0 ? 'Any' : <><Star className="w-3 h-3 fill-current" /> {r}+</>}
+                    <button key={r} onClick={() => setMinRating(r)} className={`flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${minRating === r ? 'bg-amber-500 border-amber-500 text-white' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-amber-300'}`}>
+                      {r === 0 ? 'Any' : <><Star className={`w-3.5 h-3.5 ${minRating === r ? 'fill-white' : 'fill-amber-500 text-amber-500'}`} /> {r}+</>}
                     </button>
                   ))}
                 </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Facilities</h3>
+
+              <div className="md:col-span-3 space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Hostel Facilities</h3>
                 <div className="flex flex-wrap gap-2">
                   {allFacilities.map(f => (
-                    <button key={f} onClick={() => setSelectedFacilities(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedFacilities.includes(f) ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    <button key={f} onClick={() => setSelectedFacilities(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])} className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${selectedFacilities.includes(f) ? 'bg-amber-500 border-amber-500 text-white' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-amber-300'}`}>
                       {f}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
-            {(selectedFacilities.length > 0 || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 5000) && (
-              <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-500">Active filters:</span>
-                  {selectedFacilities.map(f => (
-                    <span key={f} className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">
-                      {f} <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedFacilities(prev => prev.filter(x => x !== f))} />
-                    </span>
-                  ))}
-                  <button onClick={() => { setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); setRoomGenderFilter('any'); }} className="text-xs text-red-500 hover:text-red-600 ml-2 font-medium">Clear all</button>
-                </div>
-              </div>
-            )}
-            
-            {/* Show Results Button */}
-            <div className="mt-6 flex justify-end">
+
+            <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+              <button
+                onClick={() => { setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); setRoomGenderFilter('any'); }}
+                className="text-sm font-bold text-red-500 hover:text-red-600 flex items-center gap-2"
+              >
+                <X className="w-4 h-4" /> Reset All Filters
+              </button>
+
               <button 
                 onClick={() => setShowFilters(false)}
-                className="w-full sm:w-auto px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                className="w-full md:w-auto px-10 py-3.5 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold transition-all shadow-xl flex items-center justify-center gap-2"
               >
                 Show {filtered.length} Hostels
               </button>
@@ -237,13 +256,13 @@ export default function HostelListingPage() {
       {/* Results */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {filtered.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20" role="alert" aria-live="polite">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Search className="w-8 h-8 text-gray-400" />
+              <Search className="w-8 h-8 text-gray-400" aria-hidden="true" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No hostels found</h3>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">No hostels found</h2>
             <p className="text-gray-500 mb-6">Try adjusting your filters or searching for a different university.</p>
-            <button onClick={() => { setSearch(''); setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); }} className="text-amber-600 font-semibold hover:text-amber-700">Clear all filters</button>
+            <button onClick={() => { setSearch(''); setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); }} className="text-amber-600 font-semibold hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-lg px-2">Clear all filters</button>
           </div>
         ) : viewMode === 'map' ? (
           <div className="h-[calc(100vh-250px)] min-h-[500px] w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative">
@@ -308,7 +327,7 @@ export default function HostelListingPage() {
                 >
                   <div className="p-0 rounded-2xl overflow-hidden shadow-2xl min-w-[240px]">
                     <div className="relative h-32">
-                      <img src={popupInfo.mainImage} alt={popupInfo.name} className="w-full h-full object-cover" />
+                      <img src={popupInfo.mainImage} alt={popupInfo.name} className="w-full h-full object-cover" loading="lazy" />
                       <button onClick={() => setPopupInfo(null)} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/80">
                         <X className="w-4 h-4" />
                       </button>
@@ -335,7 +354,7 @@ export default function HostelListingPage() {
                 <div key={hostel.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group">
                   <div className="relative h-52 overflow-hidden">
                     <Link to={`/hostels/${hostel.id}`}>
-                      <img src={hostel.mainImage} alt={hostel.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={hostel.mainImage} alt={hostel.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     </Link>
                     {hostel.verified && (
                       <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg">

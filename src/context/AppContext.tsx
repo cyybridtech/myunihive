@@ -56,8 +56,8 @@ function mapBooking(b: any): Booking {
   return {
     id: String(b.id),
     userId: String(b.user_id),
-    roomId: b.room_id,
-    hostelId: b.hostel_id,
+    roomId: String(b.room_id),
+    hostelId: String(b.hostel_id),
     bookingDate: b.booking_date,
     status: b.status ?? 'pending',
     paymentStatus: b.payment_status ?? 'unpaid',
@@ -69,6 +69,31 @@ function mapBooking(b: any): Booking {
     roomNumber: b.roomNumber || b.room_number || undefined,
     roomType: b.room_type || b.roomType || undefined,
     hostelName: b.hostel_name || b.hostelName || undefined,
+  };
+}
+
+function mapHostel(h: any): Hostel {
+  return {
+    ...h,
+    id: String(h.id),
+    universityId: String(h.universityId || h.university_id),
+    managerId: h.managerId || h.manager_id ? String(h.managerId || h.manager_id) : undefined,
+    rating: parseFloat(h.rating || 0),
+    reviewCount: parseInt(h.reviewCount || h.review_count || 0),
+    platformFee: parseFloat(h.platformFee || h.platform_fee || 0),
+  };
+}
+
+function mapRoom(r: any): Room {
+  return {
+    ...r,
+    id: String(r.id),
+    hostelId: String(r.hostelId || r.hostel_id),
+    price: parseFloat(r.price || 0),
+    capacity: parseInt(r.capacity || 0),
+    occupancy: parseInt(r.occupancy || 0),
+    manualOccupancy: parseInt(r.manual_occupancy || r.manualOccupancy || 0),
+    gender: r.gender || 'unisex'
   };
 }
 
@@ -103,12 +128,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [universities, setUniversities] = useState<University[]>([]);
-  const [savedHostels, setSavedHostels] = useState<string[]>([]);
+  const [savedHostels, setSavedHostels] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('savedHostels');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const loadUniversities = async () => {
     try {
       const res: any = await getUniversities();
-      if (res.status === 'success' && res.universities) setUniversities(res.universities);
+      if (res.status === 'success' && res.universities) {
+        setUniversities(res.universities.map((u: any) => ({ ...u, id: String(u.id) })));
+      }
     } catch (e: any) {
       console.error('Failed to load universities', e);
     }
@@ -117,7 +151,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadHostels = async () => {
     try {
       const res: any = await getHostels();
-      if (res.status === 'success' && res.hostels) setHostels(res.hostels);
+      if (res.status === 'success' && res.hostels) {
+        setHostels(res.hostels.map(mapHostel));
+      }
     } catch (e: any) {
       console.error('Failed to load hostels', e);
     }
@@ -126,7 +162,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadRooms = async () => {
     try {
       const res: any = await getRooms();
-      if (res.status === 'success' && res.rooms) setRooms(res.rooms);
+      if (res.status === 'success' && res.rooms) {
+        setRooms(res.rooms.map(mapRoom));
+      }
     } catch (e: any) {
       console.error('Failed to load rooms', e);
     }
@@ -178,35 +216,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     if (auth.user) {
-      setUser(mapAuthUser(auth.user));
+      const mappedUser = mapAuthUser(auth.user);
+      setUser(mappedUser);
 
-      getUserBookings()
-        .then((response: any) => {
-          console.log('getUserBookings response:', response);
+      const fetchBookings = async () => {
+        try {
+          const isManagerRole = mappedUser.role === 'admin' || mappedUser.role === 'manager' || mappedUser.role === 'hostel_manager';
+          const response: any = isManagerRole ? await getAllBookings() : await getUserBookings();
+
           if (response.status === 'success' && response.bookings) {
             setBookings(response.bookings.map(mapBooking));
           } else {
-            console.error('Bookings API error:', response);
-            setBookings(sampleBookings);
+            setBookings([]);
           }
-        })
-        .catch((error: any) => {
+        } catch (error) {
           console.error('Bookings fetch error:', error);
-          setBookings(sampleBookings);
-        });
+          setBookings([]);
+        }
+      };
 
-      const isManagerRole = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
-      if (auth.user && (auth.user.role === 'admin' || isManagerRole)) {
-        getAllBookings()
-          .then((response: any) => {
-            if (response.status === 'success' && response.bookings) {
-              setBookings(response.bookings.map(mapBooking));
-            }
-          })
-          .catch((error: any) => {
-            console.error('Failed to load all bookings for admin/manager', error);
-          });
-      }
+      fetchBookings();
 
       getNotifications()
         .then((response: any) => {
@@ -235,13 +264,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addBooking = (booking: Booking) => {
-    // Prevent duplicate: if already in state (e.g. from DB load), just update
+    // Optimistically add/update booking in local state
+    const mappedBooking = mapBooking({
+        ...booking,
+        user_id: booking.userId || (booking as any).user_id,
+        room_id: booking.roomId || (booking as any).room_id,
+        hostel_id: booking.hostelId || (booking as any).hostel_id,
+        reservation_fee: booking.reservationFee || (booking as any).reservation_fee,
+        total_price: booking.totalPrice || (booking as any).total_price,
+        payment_status: booking.paymentStatus || (booking as any).payment_status,
+        auth_code: booking.authCode || (booking as any).auth_code,
+        hostel_name: booking.hostelName || (booking as any).hostel_name,
+        room_number: booking.roomNumber || (booking as any).room_number,
+        room_type: booking.roomType || (booking as any).room_type
+    });
+
     setBookings(prev => {
-      const exists = prev.some(b => b.id === booking.id);
+      const exists = prev.some(b => String(b.id) === String(mappedBooking.id));
       if (exists) {
-        return prev.map(b => b.id === booking.id ? { ...b, ...booking } : b);
+        return prev.map(b => String(b.id) === String(mappedBooking.id) ? { ...b, ...mappedBooking } : b);
       }
-      return [...prev, booking];
+      return [mappedBooking, ...prev];
     });
 
     setNotifications(prev => [...prev, {
@@ -285,7 +328,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const refreshBookings = async (): Promise<void> => {
     try {
-      const response: any = (user && (user.role === 'admin' || user.role === 'manager')) ? await getAllBookings() : await getUserBookings();
+      const isManagerRole = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'hostel_manager';
+      const response: any = isManagerRole ? await getAllBookings() : await getUserBookings();
       if (response.status === 'success' && response.bookings) {
         setBookings(response.bookings.map(mapBooking));
       }
@@ -298,7 +342,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return hostels;
     }
-    const isManagerRole = user.role === 'manager';
+    const isManagerRole = user.role === 'manager' || user.role === 'hostel_manager';
     if (!isManagerRole) {
       return hostels;
     }
@@ -309,7 +353,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return rooms;
     }
-    const isManagerRole = user.role === 'manager';
+    const isManagerRole = user.role === 'manager' || user.role === 'hostel_manager';
     if (!isManagerRole) {
       return rooms;
     }
@@ -383,8 +427,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const toggleSaveHostel = (id: string) => {
-    setSavedHostels(prev => prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id]);
+  const toggleSaveHostel = (hostelId: string | number) => {
+    const id = String(hostelId);
+    setSavedHostels(prev => {
+      const next = prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id];
+      localStorage.setItem('savedHostels', JSON.stringify(next));
+      return next;
+    });
   };
 
   const addUniversity = (uni: University) => {
@@ -447,7 +496,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       savedHostels,
       logout,
       setSelectedUniversity,
-      isManager: user?.role === 'manager',
+      isManager: user?.role === 'manager' || user?.role === 'hostel_manager',
       filteredHostels,
       filteredRooms,
       addUniversity,
