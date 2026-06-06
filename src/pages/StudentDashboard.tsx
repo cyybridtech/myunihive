@@ -184,12 +184,11 @@ export default function StudentDashboard() {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { label: 'Total Bookings', value: userBookings.length.toString(), icon: Calendar, color: 'bg-blue-500' },
                 { label: 'Active Bookings', value: userBookings.filter(b => b.status === 'approved').length.toString(), icon: CheckCircle, color: 'bg-green-500' },
                 { label: 'Saved Hostels', value: saved.length.toString(), icon: Heart, color: 'bg-red-500' },
-                { label: 'Credit Balance', value: `GH₵${user.credits}`, icon: CreditCard, color: 'bg-amber-500' },
               ].map(stat => (
                 <div key={stat.label} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">

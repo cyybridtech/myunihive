@@ -8,7 +8,6 @@ interface User {
   role: string;
   gender?: 'male' | 'female';
   avatar?: string;
-  credits?: number;
   token?: string;
 }
 

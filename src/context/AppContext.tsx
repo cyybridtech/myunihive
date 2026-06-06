@@ -84,7 +84,6 @@ function mapAuthUser(authUser: any): User {
     role: authUser.role === 'admin' ? 'admin' : isManagerRole ? 'manager' : 'student',
     gender: authUser.gender || authUser.user_gender || undefined,
     avatar: authUser.avatar || (authUser.email?.[0]?.toUpperCase() ?? '?'),
-    credits: Number(authUser.credits) || 0,
     joinDate: (authUser.created_at ?? authUser.joinDate ?? new Date().toISOString()).split('T')[0],
   };
 }

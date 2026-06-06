@@ -59,21 +59,64 @@ function buildHtmlEmail(title, intro, contentHtml, closing) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title}</title>
 </head>
-<body style="font-family: Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; margin: 0; padding: 0; -webkit-font-smoothing: antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f6f8fa; padding: 30px 0;">
     <tr>
-      <td align="center" style="padding: 20px 0;">
-        <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);">
+      <td align="center">
+        <!-- Main Card Container -->
+        <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04); border: 1px solid #e1e8ed;">
+          <!-- Top Accent Bar -->
           <tr>
-            <td style="padding: 30px;">
-              <h1 style="margin: 0 0 20px; font-size: 24px; color: #1f2937;">${title}</h1>
-              <p style="margin: 0 0 20px; color: #4b5563; line-height: 1.6;">${intro}</p>
+            <td height="4" style="background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);"></td>
+          </tr>
+          <!-- Header (Branded Logo Section) -->
+          <tr>
+            <td style="padding: 24px 32px 20px 32px; border-bottom: 1px solid #f1f5f9;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="left" style="vertical-align: middle;">
+                    <table cellpadding="0" cellspacing="0">
+                      <tr>
+                        <!-- Stylized Hexagon/Hive Box -->
+                        <td style="background-color: #f59e0b; padding: 7px 10px; border-radius: 8px; vertical-align: middle; text-align: center;">
+                          <span style="color: #ffffff; font-weight: 900; font-size: 16px; font-family: -apple-system, sans-serif; line-height: 1; display: block;">H</span>
+                        </td>
+                        <td style="padding-left: 10px; font-size: 20px; font-weight: 800; color: #1f2937; vertical-align: middle; font-family: -apple-system, sans-serif;">
+                          Uni<span style="color: #f59e0b;">Hive</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Body Content Area -->
+          <tr>
+            <td style="padding: 36px 32px 30px 32px;">
+              <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1f2937; line-height: 1.3;">${title}</h1>
+              <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">${intro}</p>
+              
+              <!-- Custom content insertion -->
               ${contentHtml}
-              <p style="margin: 30px 0 0; color: #4b5563; line-height: 1.6;">${closing}</p>
+              
+              <!-- Closing segment -->
+              <p style="margin: 24px 0 0 0; color: #4b5563; font-size: 15px; line-height: 1.6;">${closing}</p>
+            </td>
+          </tr>
+          <!-- Footer Branding Bar -->
+          <tr>
+            <td style="background-color: #fafbfd; padding: 24px 32px; border-top: 1px solid #f1f5f9; text-align: center;">
+              <p style="margin: 0; color: #1f2937; font-size: 14px; font-weight: 700;">Uni<span style="color: #f59e0b;">Hive</span></p>
+              <p style="margin: 4px 0 16px 0; color: #6b7280; font-size: 11px;">Student housing made simple.</p>
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 16px;">
+                <p style="margin: 0; color: #9ca3af; font-size: 10px; line-height: 1.4;">
+                  This is an automated notification from your UniHive account. Please do not reply directly to this email.
+                </p>
+              </div>
             </td>
           </tr>
         </table>
-        <p style="margin: 14px 0 0; color: #9ca3af; font-size: 12px;">UniHive • Student housing made simple.</p>
       </td>
     </tr>
   </table>
@@ -146,21 +189,27 @@ async function sendMail(options) {
 /**
  * Send welcome email to new user
  */
+/**
+ * Send welcome email to new user
+ */
 async function sendWelcomeEmail(email, full_name, user_id) {
     const subject = 'Welcome to UniHive — Your Student Home Journey Starts Here';
     const text = `Hi ${full_name},\n\nWelcome to UniHive! Your account is now active and ready for bookings.\n\nAccount ID: ${user_id}\n\nIf you have any questions, reply to this email and our support team will help.\n\nBest regards,\nUniHive Team`;
     const html = buildHtmlEmail(
         'Welcome to UniHive!',
         `Hi ${full_name}, welcome aboard! Your UniHive account is set up and ready to use.`,
-        `<div style="background: #eef2ff; border-left: 4px solid #6366f1; padding: 18px; border-radius: 10px; margin-bottom: 20px;">
-            <p style="margin: 0; color: #1f2937;"><strong>Account ID:</strong> ${user_id}</p>
+        `<div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 18px; border-radius: 10px; margin-bottom: 20px;">
+            <p style="margin: 0; color: #1f2937; font-size: 15px;"><strong>Account ID:</strong> ${user_id}</p>
           </div>
-          <p style="margin: 0 0 12px; color: #4b5563;">You can now search hostels, book rooms, and manage your accommodation from your UniHive dashboard.</p>
-          <ul style="margin: 0 0 20px; padding-left: 18px; color: #4b5563;">
-            <li>Browse verified hostels</li>
-            <li>Reserve rooms quickly</li>
-            <li>Track bookings and payments</li>
-          </ul>`,
+          <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">You can now search hostels, book rooms, and manage your accommodation from your UniHive dashboard.</p>
+          <ul style="margin: 0 0 24px 0; padding-left: 20px; color: #4b5563; font-size: 15px; line-height: 1.6;">
+            <li style="margin-bottom: 6px;">Browse verified hostels near your campus</li>
+            <li style="margin-bottom: 6px;">Reserve rooms quickly and securely</li>
+            <li style="margin-bottom: 6px;">Track your bookings and check-in status</li>
+          </ul>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://unihive-9k0l.onrender.com/dashboard" style="background-color: #f59e0b; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); font-size: 15px;">Go to Dashboard</a>
+          </div>`,
         'Need help? Simply reply to this email and a UniHive team member will assist you.'
     );
 
@@ -175,17 +224,20 @@ async function sendBookingEmail(email, full_name, booking_id, room_number, hoste
     const text = `Hi ${full_name},\n\nYour UniHive booking has been confirmed.\n\nBooking ID: ${booking_id}\nHostel: ${hostel_name}\nRoom: ${room_number}\nCheck-in Code: ${auth_code}\n\nShow this code at check-in.\n\nBest,\nUniHive Team`;
     const html = buildHtmlEmail(
         'Booking Confirmed!',
-        `Hi ${full_name}, your booking is confirmed. Keep this email for your check-in details.`,
-        `<div style="background: #ecfdf5; border-left: 4px solid #22c55e; padding: 18px; border-radius: 10px; margin-bottom: 20px;">
-            <p style="margin: 0 0 8px; color: #1f2937;"><strong>Booking ID:</strong> ${booking_id}</p>
-            <p style="margin: 0 0 8px; color: #1f2937;"><strong>Hostel:</strong> ${hostel_name}</p>
-            <p style="margin: 0; color: #1f2937;"><strong>Room:</strong> ${room_number}</p>
+        `Hi ${full_name}, your room booking is successfully confirmed. Keep this email for your check-in details.`,
+        `<div style="background: #f8fafc; border-left: 4px solid #1f2937; padding: 18px; border-radius: 10px; margin-bottom: 24px; border: 1px solid #e2e8f0; border-left-width: 4px;">
+            <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 14px;"><strong>Booking ID:</strong> <span style="color: #1f2937;">${booking_id}</span></p>
+            <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 14px;"><strong>Hostel:</strong> <span style="color: #1f2937; font-weight: 700;">${hostel_name}</span></p>
+            <p style="margin: 0; color: #4b5563; font-size: 14px;"><strong>Room:</strong> <span style="color: #1f2937; font-weight: 700;">${room_number}</span></p>
           </div>
-          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 18px; border-radius: 10px; margin-bottom: 20px;">
-            <p style="margin: 0 0 10px; color: #92400e; font-weight: 700; font-size: 18px;">Check-in Code</p>
-            <p style="margin: 0; font-size: 28px; letter-spacing: 4px; color: #111; font-weight: 700;">${auth_code}</p>
+          <div style="background: #fffbeb; border: 1px dashed #f59e0b; padding: 22px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+            <p style="margin: 0 0 8px 0; color: #b45309; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Secure Check-in Code</p>
+            <p style="margin: 0; font-size: 32px; letter-spacing: 6px; color: #78350f; font-weight: 800; font-family: monospace; line-height: 1.2;">${auth_code}</p>
+            <p style="margin: 8px 0 0 0; color: #92400e; font-size: 12px; line-height: 1.4;">Present this code to the hostel manager at check-in.</p>
           </div>
-          <p style="margin: 0 0 12px; color: #4b5563;">Please present this code at the hostel reception when you arrive.</p>`,
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://unihive-9k0l.onrender.com/dashboard" style="background-color: #f59e0b; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); font-size: 15px;">View Bookings</a>
+          </div>`,
         'Reply to this email if you need help with your booking or check-in.'
     );
 
@@ -199,13 +251,13 @@ async function sendOtpEmail(email, full_name, otp_code) {
     const subject = 'UniHive Verification Code';
     const text = `Hi ${full_name},\n\nYour verification code is ${otp_code}. It expires in 15 minutes.\n\nIf you did not request this, please ignore this message.\n\nBest,\nUniHive Team`;
     const html = buildHtmlEmail(
-        'Verify Your Email Address',
-        `Hi ${full_name}, use the code below to verify your email and continue registration.`,
-        `<div style="background: #f8fafc; border-radius: 12px; padding: 30px; text-align: center; margin-bottom: 20px;">
-            <p style="margin: 0 0 10px; color: #1f2937; font-size: 16px;">Your verification code</p>
-            <p style="margin: 0; color: #111; font-size: 40px; letter-spacing: 8px; font-weight: 700;">${otp_code}</p>
+        'Verify Your Email',
+        `Hi ${full_name}, use the verification code below to confirm your email address and continue registration.`,
+        `<div style="background: #fffbeb; border: 1px dashed #f59e0b; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+            <p style="margin: 0 0 8px 0; color: #b45309; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Your verification code</p>
+            <p style="margin: 0; color: #78350f; font-size: 36px; letter-spacing: 8px; font-weight: 800; font-family: monospace; line-height: 1.2;">${otp_code}</p>
           </div>`,
-        'The code expires in 15 minutes. If you did not request this, no action is required.'
+        'This code will expire in 15 minutes. If you did not request this verification code, please ignore this email.'
     );
 
     return sendMail({ to: email, subject, text, html });
@@ -218,13 +270,13 @@ async function sendPasswordResetEmail(email, full_name, reset_code) {
     const subject = 'UniHive Password Reset Code';
     const text = `Hi ${full_name},\n\nYour password reset code is ${reset_code}. It expires in 15 minutes.\n\nIf you did not request this, ignore this message.\n\nBest,\nUniHive Team`;
     const html = buildHtmlEmail(
-        'Reset Your UniHive Password',
-        `Hi ${full_name}, a password reset was requested for your UniHive account.`,
-        `<div style="background: #f8fafc; border-radius: 12px; padding: 30px; text-align: center; margin-bottom: 20px;">
-            <p style="margin: 0 0 10px; color: #1f2937; font-size: 16px;">Your reset code</p>
-            <p style="margin: 0; color: #111; font-size: 40px; letter-spacing: 8px; font-weight: 700;">${reset_code}</p>
+        'Reset Your Password',
+        `Hi ${full_name}, a password reset request was received for your UniHive account.`,
+        `<div style="background: #fffbeb; border: 1px dashed #f59e0b; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+            <p style="margin: 0 0 8px 0; color: #b45309; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Your reset code</p>
+            <p style="margin: 0; color: #78350f; font-size: 36px; letter-spacing: 8px; font-weight: 800; font-family: monospace; line-height: 1.2;">${reset_code}</p>
           </div>`,
-        'If you did not request this password reset, please ignore this email.'
+        'If you did not request a password reset, no action is required and you can ignore this email.'
     );
 
     return sendMail({ to: email, subject, text, html });

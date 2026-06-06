@@ -104,7 +104,6 @@ export interface User {
   role: 'student' | 'admin' | 'manager' | 'hostel_manager';
   gender?: 'male' | 'female';
   avatar: string;
-  credits: number;
   joinDate: string;
 }
 
@@ -130,7 +129,6 @@ export const currentUser: User = {
   universityId: 'u1',
   role: 'student',
   avatar: 'AM',
-  credits: 25,
   joinDate: '2026-01-01',
 };
 
@@ -142,7 +140,6 @@ export const adminUser: User = {
   universityId: '',
   role: 'admin',
   avatar: 'UA',
-  credits: 0,
   joinDate: '2025-01-01',
 };
 

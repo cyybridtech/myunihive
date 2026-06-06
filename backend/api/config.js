@@ -64,6 +64,11 @@ async function initSchema() {
         try {
             await p.execute("ALTER TABLE users MODIFY COLUMN role ENUM('student', 'admin', 'manager', 'hostel_manager') DEFAULT 'student'");
         } catch(e) { console.warn('Could not modify users role enum:', e.message); }
+
+        // Drop credits column from users table
+        try {
+            await p.execute("ALTER TABLE users DROP COLUMN credits");
+        } catch(e) { /* column may already be dropped */ }
         
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS gender ENUM('male','female','unisex') DEFAULT 'unisex'");
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS manual_occupancy INT DEFAULT 0");

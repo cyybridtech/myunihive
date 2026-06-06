@@ -78,8 +78,8 @@ async function createHostelHandler(req, res) {
             const managerPassword = bcrypt.hashSync(manager_password, 10);
 
             const [managerResult] = await pool.execute(
-                `INSERT INTO users (full_name, email, phone, university_id, password, role, gender, credits, created_at) 
-                VALUES (?, ?, ?, ?, ?, 'manager', ?, 0, NOW())`,
+                `INSERT INTO users (full_name, email, phone, university_id, password, role, gender, created_at) 
+                VALUES (?, ?, ?, ?, ?, 'manager', ?, NOW())`,
                 [manager_full_name, manager_email, manager_phone || null, university_id, managerPassword, manager_gender || 'male']
             );
 

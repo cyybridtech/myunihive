@@ -249,7 +249,6 @@ CREATE TABLE `users` (
   `role` enum('student','admin') DEFAULT 'student',
   `password` varchar(255) NOT NULL,
   `avatar` varchar(10) DEFAULT NULL,
-  `credits` int(11) DEFAULT 0,
   `join_date` date DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -258,18 +257,18 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `email`, `phone`, `gender`, `id_photo`, `verified`, `university_id`, `role`, `password`, `avatar`, `credits`, `join_date`, `created_at`) VALUES
-(1, 'Redof', 'redof@gmail.com', NULL, 'male', NULL, 0, NULL, 'student', '$2y$10$5Qv4H6Z6oKqV3jY8nPqZ.eYq3pL5mN7oR8tU9vW0xY1zA2bC3dE', NULL, 0, NULL, '2026-04-03 04:35:28'),
-(2, 'John', 'jj@gmail.com', NULL, 'male', NULL, 0, NULL, 'student', '$2y$10$54j2wri0D/KAeUmQkS4J4uF4EneZe8t9MCTEbPTz57wS7FBzR6ELu', NULL, 0, NULL, '2026-04-03 05:01:44'),
-(3, 'UniHive Admin', 'admin@unihive.com', '+233200000000', 'male', NULL, 0, 'u1', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, 0, '2026-04-03', '2026-04-03 05:26:40'),
-(5, 'cyybrid', 'cyybrid@gmail.com', NULL, 'male', NULL, 0, NULL, 'admin', '$2y$10$n.0V9sTLyivC5OVcZyAv3ubxU7tUo7P3q5fSlFQcdEVl6jJOip0iy', NULL, 0, NULL, '2026-04-07 18:38:38'),
-(14, 'morgan freeman', 'mog@gmail.com', '0244522973', 'male', NULL, 0, 'u2', 'student', '$2y$10$8TkHkPMlC39ls1HmVt3e3eFc1xA7hB.fz/dRppEWqL0PldSBdv/AK', NULL, 0, NULL, '2026-04-14 21:28:24'),
-(17, 'Lilian', 'lil@g.com', '0011223344', 'male', NULL, 0, 'u1', 'student', '$2y$10$S2cg/naTcG9rvRiFH5QFR.2m3E.zlyBcWbh13UPiCe/WNu7wSea0W', NULL, 0, NULL, '2026-04-17 00:32:54'),
-(38, 'redoff 12dd', 'johnredoff@gmail.com', '111666', 'male', NULL, 0, 'u177648064270', 'student', '$2y$10$UbxgFOqcE16YOmPMhic60eycgOZm3Yq3He2mIKUF1pNOqm8oiRXQa', NULL, 0, NULL, '2026-04-19 18:27:28'),
-(44, 'rose', 'rose@gmail.com', '123456789', 'female', NULL, 0, 'u177620961952', '', '$2y$10$palSUmH7.8yFjUD5JjHXj.L1vm7prkSGNz1iF9j3tXx9l8OKQ.B/m', NULL, 0, NULL, '2026-04-27 22:24:30'),
-(45, 'green', 'gn@gmail.com', '123456789', 'male', NULL, 0, 'u177620961952', '', '$2y$10$xGQ01EMwS39anbUifCax9uCChwYzdiwlh2z1LGqCiHmybmwq5YVhu', NULL, 0, NULL, '2026-04-27 23:41:51'),
-(46, 'Student Student', 'email@email.com', '0123456789', 'male', NULL, 0, 'u177620961952', 'student', '$2y$10$RVAjGioeNODqVhiybSaKXe7P38lVgFVJ9LdyLgaSQ.0ofYi8zw446', NULL, 0, NULL, '2026-04-28 03:07:28'),
-(47, 'red', 'r@g.com', '098765432', 'male', NULL, 0, 'u177620961952', '', '$2y$10$I/fSJdlq.PwwOSf.NgzS7.9PUJgRQtwDTzKjv/K9Kt.f.OCEGcjBe', NULL, 0, NULL, '2026-04-29 04:11:49');
+INSERT INTO `users` (`id`, `full_name`, `email`, `phone`, `gender`, `id_photo`, `verified`, `university_id`, `role`, `password`, `avatar`, `join_date`, `created_at`) VALUES
+(1, 'Redof', 'redof@gmail.com', NULL, 'male', NULL, 0, NULL, 'student', '$2y$10$5Qv4H6Z6oKqV3jY8nPqZ.eYq3pL5mN7oR8tU9vW0xY1zA2bC3dE', NULL, NULL, '2026-04-03 04:35:28'),
+(2, 'John', 'jj@gmail.com', NULL, 'male', NULL, 0, NULL, 'student', '$2y$10$54j2wri0D/KAeUmQkS4J4uF4EneZe8t9MCTEbPTz57wS7FBzR6ELu', NULL, NULL, '2026-04-03 05:01:44'),
+(3, 'UniHive Admin', 'admin@unihive.com', '+233200000000', 'male', NULL, 0, 'u1', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, '2026-04-03', '2026-04-03 05:26:40'),
+(5, 'cyybrid', 'cyybrid@gmail.com', NULL, 'male', NULL, 0, NULL, 'admin', '$2y$10$n.0V9sTLyivC5OVcZyAv3ubxU7tUo7P3q5fSlFQcdEVl6jJOip0iy', NULL, NULL, '2026-04-07 18:38:38'),
+(14, 'morgan freeman', 'mog@gmail.com', '0244522973', 'male', NULL, 0, 'u2', 'student', '$2y$10$8TkHkPMlC39ls1HmVt3e3eFc1xA7hB.fz/dRppEWqL0PldSBdv/AK', NULL, NULL, '2026-04-14 21:28:24'),
+(17, 'Lilian', 'lil@g.com', '0011223344', 'male', NULL, 0, 'u1', 'student', '$2y$10$S2cg/naTcG9rvRiFH5QFR.2m3E.zlyBcWbh13UPiCe/WNu7wSea0W', NULL, NULL, '2026-04-17 00:32:54'),
+(38, 'redoff 12dd', 'johnredoff@gmail.com', '111666', 'male', NULL, 0, 'u177648064270', 'student', '$2y$10$UbxgFOqcE16YOmPMhic60eycgOZm3Yq3He2mIKUF1pNOqm8oiRXQa', NULL, NULL, '2026-04-19 18:27:28'),
+(44, 'rose', 'rose@gmail.com', '123456789', 'female', NULL, 0, 'u177620961952', '', '$2y$10$palSUmH7.8yFjUD5JjHXj.L1vm7prkSGNz1iF9j3tXx9l8OKQ.B/m', NULL, NULL, '2026-04-27 22:24:30'),
+(45, 'green', 'gn@gmail.com', '123456789', 'male', NULL, 0, 'u177620961952', '', '$2y$10$xGQ01EMwS39anbUifCax9uCChwYzdiwlh2z1LGqCiHmybmwq5YVhu', NULL, NULL, '2026-04-27 23:41:51'),
+(46, 'Student Student', 'email@email.com', '0123456789', 'male', NULL, 0, 'u177620961952', 'student', '$2y$10$RVAjGioeNODqVhiybSaKXe7P38lVgFVJ9LdyLgaSQ.0ofYi8zw446', NULL, NULL, '2026-04-28 03:07:28'),
+(47, 'red', 'r@g.com', '098765432', 'male', NULL, 0, 'u177620961952', '', '$2y$10$I/fSJdlq.PwwOSf.NgzS7.9PUJgRQtwDTzKjv/K9Kt.f.OCEGcjBe', NULL, NULL, '2026-04-29 04:11:49');
 
 --
 -- Indexes for dumped tables

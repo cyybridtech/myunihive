@@ -76,7 +76,6 @@ async function loginHandler(req, res) {
                 role: role,
                 gender: user.gender || 'male',
                 avatar: user.avatar || '',
-                credits: user.credits || 0,
                 created_at: user.created_at
             }
         });

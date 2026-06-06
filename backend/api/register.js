@@ -53,8 +53,8 @@ async function registerHandler(req, res) {
 
         // Insert user
         const [result] = await pool.execute(
-            `INSERT INTO users (full_name, email, phone, university_id, password, role, gender, credits, created_at) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
+            `INSERT INTO users (full_name, email, phone, university_id, password, role, gender, created_at) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
             [full_name, email, phone || null, university_id, hashedPassword, 'student', gender || 'male']
         );
 

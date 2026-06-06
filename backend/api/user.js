@@ -17,7 +17,7 @@ async function userHandler(req, res) {
 
     try {
         const [users] = await pool.execute(
-            'SELECT id, full_name, email, role, avatar, credits, university_id, phone, gender FROM users WHERE id = ?',
+            'SELECT id, full_name, email, role, avatar, university_id, phone, gender FROM users WHERE id = ?',
             [user_id]
         );
 
