@@ -87,6 +87,7 @@ export default defineConfig({
   },
   build: {
     minify: 'esbuild',
+    chunkSizeWarningLimit: 2000,
   },
   server: {
     port: 5173,
