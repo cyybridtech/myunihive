@@ -125,7 +125,8 @@ export default function RoomDetailsPage() {
     setBookingError('');
     setShowBookingConfirm(false);
 
-    const bookingDate = new Date().toISOString().split('T')[0];
+    const now = new Date().toISOString();
+    const bookingDate = now.split('T')[0];
     let bookingId = '';
 
     try {
@@ -161,6 +162,7 @@ export default function RoomDetailsPage() {
                 roomId: room.id,
                 hostelId: hostel.id,
                 bookingDate,
+                created_at: now,
                 status: paid ? 'approved' : 'pending',
                 paymentStatus: paid ? 'paid' : 'unpaid',
                 reservationFee: room.price,
@@ -168,7 +170,7 @@ export default function RoomDetailsPage() {
                 hostelName: hostel.name,
                 roomNumber: room.roomNumber,
                 roomType: room.type,
-              });
+              } as any);
               setBookingState('success');
               refreshBookings();
               refreshNotifications();
@@ -200,6 +202,7 @@ export default function RoomDetailsPage() {
           roomId: room.id,
           hostelId: hostel.id,
           bookingDate,
+          created_at: now,
           status: 'pending',
           paymentStatus: 'unpaid',
           reservationFee: room.price,
@@ -207,7 +210,7 @@ export default function RoomDetailsPage() {
           hostelName: hostel.name,
           roomNumber: room.roomNumber,
           roomType: room.type,
-        });
+        } as any);
       }
     }
   };

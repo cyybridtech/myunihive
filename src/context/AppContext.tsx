@@ -58,7 +58,7 @@ function mapBooking(b: any): Booking {
     userId: String(b.user_id),
     roomId: String(b.room_id),
     hostelId: String(b.hostel_id),
-    bookingDate: b.booking_date,
+    bookingDate: b.created_at || b.booking_date,
     status: b.status ?? 'pending',
     paymentStatus: b.payment_status ?? 'unpaid',
     reservationFee: parseFloat(b.reservation_fee || 0),

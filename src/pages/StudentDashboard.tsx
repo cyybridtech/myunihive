@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock, Users, Sparkles, Star, MapPin, Trash2, ExternalLink, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { verifyPayment, subscribeToPush } from '../api/api.js';
+import { formatDateTime } from '../utils/date';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
 const VAPID_PUBLIC_KEY = 'BEE90AIGS9HcdCmGywp5CXHdNlELSVjR93xMop7gQbKP34yjYCKnS1MKa7HVTemmxvKmloDdDvxNSU31NBJ3S3s';
@@ -241,7 +242,7 @@ export default function StudentDashboard() {
                   <div key={booking.id} className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col sm:flex-row sm:justify-between shadow-sm gap-4">
                     <div>
                       <h3 className="font-bold text-gray-900">{hostel?.name || booking.hostelName || 'Unknown Hostel'}</h3>
-                      <p className="text-sm text-gray-500">Booking ID: #{String(booking.id).slice(-6)}</p>
+                      <p className="text-sm text-gray-500">Booking ID: #{String(booking.id).slice(-6)} • {formatDateTime(booking.bookingDate)}</p>
                       <p className="text-sm text-gray-500 mt-2">Room {room?.roomNumber || booking.roomNumber || 'N/A'} • {room?.type || booking.roomType || 'Standard'}</p>
                       {booking.authCode && (
                         <p className="text-sm text-amber-700 mt-2">Your check-in code: <span className="font-semibold">{booking.authCode}</span></p>

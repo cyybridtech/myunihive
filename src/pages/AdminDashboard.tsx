@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { approveBooking, createHostel, createRoom, createUniversity, deleteHostel as deleteHostelApi, deleteRoom as deleteRoomApi, deleteUniversity as deleteUniversityApi, updateRoom as updateRoomApi, updateHostel as updateHostelApi, updateRoomOccupancy, uploadImage } from '../api/api.js';
 import type { Hostel, Room } from '../data/mockData';
+import { formatDateTime } from '../utils/date';
 
 type AdminTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'users' | 'reviews' | 'universities' | 'notifications';
 
@@ -391,7 +392,7 @@ export default function AdminDashboard() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: 'Total Hostels', value: visibleHostels.length.toString(), icon: Building2, color: 'bg-blue-500', trend: '+2 this month' },
-                { label: 'Total Bookings', value: visibleBookings.length.toString(), icon: Calendar, color: 'bg-green-500', trend: `${pendingBookings} pending` },
+                { label: 'Total Bookings', value: visibleBookings.filter(b => b.status !== 'rejected' && b.status !== 'cancelled').length.toString(), icon: Calendar, color: 'bg-green-500', trend: `${pendingBookings} pending` },
                 { label: 'Revenue (Fees)', value: `GH₵${totalRevenue}`, icon: CreditCard, color: 'bg-amber-500', trend: '+15% this month' },
                 { label: 'Total Reviews', value: visibleReviews.length.toString(), icon: Star, color: 'bg-purple-500', trend: 'Avg 4.5 stars' },
               ].map(stat => (
@@ -669,7 +670,7 @@ export default function AdminDashboard() {
                           <div><span className="text-gray-400 text-xs">Hostel</span><p className="font-medium">{hostel?.name}</p></div>
                           <div><span className="text-gray-400 text-xs">Room</span><p className="font-medium">{room?.type} ({room?.roomNumber})</p></div>
                           <div><span className="text-gray-400 text-xs">Fee</span><p className="font-medium text-amber-600">GH₵{booking.reservationFee}</p></div>
-                          <div><span className="text-gray-400 text-xs">Date</span><p className="font-medium">{booking.bookingDate}</p></div>
+                          <div><span className="text-gray-400 text-xs">Date</span><p className="font-medium">{formatDateTime(booking.bookingDate)}</p></div>
                         </div>
                       </div>
                       {booking.status === 'pending' && (
