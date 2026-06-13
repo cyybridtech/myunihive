@@ -72,6 +72,8 @@ async function initSchema() {
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL");
         await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_at timestamp NOT NULL DEFAULT current_timestamp()");
         await p.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE");
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT DEFAULT 0");
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS lockout_until DATETIME DEFAULT NULL");
         
         // Create OTPs table for email verification
         await p.execute(`

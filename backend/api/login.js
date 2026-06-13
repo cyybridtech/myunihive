@@ -29,6 +29,15 @@ async function loginHandler(req, res) {
 
         const user = users[0];
 
+        // Check for account lockout
+        if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
+            const timeLeft = Math.ceil((new Date(user.lockout_until) - new Date()) / 1000 / 60);
+            return res.status(403).json({
+                status: 'error',
+                message: `Account temporarily locked due to multiple failed attempts. Try again in ${timeLeft} minutes.`
+            });
+        }
+
         // Verify password
         const bcrypt = require('bcryptjs');
         let storedPassword = String(user.password || '');
@@ -38,7 +47,31 @@ async function loginHandler(req, res) {
         const validPassword = bcrypt.compareSync(password, storedPassword);
 
         if (!validPassword) {
+            // Increment failed attempts
+            const failedAttempts = (user.failed_login_attempts || 0) + 1;
+            if (failedAttempts >= 5) {
+                // Lock account for 15 minutes
+                const lockoutUntil = new Date();
+                lockoutUntil.setMinutes(lockoutUntil.getMinutes() + 15);
+                await pool.execute(
+                    'UPDATE users SET failed_login_attempts = ?, lockout_until = ? WHERE id = ?',
+                    [failedAttempts, lockoutUntil, user.id]
+                );
+            } else {
+                await pool.execute(
+                    'UPDATE users SET failed_login_attempts = ? WHERE id = ?',
+                    [failedAttempts, user.id]
+                );
+            }
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+        }
+
+        // Reset failed attempts on successful login
+        if (user.failed_login_attempts > 0 || user.lockout_until) {
+            await pool.execute(
+                'UPDATE users SET failed_login_attempts = 0, lockout_until = NULL WHERE id = ?',
+                [user.id]
+            );
         }
 
         let role = user.role || '';

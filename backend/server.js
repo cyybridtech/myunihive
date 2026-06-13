@@ -10,6 +10,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 require('./api/loadEnv');
@@ -56,10 +57,31 @@ const { getPool, initSchema } = require('./api/config');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy for rate limiting (important for Vercel/Render/Fly.io)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // Limit each IP to 20 requests per window
+    message: { status: 'error', message: 'Too many attempts from this IP, please try again after 15 minutes' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const generalLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100, // Limit each IP to 100 requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use('/api/', generalLimiter);
 
 // Lazy schema initialization for serverless / local environments
 let schemaInitialized = false;
@@ -141,11 +163,11 @@ function wrapHandler(handler) {
 // API Routes
 
 // Auth
-app.post('/api/login', wrapHandler(loginHandler));
-app.post('/api/request-otp', wrapHandler(requestOtpHandler));
-app.post('/api/register', wrapHandler(registerHandler));
-app.post('/api/forgot-password', wrapHandler(forgotPasswordHandler));
-app.post('/api/reset-password', wrapHandler(resetPasswordHandler));
+app.post('/api/login', authLimiter, wrapHandler(loginHandler));
+app.post('/api/request-otp', authLimiter, wrapHandler(requestOtpHandler));
+app.post('/api/register', authLimiter, wrapHandler(registerHandler));
+app.post('/api/forgot-password', authLimiter, wrapHandler(forgotPasswordHandler));
+app.post('/api/reset-password', authLimiter, wrapHandler(resetPasswordHandler));
 app.post('/api/logout', wrapHandler(logoutHandler));
 app.get('/api/user', wrapHandler(userHandler));
 app.post('/api/user', wrapHandler(userHandler));
