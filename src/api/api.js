@@ -419,3 +419,21 @@ export const saveRoommateProfile = async (profileData) => {
 export const getRoommateMatches = async () => {
   return fetchJson(`${BASE_URL}/roommate/matches`);
 };
+
+// ============ PAYMENT ENHANCEMENT APIS ============
+
+export const getSavedCard = async () => {
+  return fetchJson(`${BASE_URL}/getSavedCard`, { method: 'GET' });
+};
+
+export const chargeCard = async (bookingId) => {
+  return fetchJson(`${BASE_URL}/chargeCard`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ booking_id: bookingId })
+  });
+};
+
+export const getPayoutStats = async () => {
+  return fetchJson(`${BASE_URL}/getPayoutStats`, { method: 'GET' });
+};

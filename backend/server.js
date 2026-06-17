@@ -50,6 +50,9 @@ const markNotificationReadHandler = require('./api/markNotificationRead');
 const uploadImageHandler = require('./api/uploadImage');
 const testEmailHandler = require('./api/testEmail');
 const roommateHandler = require('./api/roommate');
+const getSavedCardHandler = require('./api/getSavedCard');
+const chargeCardHandler = require('./api/chargeCard');
+const getPayoutStatsHandler = require('./api/getPayoutStats');
 const auth = require('./api/auth');
 const { getPool, initSchema } = require('./api/config');
 
@@ -229,6 +232,13 @@ app.post('/api/test-email', wrapHandler(testEmailHandler));
 app.get('/api/roommate/profile', wrapHandler(roommateHandler));
 app.post('/api/roommate/profile', wrapHandler(roommateHandler));
 app.get('/api/roommate/matches', wrapHandler(roommateHandler));
+
+// Saved Card & One-click Charge
+app.get('/api/getSavedCard', wrapHandler(getSavedCardHandler));
+app.post('/api/chargeCard', wrapHandler(chargeCardHandler));
+
+// Manager Payout Stats
+app.get('/api/getPayoutStats', wrapHandler(getPayoutStatsHandler));
 
 // Serve uploaded images and public static assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock, Users, Sparkles, Star, MapPin, Trash2, ExternalLink, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { verifyPayment, subscribeToPush } from '../api/api.js';
+import { verifyPayment, subscribeToPush, getSavedCard, chargeCard } from '../api/api.js';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
 const VAPID_PUBLIC_KEY = 'BEE90AIGS9HcdCmGywp5CXHdNlELSVjR93xMop7gQbKP34yjYCKnS1MKa7HVTemmxvKmloDdDvxNSU31NBJ3S3s';
@@ -26,10 +26,16 @@ export default function StudentDashboard() {
   const { user, bookings, notifications, hostels, rooms, universities, savedHostels, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshNotifications, cancelBooking } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [pushEnabled, setPushEnabled] = useState(Notification.permission === 'granted');
+  const [savedCard, setSavedCard] = useState<{ card_type: string; last4: string; exp_month: string; exp_year: string } | null | undefined>(undefined);
+  const [isChargingCard, setIsChargingCard] = useState<string | null>(null);
 
   useEffect(() => {
     refreshBookings();
     refreshNotifications();
+    // Fetch saved card silently
+    getSavedCard()
+      .then(res => setSavedCard(res.card || null))
+      .catch(() => setSavedCard(null));
   }, []);
 
   const enablePushNotifications = async () => {
@@ -100,19 +106,23 @@ export default function StudentDashboard() {
       alert("Payment system initializing... Please refresh.");
       return;
     }
+    // Use stored idempotency reference — prevents double charge on retry
+    const reference = booking.paystackReference || booking.paystack_reference || ('BK_' + Math.floor((Math.random() * 1000000000) + 1).toString());
     const handler = (window as any).PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
       email: user.email,
       amount: booking.totalPrice * 100,
       currency: 'GHS',
       ...(hostel?.subaccountCode ? { subaccount: hostel.subaccountCode } : {}),
-      reference: 'BK_' + Math.floor((Math.random() * 1000000000) + 1).toString(),
+      reference,
       callback: function (paystackResponse: any) {
         verifyPayment(paystackResponse.reference, booking.id)
           .then(verification => {
             if (verification.status === 'success') {
               refreshBookings();
               refreshNotifications();
+              // Refresh saved card — a new card may have been used
+              getSavedCard().then(res => setSavedCard(res.card || null)).catch(() => {});
               alert('Payment successful!');
             } else {
               alert('Payment completed but could not be verified: ' + (verification.message || 'Please refresh and check your bookings.'));
@@ -126,6 +136,85 @@ export default function StudentDashboard() {
       onClose: () => alert('Payment window closed.')
     });
     handler.openIframe();
+  };
+
+  const handleSavedCardPay = async (booking: any) => {
+    if (!confirm(`Pay GH₵${booking.totalPrice} using your saved ${savedCard?.card_type?.toUpperCase() || 'card'} ending in ${savedCard?.last4}?`)) return;
+    setIsChargingCard(booking.id);
+    try {
+      const result = await chargeCard(booking.id);
+      if (result.status === 'success') {
+        refreshBookings();
+        refreshNotifications();
+        alert(`Payment successful! Check-in code: ${result.authCode}`);
+      } else if (result.status === 'overbooked') {
+        refreshBookings();
+        alert('Payment received but room is full. Your booking is pending manager review.');
+      } else {
+        alert(result.message || 'Card charge failed. Please try with a new card.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Card charge failed. Please try with a new card.');
+    } finally {
+      setIsChargingCard(null);
+    }
+  };
+
+  const generateReceipt = (booking: any, hostel: any, room: any) => {
+    const amount = Number(booking.totalPrice).toFixed(2);
+    const paidDate = booking.createdAt ? new Date(booking.createdAt).toLocaleDateString('en-GH', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A';
+    const receiptHtml = `
+      <!DOCTYPE html><html><head><meta charset="UTF-8">
+      <title>UniHive Receipt #${String(booking.id).slice(-6)}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f8f8; color: #1a1a1a; }
+        .receipt { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+        .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 28px 32px; }
+        .header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+        .header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+        .paid-stamp { display: inline-block; border: 3px solid #22c55e; color: #22c55e; font-size: 11px; font-weight: 900; letter-spacing: 2px; padding: 4px 12px; border-radius: 6px; margin-top: 12px; }
+        .body { padding: 28px 32px; }
+        .section-title { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+        .row:last-child { border-bottom: none; }
+        .row .label { font-size: 13px; color: #6b7280; }
+        .row .value { font-size: 13px; font-weight: 600; color: #111827; text-align: right; }
+        .amount-row { background: #fef3c7; border-radius: 10px; padding: 14px 16px; display: flex; justify-content: space-between; margin-top: 16px; }
+        .amount-row .label { font-size: 13px; font-weight: 600; color: #92400e; }
+        .amount-row .value { font-size: 20px; font-weight: 800; color: #92400e; }
+        .code-box { margin-top: 16px; background: #fff7ed; border: 2px dashed #fed7aa; border-radius: 10px; padding: 14px; text-align: center; }
+        .code-box p { font-size: 10px; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .code-box span { font-size: 22px; font-family: monospace; font-weight: 900; color: #92400e; letter-spacing: 4px; }
+        .footer { background: #f9fafb; padding: 16px 32px; text-align: center; font-size: 11px; color: #9ca3af; }
+        @media print { body { background: #fff; } .receipt { box-shadow: none; margin: 0; } }
+      </style></head><body>
+      <div class="receipt">
+        <div class="header">
+          <h1>🏠 UniHive</h1>
+          <p>Official Payment Receipt</p>
+          <div class="paid-stamp">✓ PAID</div>
+        </div>
+        <div class="body">
+          <p class="section-title">Booking Details</p>
+          <div class="row"><span class="label">Receipt No.</span><span class="value">#${String(booking.id).slice(-6).toUpperCase()}</span></div>
+          <div class="row"><span class="label">Date</span><span class="value">${paidDate}</span></div>
+          <div class="row"><span class="label">Hostel</span><span class="value">${hostel?.name || booking.hostelName || 'N/A'}</span></div>
+          <div class="row"><span class="label">Room</span><span class="value">${room?.roomNumber || booking.roomNumber || 'N/A'} (${room?.type || booking.roomType || 'Standard'})</span></div>
+          <div class="row"><span class="label">Student</span><span class="value">${user.name || 'N/A'}</span></div>
+          <div class="row"><span class="label">Payment Method</span><span class="value">Paystack (Secured)</span></div>
+          <div class="amount-row">
+            <span class="label">Total Paid</span>
+            <span class="value">GH₵${amount}</span>
+          </div>
+          ${booking.authCode ? `<div class="code-box"><p>Check-in Code</p><span>${booking.authCode}</span></div>` : ''}
+        </div>
+        <div class="footer">UniHive — Secure Student Housing Platform<br/>This is an official digital receipt. Keep it for your records.</div>
+      </div>
+      <script>window.onload = function() { window.print(); }<\/script>
+      </body></html>`;
+    const win = window.open('', '_blank', 'width=600,height=800');
+    if (win) { win.document.write(receiptHtml); win.document.close(); }
   };
 
   const handleCancelBooking = async (booking: any) => {
@@ -321,17 +410,33 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-end justify-between mt-2 pt-2 border-t border-gray-100 gap-4">
+                        <div className="flex items-end justify-between mt-2 pt-2 border-t border-amber-100 gap-4">
                           <div>
                             <span className="text-xs text-gray-400 block">Amount Due</span>
                             <span className="text-2xl font-bold text-gray-900">GH₵{booking.totalPrice}</span>
                           </div>
-                          <button 
-                            onClick={() => handlePayBooking(booking, hostel)}
-                            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all shadow-md flex items-center gap-2 text-sm font-semibold"
-                          >
-                            <CreditCard className="w-4 h-4" /> Pay Now
-                          </button>
+                          <div className="flex flex-col gap-2 items-end">
+                            {/* Saved card one-click option */}
+                            {savedCard && (
+                              <button
+                                onClick={() => handleSavedCardPay(booking)}
+                                disabled={isChargingCard === booking.id}
+                                className="px-4 py-2 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white rounded-xl transition-all flex items-center gap-2 text-xs font-semibold"
+                              >
+                                {isChargingCard === booking.id ? (
+                                  <><span className="animate-spin border-2 border-white border-t-transparent rounded-full w-3 h-3 inline-block"></span> Charging...</>
+                                ) : (
+                                  <><CreditCard className="w-3.5 h-3.5" /> Pay with {savedCard.card_type?.toUpperCase() || 'Card'} ••••{savedCard.last4}</>
+                                )}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handlePayBooking(booking, hostel)}
+                              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all shadow-md flex items-center gap-2 text-sm font-semibold"
+                            >
+                              <CreditCard className="w-4 h-4" /> {savedCard ? 'New Card' : 'Pay Now'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -374,8 +479,8 @@ export default function StudentDashboard() {
                           <span className="text-xs text-gray-400 block">Total Amount Paid</span>
                           <span className="text-2xl font-bold text-gray-900">GH₵{booking.totalPrice}</span>
                         </div>
-                        <button 
-                          onClick={() => alert('Receipt downloaded!')}
+                        <button
+                          onClick={() => generateReceipt(booking, hostel, room)}
                           className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-800 rounded-xl transition-all border border-gray-200/50 flex items-center gap-2 text-xs font-semibold"
                         >
                           <Download className="w-4 h-4" /> Receipt

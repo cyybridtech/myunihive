@@ -89,6 +89,13 @@ async function createBooking(req, res) {
 
             const booking_id = result.insertId;
 
+            // Generate a deterministic idempotency reference — same booking always uses the same reference
+            const paystack_reference = `UNH-${booking_id}-${user_id}-${Date.now()}`;
+            await connection.execute(
+                `UPDATE bookings SET paystack_reference = ? WHERE id = ?`,
+                [paystack_reference, booking_id]
+            );
+
             await connection.execute(
                 `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
                  VALUES (?, ?, ?, 'booking', 0, CURDATE())`,
@@ -101,7 +108,8 @@ async function createBooking(req, res) {
             res.json({
                 status: 'success',
                 message: `Booking created for GH₵${totalAmount.toFixed(2)}`,
-                booking_id: booking_id
+                booking_id: booking_id,
+                paystack_reference: paystack_reference
             });
 
         } catch (innerError) {

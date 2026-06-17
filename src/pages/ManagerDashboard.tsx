@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell, Pencil, Trash2, X } from 'lucide-react';
+import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell, Pencil, Trash2, X, TrendingUp, Clock, ArrowUpRight, Landmark, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking, updateRoom as updateRoomApi, updateHostel as updateHostelApi } from '../api/api.js';
+import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking, updateRoom as updateRoomApi, updateHostel as updateHostelApi, getPayoutStats } from '../api/api.js';
 import { Booking } from '../data/mockData';
 
-type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'notifications';
+type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'notifications' | 'payouts';
 
 export default function ManagerDashboard() {
   const auth = useAuth();
@@ -36,6 +36,8 @@ export default function ManagerDashboard() {
   const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
   const [roomViewMode, setRoomViewMode] = useState<'card' | 'list'>('card');
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+  const [payoutStats, setPayoutStats] = useState<any>(null);
+  const [isLoadingPayouts, setIsLoadingPayouts] = useState(false);
 
   // Close notification dropdown when clicking outside
   useEffect(() => {
@@ -248,7 +250,19 @@ export default function ManagerDashboard() {
     { id: 'bookings', label: 'Bookings' },
     { id: 'reviews', label: 'Reviews' },
     { id: 'notifications', label: 'Notifications' },
+    { id: 'payouts', label: '💰 Payouts' },
   ];
+
+  // Fetch payout stats when Payouts tab is opened
+  useEffect(() => {
+    if (activeTab === 'payouts' && !payoutStats) {
+      setIsLoadingPayouts(true);
+      getPayoutStats()
+        .then(data => setPayoutStats(data))
+        .catch(err => console.error('Payout stats error:', err))
+        .finally(() => setIsLoadingPayouts(false));
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -776,6 +790,127 @@ export default function ManagerDashboard() {
                 ))
               )}
             </div>
+          </div>
+        )}
+
+        {/* PAYOUTS TAB */}
+        {activeTab === 'payouts' && (
+          <div className="space-y-6">
+            {isLoadingPayouts ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                  <p className="text-gray-500 text-sm">Loading payout data...</p>
+                </div>
+              </div>
+            ) : payoutStats ? (
+              <>
+                {/* T+1 Settlement Notice */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800">Paystack T+1 Settlement Policy</p>
+                    <p className="text-xs text-blue-600 mt-0.5">Funds collected today are held by Paystack for 24 hours before being transferred to your bank account. This protects against chargebacks and fraud.</p>
+                  </div>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Total Earned (All Time)', value: `GH₵${Number(payoutStats.summary?.totalEarned || 0).toFixed(2)}`, icon: TrendingUp, color: 'bg-green-500', sub: `${payoutStats.summary?.totalBookings || 0} paid bookings` },
+                    { label: 'This Month', value: `GH₵${Number(payoutStats.summary?.thisMonth || 0).toFixed(2)}`, icon: BarChart3, color: 'bg-amber-500', sub: 'Current month revenue' },
+                    { label: 'Last Month', value: `GH₵${Number(payoutStats.summary?.lastMonth || 0).toFixed(2)}`, icon: ArrowUpRight, color: 'bg-blue-500', sub: 'Previous month revenue' },
+                    { label: 'Pending Settlement', value: `GH₵${Number(payoutStats.summary?.pendingSettlement || 0).toFixed(2)}`, icon: Clock, color: 'bg-orange-500', sub: 'Within last 24 hrs (T+1 hold)' },
+                  ].map(stat => (
+                    <div key={stat.label} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs text-gray-500 font-medium leading-tight">{stat.label}</span>
+                        <div className={`w-9 h-9 ${stat.color} rounded-lg flex items-center justify-center shrink-0`}>
+                          <stat.icon className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                      <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-xs text-gray-400 mt-1">{stat.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bank Account Info */}
+                {payoutStats.hostels?.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2"><Landmark className="w-4 h-4 text-amber-500" /> Linked Bank Accounts</h3>
+                    <div className="space-y-3">
+                      {payoutStats.hostels.map((h: any) => (
+                        <div key={h.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">{h.name}</p>
+                            <p className="text-xs text-gray-500">{h.bank_name || 'Bank on file'} {h.account_number ? `• ${h.account_number}` : ''}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-1 rounded-full">
+                              {h.subaccount_code ? 'Subaccount Active' : 'No Subaccount'}
+                            </span>
+                            {h.commission_type === 'flat' && (
+                              <p className="text-xs text-gray-400 mt-1">Flat fee: GH₵{h.platform_fee}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Transaction History */}
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2"><CreditCard className="w-4 h-4 text-amber-500" /> Transaction History</h3>
+                    <span className="text-xs text-gray-400">{payoutStats.transactions?.length || 0} transactions</span>
+                  </div>
+                  {payoutStats.transactions?.length === 0 ? (
+                    <div className="p-10 text-center text-gray-400 text-sm">No paid transactions yet.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-100">
+                            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">Date</th>
+                            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">Student</th>
+                            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">Room</th>
+                            <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">Gross</th>
+                            <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">Fee</th>
+                            <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">Net</th>
+                            <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {payoutStats.transactions.map((t: any) => (
+                            <tr key={t.booking_id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-5 py-3 text-xs text-gray-500 whitespace-nowrap">{new Date(t.created_at).toLocaleDateString('en-GH', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                              <td className="px-5 py-3 text-xs font-medium text-gray-800">{t.student_name || 'Student'}</td>
+                              <td className="px-5 py-3 text-xs text-gray-500">{t.room_number} <span className="text-gray-400">({t.room_type})</span></td>
+                              <td className="px-5 py-3 text-xs font-semibold text-gray-900 text-right">GH₵{Number(t.gross).toFixed(2)}</td>
+                              <td className="px-5 py-3 text-xs text-red-500 text-right">{t.platform_fee_deducted > 0 ? `-GH₵${Number(t.platform_fee_deducted).toFixed(2)}` : '—'}</td>
+                              <td className="px-5 py-3 text-xs font-bold text-green-700 text-right">GH₵{Number(t.net_to_manager).toFixed(2)}</td>
+                              <td className="px-5 py-3 text-center">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                  t.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                                }`}>{t.status.toUpperCase()}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
+                <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Could not load payout data. Please try again.</p>
+                <button onClick={() => { setPayoutStats(null); setActiveTab('payouts'); }} className="mt-4 text-sm text-amber-600 font-semibold hover:underline">Retry</button>
+              </div>
+            )}
           </div>
         )}
       </div>

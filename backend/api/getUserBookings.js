@@ -17,7 +17,7 @@ async function getUserBookingsHandler(req, res) {
 
     try {
         const [bookings] = await pool.execute(
-            `SELECT b.*, h.name as hostel_name, r.room_number as roomNumber, r.type as room_type,
+            `SELECT b.*, b.paystack_reference, h.name as hostel_name, r.room_number as roomNumber, r.type as room_type,
                     u.full_name as user_name, u.email as user_email, u.gender as user_gender
              FROM bookings b
              LEFT JOIN hostels h ON b.hostel_id = h.id

@@ -183,6 +183,35 @@ async function verifyPaymentHandler(req, res) {
             await connection.commit();
             connection.release();
 
+            // Save card authorization for future one-click payments
+            try {
+                const auth = paystackResult.data?.authorization;
+                if (auth && auth.authorization_code && auth.channel === 'card') {
+                    await pool.execute(
+                        `INSERT INTO saved_cards (user_id, authorization_code, card_type, last4, exp_month, exp_year, email)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)
+                         ON DUPLICATE KEY UPDATE
+                           authorization_code = VALUES(authorization_code),
+                           card_type = VALUES(card_type),
+                           last4 = VALUES(last4),
+                           exp_month = VALUES(exp_month),
+                           exp_year = VALUES(exp_year),
+                           email = VALUES(email)`,
+                        [
+                            details.user_id,
+                            auth.authorization_code,
+                            auth.card_type || null,
+                            auth.last4 || null,
+                            auth.exp_month || null,
+                            auth.exp_year || null,
+                            paystackResult.data.customer?.email || details.user_email
+                        ]
+                    );
+                }
+            } catch (cardErr) {
+                console.warn('[PAYMENT] Could not save card authorization:', cardErr.message);
+            }
+
             if (!details.user_email) {
                 console.error('[BOOKING] Missing user_email for booking:', booking_id);
             } else {

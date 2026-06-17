@@ -76,7 +76,23 @@ async function initSchema() {
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS amenities JSON DEFAULT NULL");
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL");
         await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_at timestamp NOT NULL DEFAULT current_timestamp()");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paystack_reference VARCHAR(100) DEFAULT NULL");
         await p.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE");
+
+        // Saved cards for one-click re-charge
+        await p.execute(`
+            CREATE TABLE IF NOT EXISTS saved_cards (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL UNIQUE,
+                authorization_code VARCHAR(200) NOT NULL,
+                card_type VARCHAR(50) DEFAULT NULL,
+                last4 VARCHAR(10) DEFAULT NULL,
+                exp_month VARCHAR(4) DEFAULT NULL,
+                exp_year VARCHAR(6) DEFAULT NULL,
+                email VARCHAR(200) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
         
         // Create OTPs table for email verification
         await p.execute(`
