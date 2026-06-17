@@ -59,11 +59,66 @@ async function approveBookingHandler(req, res) {
         await connection.beginTransaction();
 
         try {
-            // Update booking status
-            await connection.execute(
-                'UPDATE bookings SET status = ? WHERE id = ?',
-                [status, booking_id]
-            );
+            // If status is approved, we perform overbooking checks and generate an auth_code if needed
+            if (status === 'approved') {
+                // Get the booking details and lock the room for update
+                const [roomCheck] = await connection.execute(
+                    `SELECT r.id, r.capacity, r.manual_occupancy 
+                     FROM rooms r 
+                     JOIN bookings b ON r.id = b.room_id 
+                     WHERE b.id = ? 
+                     FOR UPDATE`,
+                    [booking_id]
+                );
+
+                if (roomCheck.length === 0) {
+                    await connection.rollback();
+                    connection.release();
+                    return res.status(404).json({ status: 'error', message: 'Room associated with booking not found' });
+                }
+
+                const roomId = roomCheck[0].id;
+                const capacity = parseInt(roomCheck[0].capacity) || 1;
+                const manualOccupancy = parseInt(roomCheck[0].manual_occupancy) || 0;
+
+                // Count active bookings (paid or approved) excluding this booking
+                const [occupancyCheck] = await connection.execute(
+                    `SELECT COUNT(*) as count 
+                     FROM bookings 
+                     WHERE room_id = ? AND (payment_status = 'paid' OR status = 'approved') AND id != ?`,
+                    [roomId, booking_id]
+                );
+
+                const currentOccupancy = (parseInt(occupancyCheck[0].count) || 0) + manualOccupancy;
+
+                if (currentOccupancy >= capacity) {
+                    await connection.rollback();
+                    connection.release();
+                    return res.status(400).json({ status: 'error', message: 'Cannot approve booking: Room has reached full capacity.' });
+                }
+
+                // Generate auth code if it doesn't exist
+                const authCode = 'UNH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                
+                await connection.execute(
+                    `UPDATE bookings SET status = ?, auth_code = COALESCE(auth_code, ?) WHERE id = ?`,
+                    [status, authCode, booking_id]
+                );
+
+                // If room becomes full after this approval, set available = 0
+                if (currentOccupancy + 1 >= capacity) {
+                    await connection.execute(
+                        `UPDATE rooms SET available = 0 WHERE id = ?`,
+                        [roomId]
+                    );
+                }
+            } else {
+                // For other statuses, just update booking status
+                await connection.execute(
+                    'UPDATE bookings SET status = ? WHERE id = ?',
+                    [status, booking_id]
+                );
+            }
 
             // If rejected, completed, or cancelled, make room available again
             if (['rejected', 'completed', 'cancelled'].includes(status)) {
@@ -75,7 +130,7 @@ async function approveBookingHandler(req, res) {
 
             // Get details for notification
             const [details] = await connection.execute(
-                `SELECT b.user_id, h.name as hostel_name, r.room_number
+                `SELECT b.user_id, b.auth_code, h.name as hostel_name, r.room_number
                  FROM bookings b
                  LEFT JOIN hostels h ON b.hostel_id = h.id
                  LEFT JOIN rooms r ON b.room_id = r.id
@@ -84,10 +139,13 @@ async function approveBookingHandler(req, res) {
             );
 
             if (details.length > 0) {
-                const { user_id: notifUserId, hostel_name, room_number } = details[0];
+                const { user_id: notifUserId, auth_code, hostel_name, room_number } = details[0];
                 const title = status.charAt(0).toUpperCase() + status.slice(1) + ' Booking';
                 const statusText = status === 'approved' ? 'Congratulations! Your booking for' : 'Your booking for';
-                const message = `${statusText} ${hostel_name} (Room ${room_number}) has been ${status}.`;
+                let message = `${statusText} ${hostel_name} (Room ${room_number}) has been ${status}.`;
+                if (status === 'approved' && auth_code) {
+                    message += ` Your secure check-in code is: ${auth_code}`;
+                }
 
                 await connection.execute(
                     `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 

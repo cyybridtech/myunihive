@@ -35,7 +35,7 @@ async function verifyPaymentHandler(req, res) {
 
         try {
             const [bookings] = await connection.execute(
-                `SELECT b.user_id, b.payment_status, b.auth_code, b.total_price, u.email as user_email, u.full_name, u.gender as user_gender, r.room_number, r.type as room_type, h.name as hostel_name, h.manager_id
+                `SELECT b.user_id, b.room_id, b.hostel_id, b.payment_status, b.auth_code, b.total_price, u.email as user_email, u.full_name, u.gender as user_gender, r.room_number, r.type as room_type, h.name as hostel_name, h.manager_id
                  FROM bookings b
                  JOIN users u ON b.user_id = u.id
                  JOIN rooms r ON b.room_id = r.id
@@ -88,48 +88,96 @@ async function verifyPaymentHandler(req, res) {
                 });
             }
 
-            const authCode = 'UNH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            // Lock room record for update
+            const [roomLock] = await connection.execute(
+                `SELECT id, capacity, manual_occupancy FROM rooms WHERE id = ? FOR UPDATE`,
+                [details.room_id]
+            );
+
+            if (roomLock.length === 0) {
+                await connection.rollback();
+                connection.release();
+                return res.status(404).json({ status: 'error', message: 'Room associated with booking not found' });
+            }
+
+            // Count bookings already paid or approved for this room
+            const [occupancyResult] = await connection.execute(
+                `SELECT COUNT(*) as count 
+                 FROM bookings 
+                 WHERE room_id = ? AND (payment_status = 'paid' OR status = 'approved') AND id != ?`,
+                [details.room_id, booking_id]
+            );
+
+            const currentOccupancy = (parseInt(occupancyResult[0].count) || 0) + (parseInt(roomLock[0].manual_occupancy) || 0);
+            const capacity = parseInt(roomLock[0].capacity) || 1;
+
+            let finalStatus = 'approved';
+            let authCode = details.auth_code;
+
+            if (currentOccupancy >= capacity) {
+                // Gracefully transition to pending due to overbooking
+                finalStatus = 'pending';
+                authCode = null;
+            } else {
+                if (!authCode) {
+                    authCode = 'UNH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                }
+            }
 
             await connection.execute(
-                `UPDATE bookings SET payment_status = 'paid', status = 'approved', auth_code = ? WHERE id = ?`,
-                [authCode, booking_id]
+                `UPDATE bookings SET payment_status = 'paid', status = ?, auth_code = ? WHERE id = ?`,
+                [finalStatus, authCode, booking_id]
             );
 
-            const [roomResult] = await connection.execute(
-                "SELECT capacity FROM rooms WHERE id = (SELECT room_id FROM bookings WHERE id = ?)",
-                [booking_id]
-            );
-            const [occupancyResult] = await connection.execute(
-                "SELECT COUNT(*) as count FROM bookings WHERE room_id = (SELECT room_id FROM bookings WHERE id = ?) AND (payment_status = 'paid' OR status = 'approved')",
-                [booking_id]
-            );
-            
-            if (
-                roomResult && roomResult.length > 0 && 
-                occupancyResult && occupancyResult.length > 0 && 
-                occupancyResult[0].count >= roomResult[0].capacity
-            ) {
+            // Sync room availability
+            if (finalStatus === 'approved') {
+                if (currentOccupancy + 1 >= capacity) {
+                    await connection.execute(
+                        `UPDATE rooms SET available = 0 WHERE id = ?`,
+                        [details.room_id]
+                    );
+                }
+            } else {
+                // Room is full, make sure available is set to 0
                 await connection.execute(
-                    `UPDATE rooms SET available = 0 WHERE id = (SELECT room_id FROM bookings WHERE id = ?)`,
-                    [booking_id]
+                    `UPDATE rooms SET available = 0 WHERE id = ?`,
+                    [details.room_id]
                 );
             }
 
             const receiptAmount = Number(details.total_price || 0).toFixed(2);
-            const notifMsg = `Payment confirmed for booking #${booking_id}. Hostel: ${details.hostel_name}. Room: ${details.room_number} (${details.room_type}). Amount: GH₵${receiptAmount}. Security Code: ${authCode}`;
-            await connection.execute(
-                `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
-                 VALUES (?, 'Payment Receipt - Booking Confirmed', ?, 'payment', 0, CURDATE())`,
-                [details.user_id, notifMsg]
-            );
-
-            if (details.manager_id) {
-                const managerMsg = `New paid booking from ${details.full_name} (${details.user_gender}) for room ${details.room_number} at ${details.hostel_name}. Code: ${authCode}.`;
+            if (finalStatus === 'approved') {
+                const notifMsg = `Payment confirmed for booking #${booking_id}. Hostel: ${details.hostel_name}. Room: ${details.room_number} (${details.room_type}). Amount: GH₵${receiptAmount}. Security Code: ${authCode}`;
                 await connection.execute(
                     `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
-                     VALUES (?, 'New Paid Booking', ?, 'booking', 0, CURDATE())`,
-                    [details.manager_id, managerMsg]
+                     VALUES (?, 'Payment Receipt - Booking Confirmed', ?, 'payment', 0, CURDATE())`,
+                    [details.user_id, notifMsg]
                 );
+
+                if (details.manager_id) {
+                    const managerMsg = `New paid booking from ${details.full_name} (${details.user_gender}) for room ${details.room_number} at ${details.hostel_name}. Code: ${authCode}.`;
+                    await connection.execute(
+                        `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
+                         VALUES (?, 'New Paid Booking', ?, 'booking', 0, CURDATE())`,
+                        [details.manager_id, managerMsg]
+                    );
+                }
+            } else {
+                const notifMsg = `Payment received for booking #${booking_id} (Hostel: ${details.hostel_name}, Room: ${details.room_number}). However, the room has reached full capacity. Your booking is pending manager review or refund.`;
+                await connection.execute(
+                    `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
+                     VALUES (?, 'Payment Received - Room Full', ?, 'payment', 0, CURDATE())`,
+                    [details.user_id, notifMsg]
+                );
+
+                if (details.manager_id) {
+                    const managerMsg = `Overbooked Payment received from ${details.full_name} for room ${details.room_number} at ${details.hostel_name} (Booking #${booking_id}). The room is full. Action required: Refund or manual reallocation.`;
+                    await connection.execute(
+                        `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
+                         VALUES (?, 'Overbooked Booking Alert', ?, 'booking', 0, CURDATE())`,
+                        [details.manager_id, managerMsg]
+                    );
+                }
             }
 
             await connection.commit();
@@ -139,21 +187,35 @@ async function verifyPaymentHandler(req, res) {
                 console.error('[BOOKING] Missing user_email for booking:', booking_id);
             } else {
                 try {
-                    await sendBookingEmail(details.user_email, details.full_name, booking_id, details.room_number, details.hostel_name, authCode);
+                    if (finalStatus === 'approved') {
+                        await sendBookingEmail(details.user_email, details.full_name, booking_id, details.room_number, details.hostel_name, authCode);
+                    }
                 } catch (err) {
                     console.error('[BOOKING] Booking confirmation email failed:', err && err.message ? err.message : err);
                 }
             }
 
-            return res.json({
-                status: 'success',
-                message: 'Payment verified and booking automatically approved',
-                authCode: authCode,
-                roomDetails: {
-                    number: details.room_number,
-                    type: details.room_type
-                }
-            });
+            if (finalStatus === 'approved') {
+                return res.json({
+                    status: 'success',
+                    message: 'Payment verified and booking automatically approved',
+                    authCode: authCode,
+                    roomDetails: {
+                        number: details.room_number,
+                        type: details.room_type
+                    }
+                });
+            } else {
+                return res.json({
+                    status: 'overbooked',
+                    message: 'Payment verified but room capacity was reached. Booking is placed as pending for review.',
+                    authCode: null,
+                    roomDetails: {
+                        number: details.room_number,
+                        type: details.room_type
+                    }
+                });
+            }
         } catch (innerError) {
             await connection.rollback();
             connection.release();

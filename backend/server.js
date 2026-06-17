@@ -130,11 +130,15 @@ function createHandlerContext(req, res) {
     };
 }
 
-// Wrap handler to add req/res context
+// Wrap handler to add req/res context and catch async errors
 function wrapHandler(handler) {
-    return async (req, res) => {
-        const context = createHandlerContext(req, res);
-        await handler(context, res);
+    return async (req, res, next) => {
+        try {
+            const context = createHandlerContext(req, res);
+            await handler(context, res);
+        } catch (error) {
+            next(error);
+        }
     };
 }
 

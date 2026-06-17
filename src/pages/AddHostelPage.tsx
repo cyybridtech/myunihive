@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
@@ -56,6 +56,26 @@ export default function AddHostelPage() {
     }
   }, [handlePickLocation]);
 
+  const handleLatChange = (val: string) => {
+    setFormData(prev => ({ ...prev, lat: val }));
+    const parsedLat = parseFloat(val);
+    const parsedLng = parseFloat(formData.lng.toString());
+    if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      setMapLocation({ lat: parsedLat, lng: parsedLng });
+      mapRef.current?.flyTo({ center: [parsedLng, parsedLat], zoom: 16 });
+    }
+  };
+
+  const handleLngChange = (val: string) => {
+    setFormData(prev => ({ ...prev, lng: val }));
+    const parsedLat = parseFloat(formData.lat.toString());
+    const parsedLng = parseFloat(val);
+    if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      setMapLocation({ lat: parsedLat, lng: parsedLng });
+      mapRef.current?.flyTo({ center: [parsedLng, parsedLat], zoom: 16 });
+    }
+  };
+
 
   const mapContainerStyle = useMemo(
     () => ({
@@ -67,6 +87,23 @@ export default function AddHostelPage() {
   );
 
   const defaultCenter = useMemo(() => ({ lat: 5.6037, lng: -0.1870 }), []);
+  const [initialCenter, setInitialCenter] = useState({ lat: 5.6037, lng: -0.1870 });
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setInitialCenter({ lat: latitude, lng: longitude });
+          mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 16, duration: 2000 });
+        },
+        (error) => {
+          console.warn('Geolocation warning or permission denied:', error);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+  }, []);
 
   const coordinatesMissing = mapLocation == null || formData.lat === '' || formData.lng === '';
 
@@ -240,8 +277,8 @@ export default function AddHostelPage() {
                     <Map
                       ref={mapRef}
                       initialViewState={{
-                        longitude: mapLocation?.lng || defaultCenter.lng,
-                        latitude: mapLocation?.lat || defaultCenter.lat,
+                        longitude: mapLocation?.lng || initialCenter.lng,
+                        latitude: mapLocation?.lat || initialCenter.lat,
                         zoom: 16,
                         pitch: 60,
                         bearing: -17.6
@@ -285,19 +322,21 @@ export default function AddHostelPage() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude</label>
                     <input
+                      type="text"
                       value={formData.lat}
-                      readOnly
-                      placeholder="Click on map"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      onChange={e => handleLatChange(e.target.value)}
+                      placeholder="Latitude (e.g. 5.6037)"
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude</label>
                     <input
+                      type="text"
                       value={formData.lng}
-                      readOnly
-                      placeholder="Click on map"
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                      onChange={e => handleLngChange(e.target.value)}
+                      placeholder="Longitude (e.g. -0.1870)"
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
                     />
                   </div>
                 </div>
