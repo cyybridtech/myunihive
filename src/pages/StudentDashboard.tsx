@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock, Users, Sparkles, Star, MapPin, Trash2, ExternalLink, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -26,6 +26,11 @@ export default function StudentDashboard() {
   const { user, bookings, notifications, hostels, rooms, universities, savedHostels, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshNotifications, cancelBooking } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [pushEnabled, setPushEnabled] = useState(Notification.permission === 'granted');
+
+  useEffect(() => {
+    refreshBookings();
+    refreshNotifications();
+  }, []);
 
   const enablePushNotifications = async () => {
     try {
@@ -274,38 +279,36 @@ export default function StudentDashboard() {
         {/* PAYMENTS TAB */}
         {activeTab === 'payments' && (
           <div className="space-y-6">
-            {userBookings.filter(b => b.paymentStatus === 'paid' || b.status === 'approved' || b.status === 'completed').length === 0 ? (
+            {userBookings.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
                 <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4 animate-pulse" />
                 <p className="text-gray-500">No payment transactions found.</p>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
-                {userBookings
-                  .filter(b => b.paymentStatus === 'paid' || b.status === 'approved' || b.status === 'completed')
-                  .map(booking => {
-                    const hostel = hostels.find(h => h.id === booking.hostelId);
-                    const room = rooms.find(r => r.id === booking.roomId);
+                {userBookings.map(booking => {
+                  const hostel = hostels.find(h => h.id === booking.hostelId);
+                  const room = rooms.find(r => r.id === booking.roomId);
+                  const isUnpaid = booking.paymentStatus === 'unpaid';
+
+                  if (isUnpaid) {
                     return (
-                      <div key={booking.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-xl"></div>
+                      <div key={booking.id} className="bg-white rounded-2xl border border-amber-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl"></div>
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-4">
-                            <span className="text-xs font-semibold text-gray-400">RECEIPT #{booking.id.slice(-6)}</span>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                              <CheckCircle className="w-3.5 h-3.5" /> PAID & CONFIRMED
+                            <span className="text-xs font-semibold text-gray-400">INVOICE #{booking.id.slice(-6)}</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 animate-pulse">
+                              <Clock className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '3s' }} /> PENDING PAYMENT
                             </span>
                           </div>
                           <h3 className="text-lg font-bold text-gray-900 mb-1">{hostel?.name || booking.hostelName || 'Unknown Hostel'}</h3>
                           <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-4">
                             <MapPin className="w-3.5 h-3.5 text-gray-400" /> {hostel?.address || 'Hostel Address'}
                           </p>
-                          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-4">
-                            <span className="text-xs text-amber-600 font-semibold block mb-1">SECURE CHECK-IN CODE</span>
-                            <span className="text-xl font-mono font-bold text-amber-800 tracking-wider">
-                              {booking.authCode || 'UNH-PENDING'}
-                            </span>
-                            <p className="text-xs text-amber-600/80 mt-1">Present this code to the hostel manager at check-in.</p>
+                          <div className="bg-amber-50/50 border border-amber-100/50 rounded-xl p-4 mb-4">
+                            <span className="text-xs text-amber-700 font-semibold block mb-1">RENT PAYMENT REQUIRED</span>
+                            <p className="text-xs text-amber-700/80">Complete your payment of <b>GH₵{booking.totalPrice}</b> to secure your room and generate your check-in code.</p>
                           </div>
                           <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4 border-t border-b border-gray-50 py-3">
                             <div>
@@ -318,21 +321,69 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-end justify-between mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex items-end justify-between mt-2 pt-2 border-t border-gray-100 gap-4">
                           <div>
-                            <span className="text-xs text-gray-400 block">Total Amount Paid</span>
-                            <span className="text-2xl font-bold text-gray-900 text-gray-900">GH₵{booking.totalPrice}</span>
+                            <span className="text-xs text-gray-400 block">Amount Due</span>
+                            <span className="text-2xl font-bold text-gray-900">GH₵{booking.totalPrice}</span>
                           </div>
                           <button 
-                            onClick={() => alert('Receipt downloaded!')}
-                            className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-800 rounded-xl transition-all border border-gray-200/50 flex items-center gap-2 text-xs font-semibold"
+                            onClick={() => handlePayBooking(booking, hostel)}
+                            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all shadow-md flex items-center gap-2 text-sm font-semibold"
                           >
-                            <Download className="w-4 h-4" /> Receipt
+                            <CreditCard className="w-4 h-4" /> Pay Now
                           </button>
                         </div>
                       </div>
                     );
-                  })}
+                  }
+
+                  return (
+                    <div key={booking.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-xl"></div>
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-4">
+                          <span className="text-xs font-semibold text-gray-400">RECEIPT #{booking.id.slice(-6)}</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                            <CheckCircle className="w-3.5 h-3.5" /> PAID & CONFIRMED
+                          </span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">{hostel?.name || booking.hostelName || 'Unknown Hostel'}</h3>
+                        <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-4">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400" /> {hostel?.address || 'Hostel Address'}
+                        </p>
+                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-4">
+                          <span className="text-xs text-amber-600 font-semibold block mb-1">SECURE CHECK-IN CODE</span>
+                          <span className="text-xl font-mono font-bold text-amber-800 tracking-wider">
+                            {booking.authCode || 'UNH-PENDING'}
+                          </span>
+                          <p className="text-xs text-amber-600/80 mt-1">Present this code to the hostel manager at check-in.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4 border-t border-b border-gray-50 py-3">
+                          <div>
+                            <span className="text-xs text-gray-400 block">Room Number</span>
+                            <span className="font-semibold text-gray-800">{room?.roomNumber || booking.roomNumber || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-400 block">Room Type</span>
+                            <span className="font-semibold text-gray-800">{room?.type || booking.roomType || 'Standard'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-end justify-between mt-2 pt-2 border-t border-gray-100">
+                        <div>
+                          <span className="text-xs text-gray-400 block">Total Amount Paid</span>
+                          <span className="text-2xl font-bold text-gray-900">GH₵{booking.totalPrice}</span>
+                        </div>
+                        <button 
+                          onClick={() => alert('Receipt downloaded!')}
+                          className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-800 rounded-xl transition-all border border-gray-200/50 flex items-center gap-2 text-xs font-semibold"
+                        >
+                          <Download className="w-4 h-4" /> Receipt
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

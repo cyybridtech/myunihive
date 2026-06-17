@@ -272,8 +272,22 @@ export default function HostelDetailsPage() {
             });
         },
         onClose: function() {
-          if (bookingId) {
-            cleanupPendingBooking(bookingId);
+          if (bookingId && user) {
+            const platformFee = hostel.platformFee || 0;
+            const totalAmount = room.price + platformFee;
+            addBooking({
+              id: bookingId,
+              userId: user.id,
+              roomId: selectedRoom,
+              hostelId: hostel.id,
+              bookingDate,
+              status: 'pending',
+              paymentStatus: 'unpaid',
+              reservationFee: room.price,
+              totalPrice: totalAmount,
+            });
+            refreshBookings();
+            refreshData();
           }
           alert('Payment window closed. You can pay your rent later from your dashboard.');
           setBookingSuccess(true);

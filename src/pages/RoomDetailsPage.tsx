@@ -177,8 +177,21 @@ export default function RoomDetailsPage() {
             });
         },
         onClose: () => {
-          if (bookingId) {
-            cleanupPendingBooking(bookingId);
+          if (bookingId && user) {
+            const totalAmount = room.price + (hostel.platformFee || 0);
+            addBooking({
+              id: bookingId,
+              userId: user.id,
+              roomId: room.id,
+              hostelId: hostel.id,
+              bookingDate,
+              status: 'pending',
+              paymentStatus: 'unpaid',
+              reservationFee: room.price,
+              totalPrice: totalAmount,
+            });
+            refreshBookings();
+            refreshData();
           }
           setBookingError('Payment window closed before completion. You can pay later from your dashboard.');
           setBookingState('failed');

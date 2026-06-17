@@ -10,7 +10,7 @@ type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'n
 
 export default function ManagerDashboard() {
   const auth = useAuth();
-  const { hostels, rooms, bookings, reviews, universities, notifications, refreshBookings, refreshData, addRoom, updateRoom, updateHostel, markNotificationRead, markAllNotificationsRead } = useApp();
+  const { hostels, rooms, bookings, reviews, universities, notifications, refreshBookings, refreshData, refreshNotifications, addRoom, updateRoom, updateHostel, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
   const isManager = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
 
@@ -49,6 +49,12 @@ export default function ManagerDashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [notificationDropdownOpen]);
 
+  useEffect(() => {
+    refreshData();
+    refreshBookings();
+    refreshNotifications();
+  }, []);
+
   // Edit states for Hostels and Rooms
   const [editingHostel, setEditingHostel] = useState<any | null>(null);
   const [editHostelData, setEditHostelData] = useState({ name: '', address: '', description: '', distanceFromCampus: '', priceRange: '', platformFee: '' });
@@ -57,14 +63,15 @@ export default function ManagerDashboard() {
   const [editRoomData, setEditRoomData] = useState({ roomNumber: '', type: '', price: '', capacity: '', gender: 'unisex' as 'male' | 'female' | 'unisex', description: '' });
 
   const handleUpdateHostel = (hostel: any) => {
+    if (!hostel) return;
     setEditingHostel(hostel);
     setEditHostelData({
-      name: hostel.name,
-      address: hostel.address,
+      name: hostel.name || '',
+      address: hostel.address || '',
       description: hostel.description || '',
       distanceFromCampus: hostel.distanceFromCampus || '',
       priceRange: hostel.priceRange || '',
-      platformFee: hostel.platformFee !== undefined ? String(hostel.platformFee) : '0',
+      platformFee: hostel.platformFee !== undefined && hostel.platformFee !== null ? String(hostel.platformFee) : '0',
     });
   };
 
@@ -100,12 +107,13 @@ export default function ManagerDashboard() {
   };
 
   const handleUpdateRoom = (room: any) => {
+    if (!room) return;
     setEditingRoom(room);
     setEditRoomData({
-      roomNumber: room.roomNumber,
+      roomNumber: room.roomNumber || '',
       type: room.type || 'Standard',
-      price: String(room.price),
-      capacity: String(room.capacity),
+      price: room.price !== undefined && room.price !== null ? String(room.price) : '',
+      capacity: room.capacity !== undefined && room.capacity !== null ? String(room.capacity) : '',
       gender: (room.gender === 'mixed' ? 'unisex' : room.gender || 'unisex') as 'male' | 'female' | 'unisex',
       description: room.description || '',
     });

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building2, Calendar, CreditCard, Star, BarChart3, Plus, Trash2, CheckCircle, XCircle, Eye, Pencil, GraduationCap, DoorOpen, TrendingUp, AlertCircle, Search, Bell } from 'lucide-react';
+import { Users, Building2, Calendar, CreditCard, Star, BarChart3, Plus, Trash2, CheckCircle, XCircle, Eye, Pencil, GraduationCap, DoorOpen, TrendingUp, AlertCircle, Search, Bell, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { approveBooking, createHostel, createRoom, createUniversity, deleteHostel as deleteHostelApi, deleteRoom as deleteRoomApi, deleteUniversity as deleteUniversityApi, updateRoom as updateRoomApi, updateHostel as updateHostelApi, updateRoomOccupancy, uploadImage } from '../api/api.js';
@@ -10,7 +10,7 @@ type AdminTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'users' | 'revie
 
 export default function AdminDashboard() {
   const auth = useAuth();
-  const { hostels, rooms, bookings, reviews, universities, notifications, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshData, deleteHostel, deleteRoom, deleteUniversity, addHostel, addRoom, addUniversity, updateRoom, updateHostel, updateBookingStatus } = useApp();
+  const { hostels, rooms, bookings, reviews, universities, notifications, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshData, refreshNotifications, deleteHostel, deleteRoom, deleteUniversity, addHostel, addRoom, addUniversity, updateRoom, updateHostel, updateBookingStatus } = useApp();
   const navigate = useNavigate();
   const isManager = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
   const managerHostels = isManager ? hostels.filter(h => String(h.managerId) === String(auth.user?.id)) : hostels;
@@ -22,6 +22,12 @@ export default function AdminDashboard() {
   const unreadNotifications = notifications.filter(n => !n.read && String(n.userId) === String(auth.user?.id));
   const unreadCount = unreadNotifications.length;
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+
+  useEffect(() => {
+    refreshData();
+    refreshBookings();
+    refreshNotifications();
+  }, []);
   const [showAddHostel, setShowAddHostel] = useState(false);
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [showAddUniversity, setShowAddUniversity] = useState(false);
@@ -175,14 +181,15 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateHostel = (hostel: Hostel) => {
+    if (!hostel) return;
     setEditingHostel(hostel);
     setEditHostelData({
-      name: hostel.name,
-      address: hostel.address,
+      name: hostel.name || '',
+      address: hostel.address || '',
       description: hostel.description || '',
       distanceFromCampus: hostel.distanceFromCampus || '',
       priceRange: hostel.priceRange || '',
-      platformFee: hostel.platformFee !== undefined ? String(hostel.platformFee) : '0',
+      platformFee: hostel.platformFee !== undefined && hostel.platformFee !== null ? String(hostel.platformFee) : '0',
     });
   };
 
@@ -218,12 +225,13 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateRoom = (room: Room) => {
+    if (!room) return;
     setEditingRoom(room);
     setEditRoomData({
-      roomNumber: room.roomNumber,
+      roomNumber: room.roomNumber || '',
       type: room.type || 'Standard',
-      price: String(room.price),
-      capacity: String(room.capacity),
+      price: room.price !== undefined && room.price !== null ? String(room.price) : '',
+      capacity: room.capacity !== undefined && room.capacity !== null ? String(room.capacity) : '',
       gender: (room.gender === 'mixed' ? 'unisex' : room.gender || 'unisex') as 'male' | 'female' | 'unisex',
       description: room.description || '',
     });
