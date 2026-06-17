@@ -18,6 +18,10 @@ export default function AddHostelPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [suggestions, setSuggestions] = useState<{ id: string; place_name: string; center: [number, number] }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
 
   const [formData, setFormData] = useState({
@@ -204,28 +208,71 @@ export default function AddHostelPage() {
     }
   };
 
-  const handleSearchLocation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim() || !MAPBOX_TOKEN) return;
+  // Fetch autocomplete suggestions from Mapbox with proximity bias instead of country lock
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (!query.trim() || query.trim().length < 2 || !MAPBOX_TOKEN) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
     setIsSearching(true);
     try {
-      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${MAPBOX_TOKEN}&country=gh`);
+      // Use proximity bias toward center of Ghana (-1.0232, 7.9465) + broad types instead of country=gh lock
+      const params = new URLSearchParams({
+        access_token: MAPBOX_TOKEN,
+        proximity: '-1.0232,7.9465',
+        types: 'poi,address,place,neighborhood,locality,region',
+        language: 'en',
+        limit: '6',
+      });
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`
+      );
       const data = await res.json();
       if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        setMapLocation({ lat, lng });
-        setFormData(prev => ({ ...prev, lat: lat.toString(), lng: lng.toString() }));
-        mapRef.current?.flyTo({ center: [lng, lat], zoom: 16, duration: 2000 });
+        setSuggestions(data.features.map((f: any) => ({
+          id: f.id,
+          place_name: f.place_name,
+          center: f.center as [number, number],
+        })));
+        setShowSuggestions(true);
       } else {
-        alert('Location not found. Try a different search term.');
+        setSuggestions([]);
+        setShowSuggestions(false);
       }
     } catch (error) {
-      console.error('Search error:', error);
-      alert('Error searching for location.');
+      console.error('Autocomplete error:', error);
     } finally {
       setIsSearching(false);
     }
+  }, []);
+
+  const handleSearchInput = (val: string) => {
+    setSearchQuery(val);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => fetchSuggestions(val), 300);
   };
+
+  const handleSelectSuggestion = (suggestion: { id: string; place_name: string; center: [number, number] }) => {
+    const [lng, lat] = suggestion.center;
+    setMapLocation({ lat, lng });
+    setFormData(prev => ({ ...prev, lat: lat.toString(), lng: lng.toString() }));
+    mapRef.current?.flyTo({ center: [lng, lat], zoom: 16, duration: 1500 });
+    setSearchQuery(suggestion.place_name);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Close suggestion dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
@@ -250,25 +297,58 @@ export default function AddHostelPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-3">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">Hostel Location</h3>
-                    <p className="text-sm text-gray-500">Search for a place or click on the map to drop a pin.</p>
+                    <p className="text-sm text-gray-500">Search any place, street, or landmark — or click on the map to drop a pin.</p>
                   </div>
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <input 
-                      type="text" 
-                      placeholder="Search location..." 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleSearchLocation(e); }}
-                      className="px-4 py-2 border border-gray-200 rounded-lg text-sm w-full sm:w-64 focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={handleSearchLocation} 
-                      disabled={isSearching}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-                    >
-                      {isSearching ? '...' : 'Search'}
-                    </button>
+                  {/* Live Autocomplete Search */}
+                  <div ref={searchContainerRef} className="relative w-full sm:w-80">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          placeholder="Search location..."
+                          value={searchQuery}
+                          onChange={e => handleSearchInput(e.target.value)}
+                          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none pr-8"
+                        />
+                        {isSearching && (
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                            <svg className="animate-spin w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => { setSearchQuery(''); setSuggestions([]); setShowSuggestions(false); }}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg transition-colors"
+                          title="Clear search"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    {/* Suggestions Dropdown */}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+                        {suggestions.map((s, idx) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => handleSelectSuggestion(s)}
+                            className={`w-full text-left px-4 py-3 text-sm hover:bg-amber-50 transition-colors flex items-start gap-3 ${
+                              idx < suggestions.length - 1 ? 'border-b border-gray-50' : ''
+                            }`}
+                          >
+                            <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                            <span className="text-gray-700 leading-snug">{s.place_name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
