@@ -27,52 +27,86 @@ export default function TermsPage() {
 
         <div className="px-6 py-8 sm:px-10 sm:py-10 space-y-8">
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">Agreement and Account Eligibility</h2>
+            <h2 className="text-xl font-semibold text-gray-900">1. Agreement and Account Eligibility</h2>
             <p className="mt-3 text-sm text-gray-600 leading-7">
-              By using UniHive, you agree to follow these terms and policies. Your account must represent a real student or authorized hostel manager, and you must be truthful when providing personal details.
+              Welcome to UniHive. By accessing or using our platform, you agree to be bound by these Terms of Service and our Privacy Policy. Our services are exclusively available to individuals who can form legally binding contracts under applicable law.
             </p>
             <p className="mt-3 text-sm text-gray-600 leading-7">
-              Identity fraud, false representation, or creating an account on behalf of another person is strictly prohibited. UniHive reserves the right to suspend or terminate accounts that violate these requirements.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-gray-900">Booking and Payment Responsibilities</h2>
-            <p className="mt-3 text-sm text-gray-600 leading-7">
-              All bookings, payments, and cancellations are governed by UniHive rules. You must provide accurate payment information, complete bookings in good faith, and communicate promptly if there are any issues.
+              To use certain features of UniHive, you must register for an account. You agree to provide accurate, current, and complete information during the registration process and to update such information to keep it accurate, current, and complete. Your account must represent a real student or an authorized hostel manager. Creating multiple accounts or registering on behalf of others without authorization is strictly prohibited.
             </p>
             <p className="mt-3 text-sm text-gray-600 leading-7">
-              Refunds and booking cancellations are subject to the policy published on the UniHive platform. Late cancellations, no-shows, or false booking claims may incur penalties and limit future booking privileges.
+              You are responsible for safeguarding your password and for all activities that occur under your account. UniHive reserves the right to suspend or terminate accounts that violate these requirements or engage in fraudulent activities.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">Hostel Usage and Safety</h2>
+            <h2 className="text-xl font-semibold text-gray-900">2. Booking and Payment Responsibilities</h2>
             <p className="mt-3 text-sm text-gray-600 leading-7">
-              Students must respect hostel policies, maintain a safe living environment, and follow any gender-specific room assignments. Managers must keep hostel listings accurate and respond to booking requests professionally.
+              UniHive facilitates the booking of student accommodation. All bookings made through the platform are subject to availability and acceptance by the respective hostel manager. When you book a room, you agree to pay the specified reservation fee and any applicable platform fees.
+            </p>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              Payments are processed securely via third-party providers like Paystack. You must provide valid payment information and authorized use of the chosen payment method. Once a booking is confirmed, the reservation fee is generally non-refundable unless specified otherwise in the specific hostel's cancellation policy.
+            </p>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              UniHive is not responsible for the direct lease agreement between the student and the hostel manager. Students are advised to review the full tenancy agreement provided by the hostel before completing full payment upon move-in.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">Privacy and Data Use</h2>
+            <h2 className="text-xl font-semibold text-gray-900">3. Hostel Usage, Safety, and Conduct</h2>
             <p className="mt-3 text-sm text-gray-600 leading-7">
-              UniHive collects and stores the information you provide to deliver services and process bookings. Your data is used only for account management, hostel communication, and payment verification unless you explicitly agree otherwise.
+              Students residing in hostels booked via UniHive are expected to adhere to the code of conduct and rules established by the hostel management. This includes respecting quiet hours, maintaining cleanliness in shared spaces, and ensuring the safety of the premises.
+            </p>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              Managers are required to keep their listings up-to-date, including room availability, pricing, and facilities. Any misrepresentation of property features or safety standards may lead to immediate removal from the platform and potential legal action.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">Important Notices</h2>
+            <h2 className="text-xl font-semibold text-gray-900">4. Privacy and Data Protection</h2>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              Your privacy is important to us. UniHive collects personal information such as your name, email, phone number, and university affiliation to provide our services. We use this data for account management, facilitating communication between students and managers, and verifying transactions.
+            </p>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              We do not sell your personal data to third parties. We may share information with law enforcement if required by law or to protect the safety and integrity of our community. For more details, please refer to our full Data Use Policy.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-gray-900">5. Limitation of Liability</h2>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              UniHive provides a platform for connecting students with accommodation providers. While we strive to physically verify hostels, we do not guarantee the condition of the properties or the conduct of the managers or students. UniHive shall not be liable for any indirect, incidental, or consequential damages arising from the use of our services.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-gray-900">6. Important Notices and Amendments</h2>
             <ul className="mt-3 space-y-3 text-sm text-gray-600 leading-7 list-disc list-inside">
-              <li>All users must agree to these terms before creating an account.</li>
-              <li>Gender selection is limited to male or female only for rooms and user profiles.</li>
-              <li>UniHive may update these terms at any time; continued use indicates acceptance of changes.</li>
+              <li>All users must explicitly agree to these terms before creating an account or making a booking.</li>
+              <li>Gender selection is enforced for specific room types to comply with hostel policies in Ghana.</li>
+              <li>UniHive reserves the right to modify these terms at any time. Significant changes will be notified via email or platform announcements.</li>
+              <li>Continued use of the platform after changes are posted constitutes acceptance of the revised terms.</li>
             </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-gray-900">7. Termination</h2>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              We may terminate or suspend your access to UniHive immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms. Upon termination, your right to use the platform will immediately cease. All provisions of the Terms which by their nature should survive termination shall survive termination, including, without limitation, ownership provisions, warranty disclaimers, indemnity and limitations of liability.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-gray-900">8. Governing Law</h2>
+            <p className="mt-3 text-sm text-gray-600 leading-7">
+              These Terms shall be governed and construed in accordance with the laws of Ghana, without regard to its conflict of law provisions. Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights. If any provision of these Terms is held to be invalid or unenforceable by a court, the remaining provisions of these Terms will remain in effect.
+            </p>
           </section>
 
           <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5">
             <p className="text-sm font-semibold text-amber-900">Note</p>
             <p className="mt-2 text-sm text-amber-700 leading-7">
-              Your agreement is required to use UniHive. Please review these terms carefully before registering or booking a hostel.
+              Your agreement is required to use UniHive. Please review these terms carefully before <Link to="/register" className="underline font-bold">registering</Link> or <Link to="/hostels" className="underline font-bold">booking a hostel</Link>.
             </p>
           </div>
         </div>

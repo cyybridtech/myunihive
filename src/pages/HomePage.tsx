@@ -79,7 +79,7 @@ export default function HomePage() {
               <span className="text-amber-200">Student Hostel in Ghana</span>
             </h1>
             <p className="text-lg md:text-xl text-amber-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-              UNIHIVE helps students book affordable, verified hostels in Ghana near University of Ghana, KNUST, UCC and other major campuses. No scams, no surprises — just trusted accommodation.
+              UNIHIVE is Ghana's leading platform for verified student accommodation. We help you find and book affordable, physically-vetted hostels near University of Ghana (Legon), KNUST, UCC, and other major campuses across the country. Skip the stress and avoid scams with our secure, transparent booking process.
             </p>
 
             <div className="bg-white rounded-2xl shadow-2xl p-3 max-w-2xl mx-auto">
@@ -132,27 +132,27 @@ export default function HomePage() {
           </div>
           <div className="grid md:grid-cols-4 gap-8">
             {[
-              { step: '01', icon: Search, title: 'Search', desc: 'Select your university and browse verified hostels nearby' },
-              { step: '02', icon: Building2, title: 'Compare', desc: 'View photos, facilities, prices and read student reviews' },
-              { step: '03', icon: CreditCard, title: 'Book & Pay', desc: 'Select a room and pay a small reservation fee to secure it' },
-              { step: '04', icon: CheckCircle, title: 'Move In', desc: 'Get your booking confirmed and move into your new home' },
+              { step: '01', icon: Search, title: 'Search', desc: 'Select your university and browse verified hostels nearby', link: '/hostels' },
+              { step: '02', icon: Building2, title: 'Compare', desc: 'View photos, facilities, prices and read student reviews', link: '#featured-hostels' },
+              { step: '03', icon: CreditCard, title: 'Book & Pay', desc: 'Select a room and pay a small reservation fee to secure it', link: '/register' },
+              { step: '04', icon: CheckCircle, title: 'Move In', desc: 'Get your booking confirmed and move into your new home', link: '/login' },
             ].map((item, i) => (
-              <div key={i} className="relative text-center group">
+              <Link to={item.link} key={i} className="relative text-center group block">
                 <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:bg-amber-500 transition-colors duration-300">
                   <item.icon className="w-7 h-7 text-amber-600 group-hover:text-white transition-colors duration-300" />
                 </div>
                 <span className="text-xs font-bold text-amber-500 tracking-wider mb-2 block">STEP {item.step}</span>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors">{item.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
                 {i < 3 && <ChevronRight className="hidden md:block absolute top-8 -right-4 w-6 h-6 text-amber-300" />}
-              </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
       {/* Featured Hostels */}
-      <section className="py-20">
+      <section className="py-20" id="featured-hostels">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
             <div>
@@ -229,7 +229,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">What Students Say</h2>
-            <p className="text-gray-500">Real reviews from real students</p>
+            <p className="text-gray-500">Real reviews from real students across various universities in Ghana.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {reviews.slice(0, 3).map(review => (
@@ -287,6 +287,8 @@ export default function HomePage() {
               <h4 className="text-white font-semibold mb-4">Platform</h4>
               <ul className="space-y-2 text-sm">
                 <li><Link to="/hostels" className="hover:text-amber-400 transition-colors">Browse Hostels</Link></li>
+                <li><Link to="/roommate-finder" className="hover:text-amber-400 transition-colors">Roommate Finder</Link></li>
+                <li><Link to="/terms" className="hover:text-amber-400 transition-colors">Terms & Privacy</Link></li>
                 <li><Link to="/register" className="hover:text-amber-400 transition-colors">Create Account</Link></li>
                 <li><Link to="/login" className="hover:text-amber-400 transition-colors">Sign In</Link></li>
               </ul>

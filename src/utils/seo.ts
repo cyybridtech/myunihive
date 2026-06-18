@@ -60,8 +60,10 @@ export function updateMetaTags(config: MetaConfig) {
     if (config.canonical) {
       setLinkTag('canonical', config.canonical);
     } else if (config.title) {
-      // Default to current URL if title is changing but no explicit canonical
-      setLinkTag('canonical', window.location.href);
+      // Default to current "clean" URL if title is changing but no explicit canonical
+      // This strips query parameters and hashes to avoid duplicate indexing of filtered pages
+      const cleanUrl = window.location.origin + window.location.pathname;
+      setLinkTag('canonical', cleanUrl);
     }
 
     // 4. Open Graph (Facebook / WhatsApp / etc.)
