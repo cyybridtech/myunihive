@@ -21,6 +21,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useEffect, type ReactNode } from 'react';
 import InstallPWA from './components/InstallPWA';
 import RoommateFinderPage from './pages/RoommateFinderPage';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -183,6 +185,8 @@ export default function App() {
       <AuthProvider>
         <AppProvider>
           <AppLayout />
+          <Analytics />
+          <SpeedInsights />
         </AppProvider>
       </AuthProvider>
     </Router>
