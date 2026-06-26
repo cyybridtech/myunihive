@@ -10,7 +10,7 @@ type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'n
 
 export default function ManagerDashboard() {
   const auth = useAuth();
-  const { hostels, rooms, bookings, reviews, universities, notifications, refreshBookings, refreshData, refreshNotifications, addRoom, updateRoom, updateHostel, markNotificationRead, markAllNotificationsRead } = useApp();
+  const { hostels, rooms, bookings, reviews, universities, notifications, refreshBookings, refreshData, refreshNotifications, addRoom, updateRoom, updateHostel, markNotificationRead, markAllNotificationsRead, deleteNotification } = useApp();
   const navigate = useNavigate();
   const isManager = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
 
@@ -323,21 +323,31 @@ export default function ManagerDashboard() {
                                 markNotificationRead(notif);
                                 setNotificationDropdownOpen(false);
                               }}
-                              className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}
+                              className={`group relative p-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}
                             >
-                              <div className="flex gap-3">
+                              <div className="flex gap-3 items-center">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!notif.read ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>
                                   <Bell className="w-4 h-4" />
                                 </div>
-                                <div className="flex-1">
-                                  <p className={`text-sm ${!notif.read ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm ${!notif.read ? 'font-bold text-gray-900' : 'text-gray-600'} truncate`}>
                                     {notif.title}
                                   </p>
-                                  <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
+                                  <p className="text-xs text-gray-500 mt-1 truncate">{notif.message}</p>
                                   <p className="text-xs text-gray-400 mt-1">
                                     {new Date(notif.date).toLocaleDateString()}
                                   </p>
                                 </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteNotification(notif);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                                  title="Delete Notification"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -778,7 +788,7 @@ export default function ManagerDashboard() {
                 <div className="p-10 text-center text-gray-500">No new notifications.</div>
               ) : (
                 managerNotifications.map(notif => (
-                  <div key={notif.id} onClick={() => markNotificationRead(notif)} className={`p-4 flex gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}>
+                  <div key={notif.id} onClick={() => markNotificationRead(notif)} className={`group p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${!notif.read ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>
                       <Bell className="w-5 h-5" />
                     </div>
@@ -786,6 +796,16 @@ export default function ManagerDashboard() {
                       <p className={`text-sm ${!notif.read ? 'font-bold text-gray-900' : 'text-gray-600'}`}>{notif.title}</p>
                       <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotification(notif);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                      title="Delete Notification"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))
               )}

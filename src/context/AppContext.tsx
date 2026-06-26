@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { getUserBookings, getNotifications, getAllBookings, getUniversities, getHostels, getRooms, submitReview, deleteBooking as deleteBookingApi, markNotificationRead as markNotificationReadApi } from '../api/api.js';
+import { getUserBookings, getNotifications, getAllBookings, getUniversities, getHostels, getRooms, submitReview, deleteBooking as deleteBookingApi, markNotificationRead as markNotificationReadApi, deleteNotification as deleteNotificationApi } from '../api/api.js';
 import {
   User, Booking, Notification, Message, Hostel, Room, Review, University,
   sampleBookings, sampleNotifications, sampleMessages, reviews as initialReviews,
@@ -37,6 +37,7 @@ interface AppState {
   sendMessage: (msg: Message) => void;
   markNotificationRead: (notification: Notification) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
+  deleteNotification: (notification: Notification) => Promise<void>;
   toggleSaveHostel: (id: string) => void;
   addHostel: (hostel: Hostel) => void;
   addRoom: (room: Room) => void;
@@ -382,6 +383,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteNotification = async (notification: Notification) => {
+    const previousNotifications = notifications;
+    setNotifications(prev => prev.filter(n => n.id !== notification.id));
+
+    const dbId = notification.dbId ?? (notification as any).db_id ?? (typeof notification.id === 'string' && notification.id.startsWith('db_')
+      ? Number(notification.id.slice(3))
+      : undefined);
+
+    if (dbId) {
+      try {
+        await deleteNotificationApi(dbId);
+      } catch (error: any) {
+        console.error('Failed to delete notification:', error);
+        setNotifications(previousNotifications);
+      }
+    }
+  };
+
   const toggleSaveHostel = (id: string) => {
     setSavedHostels(prev => prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id]);
   };
@@ -425,7 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (selectedUniversity) {
       localStorage.setItem('selectedUniversity', selectedUniversity);
     }
   }, [selectedUniversity]);
@@ -462,6 +481,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cancelBooking,
       markNotificationRead,
       markAllNotificationsRead,
+      deleteNotification,
       toggleSaveHostel,
       addHostel,
       addRoom,

@@ -47,6 +47,7 @@ const createUniversityHandler = require('./api/createUniversity');
 const reviewsHandler = require('./api/reviews');
 const getNotificationsHandler = require('./api/getNotifications');
 const markNotificationReadHandler = require('./api/markNotificationRead');
+const deleteNotificationHandler = require('./api/deleteNotification');
 const uploadImageHandler = require('./api/uploadImage');
 const testEmailHandler = require('./api/testEmail');
 const roommateHandler = require('./api/roommate');
@@ -219,6 +220,7 @@ app.post('/api/push/subscribe', wrapHandler(pushHandler));
 app.get('/api/getNotifications', wrapHandler(getNotificationsHandler));
 app.post('/api/getNotifications', wrapHandler(getNotificationsHandler));
 app.post('/api/markNotificationRead', wrapHandler(markNotificationReadHandler));
+app.post('/api/deleteNotification', wrapHandler(deleteNotificationHandler));
 
 // Health check
 app.get('/api/health', (req, res) => {

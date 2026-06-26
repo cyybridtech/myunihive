@@ -10,7 +10,7 @@ type AdminTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'users' | 'revie
 
 export default function AdminDashboard() {
   const auth = useAuth();
-  const { hostels, rooms, bookings, reviews, universities, notifications, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshData, refreshNotifications, deleteHostel, deleteRoom, deleteUniversity, addHostel, addRoom, addUniversity, updateRoom, updateHostel, updateBookingStatus } = useApp();
+  const { hostels, rooms, bookings, reviews, universities, notifications, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshData, refreshNotifications, deleteHostel, deleteRoom, deleteUniversity, addHostel, addRoom, addUniversity, updateRoom, updateHostel, updateBookingStatus, deleteNotification } = useApp();
   const navigate = useNavigate();
   const isManager = auth.user?.role === 'manager' || auth.user?.role === 'hostel_manager';
   const managerHostels = isManager ? hostels.filter(h => String(h.managerId) === String(auth.user?.id)) : hostels;
@@ -844,14 +844,23 @@ export default function AdminDashboard() {
                   .filter(n => String(n.userId) === String(auth.user?.id))
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map(notification => (
-                    <div key={notification.id} className={`bg-white rounded-xl border ${notification.read ? 'border-gray-100' : 'border-amber-200 bg-amber-50/30'} p-5 flex items-start gap-4 transition-colors`}>
+                    <div key={notification.id} className={`group relative bg-white rounded-xl border ${notification.read ? 'border-gray-100' : 'border-amber-200 bg-amber-50/30'} p-5 flex items-start gap-4 transition-colors`}>
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notification.read ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-600'}`}>
                         <Bell className="w-5 h-5" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <h3 className={`font-semibold text-sm ${notification.read ? 'text-gray-800' : 'text-gray-900'}`}>{notification.title}</h3>
-                          <span className="text-xs text-gray-400">{notification.date}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-400">{notification.date}</span>
+                            <button
+                              onClick={() => deleteNotification(notification)}
+                              className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                              title="Delete Notification"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                         <p className={`text-sm ${notification.read ? 'text-gray-600' : 'text-gray-800'}`}>{notification.message}</p>
                         {!notification.read && (

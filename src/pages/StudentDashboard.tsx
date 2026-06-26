@@ -23,7 +23,7 @@ type Tab = 'overview' | 'bookings' | 'payments' | 'notifications' | 'saved';
 
 export default function StudentDashboard() {
   // 1. ALL HOOKS AT THE TOP
-  const { user, bookings, notifications, hostels, rooms, universities, savedHostels, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshNotifications, cancelBooking } = useApp();
+  const { user, bookings, notifications, hostels, rooms, universities, savedHostels, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshNotifications, cancelBooking, deleteNotification } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [pushEnabled, setPushEnabled] = useState(Notification.permission === 'granted');
   const [savedCard, setSavedCard] = useState<{ card_type: string; last4: string; exp_month: string; exp_year: string } | null | undefined>(undefined);
@@ -513,7 +513,7 @@ export default function StudentDashboard() {
                 <div className="p-10 text-center text-gray-500">No new notifications.</div>
               ) : (
                 userNotifications.map(notif => (
-                  <div key={notif.id} onClick={() => markNotificationRead(notif)} className={`p-4 flex gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}>
+                  <div key={notif.id} onClick={() => markNotificationRead(notif)} className={`group p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-amber-50/50' : ''}`}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${!notif.read ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-400'}`}>
                       <Bell className="w-5 h-5" />
                     </div>
@@ -521,6 +521,16 @@ export default function StudentDashboard() {
                       <p className={`text-sm ${!notif.read ? 'font-bold text-gray-900' : 'text-gray-600'}`}>{notif.title}</p>
                       <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotification(notif);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                      title="Delete Notification"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))
               )}

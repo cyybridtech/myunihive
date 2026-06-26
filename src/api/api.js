@@ -391,6 +391,22 @@ export const markNotificationRead = async (notificationId) => {
   });
 };
 
+export const deleteNotification = async (notificationId) => {
+  const dbId = typeof notificationId === 'string' && notificationId.startsWith('db_')
+    ? notificationId.slice(3)
+    : notificationId;
+
+  if (!dbId) {
+    throw new Error('Invalid notification identifier');
+  }
+
+  return fetchJson(`${BASE_URL}/deleteNotification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ db_id: dbId })
+  });
+};
+
 // ============ IMAGE UPLOAD (if needed) ============
 
 export const uploadImage = async (file) => {

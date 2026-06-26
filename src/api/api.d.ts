@@ -16,6 +16,7 @@ export declare const createBooking: (roomId: string, hostelId: string, bookingDa
 export declare const getUserBookings: () => Promise<any>;
 export declare const getNotifications: () => Promise<any>;
 export declare const markNotificationRead: (notificationId: string | number) => Promise<any>;
+export declare const deleteNotification: (notificationId: string | number) => Promise<any>;
 export declare const getAllBookings: () => Promise<any>;
 export declare const createHostel: (hostelData: any) => Promise<any>;
 export declare const deleteHostel: (hostelId: string) => Promise<any>;

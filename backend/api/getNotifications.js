@@ -20,7 +20,8 @@ async function getNotificationsHandler(req, res) {
             `SELECT id, user_id, title, message, type, read_status, notification_date
              FROM notifications
              WHERE user_id = ?
-             ORDER BY id DESC`,
+             ORDER BY id DESC
+             LIMIT 20`,
             [user_id]
         );
 
