@@ -26,3 +26,4 @@
 - [x] Fixed .gitignore to include package-lock.json for consistent dependencies
 - [x] Added database schema initialization on server startup
 - [x] Added notifications tab to Manager Dashboard
+
