@@ -8,6 +8,7 @@ export default function MessagesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  
   const [chats, setChats] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any>({
     admin: [],
@@ -16,6 +17,7 @@ export default function MessagesPage() {
     roommates: [],
     manager: []
   });
+  
   const [managerTab, setManagerTab] = useState<'admin' | 'broadcast' | 'students'>('admin');
   const [studentTab, setStudentTab] = useState<'manager' | 'roommates'>('manager');
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,27 +25,43 @@ export default function MessagesPage() {
   const [activeChat, setActiveChat] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isChatsLoading, setIsChatsLoading] = useState(true);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isFirstLoad = useRef(true);
 
+  // 1. Load sidebar chats and contacts once on mount/user change and poll silently
   useEffect(() => {
     if (!user) return;
-    loadChats();
-    // Simple polling for new messages every 10 seconds
+    loadChats(false);
     const interval = setInterval(() => {
-      if (activeChat) {
-        loadMessages(activeChat.chat_with_id, true);
-        loadChats(true);
-      } else {
-        loadChats(true);
-      }
+      loadChats(true);
     }, 10000);
     return () => clearInterval(interval);
-  }, [user, activeChat]);
+  }, [user]);
 
+  // 2. Poll messages for the active conversation silently every 5 seconds for a snappy feel
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!user || !activeChat) return;
+    loadMessages(activeChat.chat_with_id, false);
+    const interval = setInterval(() => {
+      loadMessages(activeChat.chat_with_id, true);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [user, activeChat?.chat_with_id]);
+
+  // 3. Scroll to bottom of conversation
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (isFirstLoad.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      isFirstLoad.current = false;
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Auto-start chat with roommate from roommate finder page
@@ -91,7 +109,7 @@ export default function MessagesPage() {
   }, [location.state]);
 
   const loadChats = async (silent = false) => {
-    if (!silent) setIsLoading(true);
+    if (!silent) setIsChatsLoading(true);
     try {
       const res = await getMessages();
       if (res.status === 'success') {
@@ -103,58 +121,77 @@ export default function MessagesPage() {
     } catch (e) {
       console.error(e);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsChatsLoading(false);
     }
   };
 
   const loadMessages = async (chatWithId: string, silent = false) => {
-    if (!silent) setIsLoading(true);
+    if (!silent) setIsMessagesLoading(true);
     try {
       const res = await getMessages(chatWithId);
       if (res.status === 'success') {
-        setMessages(res.messages || []);
+        // Only update if messages count or contents actually changed (prevents layout flashing on background poll)
+        setMessages(prev => {
+          const newMsgs = res.messages || [];
+          if (prev.length === newMsgs.length && prev.every((m, i) => m.id === newMsgs[i].id && m.content === newMsgs[i].content)) {
+            return prev;
+          }
+          return newMsgs;
+        });
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsMessagesLoading(false);
     }
   };
 
   const handleSelectChat = (chat: any) => {
+    isFirstLoad.current = true;
     setActiveChat(chat);
-    loadMessages(chat.chat_with_id);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim() || !activeChat) return;
+
+    const tempId = 'temp_' + Date.now();
+    const content = messageInput;
+    setMessageInput('');
     setIsSending(true);
+
+    // Optimistic UI update: instantly append sending card
+    const optimisticMsg = {
+      id: tempId,
+      sender_id: user?.id,
+      receiver_id: activeChat.chat_with_id,
+      content: content,
+      timestamp: new Date().toISOString(),
+      sending: true
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
     try {
-      const res = await sendMessage(activeChat.chat_with_id, messageInput);
+      const res = await sendMessage(activeChat.chat_with_id, content);
       if (res.status === 'success') {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === tempId ? { ...m, id: res.message_id, sending: false } : m
+          )
+        );
         if (activeChat.chat_with_id === 'broadcast') {
           alert('Broadcast message sent to all students successfully.');
-          setMessages([...messages, {
-            id: res.message_id,
-            sender_id: user?.id,
-            receiver_id: 'broadcast',
-            content: messageInput,
-            created_at: new Date().toISOString()
-          }]);
-        } else {
-          setMessages([...messages, {
-            id: res.message_id,
-            sender_id: user?.id,
-            receiver_id: activeChat.chat_with_id,
-            content: messageInput,
-            created_at: new Date().toISOString()
-          }]);
         }
-        setMessageInput('');
+      } else {
+        throw new Error('Failed to send message');
       }
     } catch (e) {
-      alert('Failed to send message');
+      // Mark as failed in UI
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === tempId ? { ...m, failed: true, sending: false } : m
+        )
+      );
     } finally {
       setIsSending(false);
     }
@@ -307,8 +344,8 @@ export default function MessagesPage() {
 
           {/* Contacts/Chats List */}
           <div className="overflow-y-auto flex-1 p-4 space-y-2">
-            {isLoading && filteredContactsList.length === 0 ? (
-              <p className="text-center text-gray-500 mt-10 text-sm">Loading contacts...</p>
+            {isChatsLoading && filteredContactsList.length === 0 ? (
+              <p className="text-center text-gray-500 mt-10 text-sm animate-pulse">Loading contacts...</p>
             ) : filteredContactsList.length === 0 ? (
               <div className="text-center mt-10 text-gray-500 flex flex-col items-center">
                 <MessageSquare className="w-12 h-12 mb-3 text-gray-300" />
@@ -380,8 +417,11 @@ export default function MessagesPage() {
 
               {/* Messages List */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-                {isLoading && messages.length === 0 ? (
-                  <p className="text-center text-gray-500">Loading messages...</p>
+                {isMessagesLoading && messages.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mr-2"></div>
+                    <p className="text-sm">Loading messages...</p>
+                  </div>
                 ) : messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-gray-400">
                     <MessageSquare className="w-12 h-12 mb-3 text-gray-200" />
@@ -393,11 +433,21 @@ export default function MessagesPage() {
                     const msgDate = msg.timestamp || msg.created_at;
                     return (
                       <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[70%] rounded-2xl px-5 py-3 shadow-sm ${isMine ? 'bg-amber-500 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'}`}>
+                        <div className={`relative max-w-[70%] rounded-2xl px-5 py-3 shadow-sm ${
+                          isMine 
+                            ? 'bg-amber-500 text-white rounded-br-none' 
+                            : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
+                        } ${msg.sending ? 'opacity-70' : ''} ${msg.failed ? 'border-red-300 bg-red-50 text-red-800' : ''}`}>
                           <p className="text-sm break-words whitespace-pre-wrap">{msg.content}</p>
-                          <p className={`text-[10px] mt-2 text-right ${isMine ? 'text-amber-100' : 'text-gray-400'}`}>
-                            {msgDate ? new Date(msgDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                          </p>
+                          <div className="flex items-center justify-end gap-1.5 mt-2">
+                            {msg.sending && <span className="text-[9px] text-amber-200 animate-pulse font-medium">sending...</span>}
+                            {msg.failed && <span className="text-[9px] text-red-600 font-bold">failed</span>}
+                            {!msg.sending && !msg.failed && (
+                              <p className={`text-[10px] ${isMine ? 'text-amber-100' : 'text-gray-400'}`}>
+                                {msgDate ? new Date(msgDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
