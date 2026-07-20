@@ -2,43 +2,124 @@
 <html lang="en">
 
 <head>
+  <!-- Basic -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO -->
+  <title>UniHive | Find & Book Verified Student Hostels in Ghana</title>
+
+  <meta name="description"
+    content="UniHive helps students find and book verified hostels across Ghana. Compare prices, view photos, explore maps, and reserve accommodation near KNUST, University of Ghana, UCC, UPSA, UDS, UMaT, UEW, UENR, UHAS, USTED, and more." />
+
+  <meta name="keywords"
+    content="student hostels Ghana, hostel booking Ghana, student accommodation Ghana, KNUST hostels, University of Ghana hostels, UCC hostels, UPSA hostels, UDS hostels, UEW hostels, UMaT hostels, verified hostels, UniHive" />
+
+  <meta name="author" content="UniHive" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Canonical -->
+  <link rel="canonical" href="https://www.myunihive.com/" />
+
+  <!-- Theme -->
   <meta name="theme-color" content="#f59e0b" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="description"
-    content="Find and book verified student hostels in Ghana near University of Ghana, KNUST, UCC, Legon, USTED, UPSA, UHAS, UEW, UENR, UMaT, UEW and other campuses with UNIHIVE." />
-  <meta name="keywords"
-    content="student hostels, Hostel booking platform, Ghana, University of Ghana, KNUST, UCC, Legon, USTED, UPSA, UHAS, UEW, UENR, UMaT, UEW affordable student accommodation, book hostel online" />
-  <title>UNIHIVE - Student Hostel Booking Platform in Ghana</title>
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="UniHive" />
+  <meta property="og:title" content="UniHive | Find & Book Verified Student Hostels in Ghana" />
+  <meta property="og:description"
+    content="Find verified student hostels across Ghana. Compare prices, view photos, explore maps, and book your accommodation online with UniHive." />
+  <meta property="og:url" content="https://www.myunihive.com/" />
+  <meta property="og:image" content="https://www.myunihive.com/icons/icon-512.png" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="UniHive | Student Hostel Booking Platform" />
+  <meta name="twitter:description"
+    content="Book verified student hostels in Ghana with UniHive." />
+  <meta name="twitter:image"
+    content="https://www.myunihive.com/icons/icon-512.png" />
+
+  <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"WebSite",
+    "name":"UniHive",
+    "url":"https://www.myunihive.com",
+    "description":"Verified student hostel booking platform in Ghana.",
+    "publisher":{
+      "@type":"Organization",
+      "name":"UniHive",
+      "logo":{
+        "@type":"ImageObject",
+        "url":"https://www.myunihive.com/icons/icon-512.png"
+      }
+    },
+    "potentialAction":{
+      "@type":"SearchAction",
+      "target":"https://www.myunihive.com/search?q={search_term_string}",
+      "query-input":"required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Paystack -->
   <script src="https://js.paystack.co/v1/inline.js"></script>
 
-  <!-- Leaflet (free embedded maps) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin="" />
 
-  <!-- Google tag (gtag.js) -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="">
+  </script>
+
+  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DY4EX20VS6"></script>
+
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
     gtag('js', new Date());
 
     gtag('config', 'G-DY4EX20VS6');
   </script>
-<script src="https://analytics.ahrefs.com/analytics.js" data-key="rM+eefAEvXPwXDPmjIy86Q" async></script>
-<meta name="ahrefs-site-verification" content="b7d006c55fac7a3521495f1d3a9568c7516a01ccba7e986df88a77e03d632e69">
+
+  <!-- Ahrefs Analytics -->
+  <script src="https://analytics.ahrefs.com/analytics.js"
+    data-key="rM+eefAEvXPwXDPmjIy86Q"
+    async>
+  </script>
+
+  <!-- Ahrefs Verification -->
+  <meta name="ahrefs-site-verification"
+    content="b7d006c55fac7a3521495f1d3a9568c7516a01ccba7e986df88a77e03d632e69">
+
 </head>
 
 <body>
+
   <div id="root"></div>
+
   <script type="module" src="/src/main.tsx"></script>
+
 </body>
 
 </html>
