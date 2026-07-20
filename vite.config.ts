@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import Sitemap from "vite-plugin-sitemap";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,17 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    Sitemap({
+      hostname: "https://www.myunihive.com",
+      dynamicRoutes: [
+        "/",
+        "/hostels",
+        "/about",
+        "/contact",
+        "/login",
+        "/register"
+      ],
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
