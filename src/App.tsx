@@ -21,6 +21,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useEffect, type ReactNode } from 'react';
 import InstallPWA from './components/InstallPWA';
 import RoommateFinderPage from './pages/RoommateFinderPage';
+import MaintenancePage from './pages/MaintenancePage';
+
+// 🚧 Set to true for live under-development / maintenance mode
+const MAINTENANCE_MODE = true;
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -68,7 +72,23 @@ function RoleProtectedRoute({ children, allowedRoles, fallbackPath }: { children
 }
 
 function AppLayout() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+
+  // Allow secret bypass via '?bypass=true' if you ever need to preview full app
+  const searchParams = new URLSearchParams(search);
+  const bypassParam = searchParams.get('bypass');
+  if (bypassParam === 'true') {
+    localStorage.setItem('bypass_maintenance', 'true');
+  } else if (bypassParam === 'false') {
+    localStorage.removeItem('bypass_maintenance');
+  }
+
+  const isBypassed = localStorage.getItem('bypass_maintenance') === 'true';
+
+  if (MAINTENANCE_MODE && !isBypassed) {
+    return <MaintenancePage />;
+  }
+
   const hideNavbar = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
 
   return (
