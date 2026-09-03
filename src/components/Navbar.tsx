@@ -25,13 +25,20 @@ export default function Navbar() {
         <div className="flex justify-between h-16 items-center">
 
           {/* LOGO */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="bg-amber-500 p-1.5 rounded-lg">
-              <Hexagon className="w-6 h-6 text-white" />
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <img
+              src="/unihive-logo.jpg"
+              alt="UniHive Logo"
+              className="w-10 h-10 object-contain rounded-xl shadow-sm group-hover:scale-105 transition-transform"
+            />
+            <div className="flex flex-col">
+              <span className="text-xl font-black tracking-tight text-[#0F243E] leading-none">
+                Uni<span className="text-[#FF6B00]">Hive</span>
+              </span>
+              <span className="text-[9px] tracking-wider uppercase text-slate-500 font-semibold mt-0.5">
+                FIND YOUR PERFECT HOSTEL
+              </span>
             </div>
-            <span className="text-xl font-bold text-gray-900">
-              Uni<span className="text-amber-500">Hive</span>
-            </span>
           </Link>
 
           {/* DESKTOP NAV */}
