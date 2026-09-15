@@ -258,8 +258,8 @@ export default function ManagerDashboard() {
     if (activeTab === 'payouts' && !payoutStats) {
       setIsLoadingPayouts(true);
       getPayoutStats()
-        .then(data => setPayoutStats(data))
-        .catch(err => console.error('Payout stats error:', err))
+        .then((data: any) => setPayoutStats(data))
+        .catch((err: any) => console.error('Payout stats error:', err))
         .finally(() => setIsLoadingPayouts(false));
     }
   }, [activeTab]);

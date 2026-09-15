@@ -4,17 +4,61 @@ import { Search, Shield, Star, MapPin, CreditCard, MessageCircle, ChevronRight, 
 import { useApp } from '../context/AppContext';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
 
+import { getPlatformStats } from '../api/api.js';
+
 export default function HomePage() {
-  const { filteredHostels, universities, reviews, selectedUniversity, setSelectedUniversity } = useApp();
-  const [searchUni, setSearchUni] = useState(selectedUniversity);
+  const { hostels, universities, reviews, selectedUniversity, setSelectedUniversity } = useApp();
+  const [searchUni, setSearchUni] = useState(selectedUniversity || 'all');
+  const [stats, setStats] = useState({
+    students: '0',
+    hostels: hostels.length.toString(),
+    universities: universities.length.toString(),
+    bookings: '0'
+  });
   const navigate = useNavigate();
 
-  const featuredHostels = [...filteredHostels].sort((a, b) => b.rating - a.rating).slice(0, 4);
-  const stats = { students: '12,500+', hostels: filteredHostels.length.toString(), universities: universities.length.toString(), bookings: '8,200+' };
+  // Load real-time stats from database
+  useEffect(() => {
+    getPlatformStats()
+      .then((res: any) => {
+        if (res.status === 'success' && res.stats) {
+          setStats({
+            students: res.stats.students ? `${res.stats.students}` : '0',
+            hostels: `${res.stats.hostels}`,
+            universities: `${res.stats.universities}`,
+            bookings: res.stats.bookings ? `${res.stats.bookings}` : '0'
+          });
+        }
+      })
+      .catch(() => {
+        setStats({
+          students: '0',
+          hostels: hostels.length.toString(),
+          universities: universities.length.toString(),
+          bookings: '0'
+        });
+      });
+  }, [hostels.length, universities.length]);
+
+  // Keep search dropdown in sync when universities load
+  useEffect(() => {
+    if (universities.length > 0) {
+      if (!searchUni || searchUni === 'u1' || (!universities.some(u => u.id === searchUni) && searchUni !== 'all')) {
+        setSearchUni('all');
+      }
+    }
+  }, [universities, searchUni]);
+
+  const featuredHostels = [...hostels].sort((a, b) => b.rating - a.rating).slice(0, 4);
 
   const handleSearch = () => {
-    setSelectedUniversity(searchUni);
-    navigate(`/hostels?university=${searchUni}`);
+    if (searchUni === 'all') {
+      setSelectedUniversity('all');
+      navigate('/hostels?university=all');
+    } else {
+      setSelectedUniversity(searchUni);
+      navigate(`/hostels?university=${searchUni}`);
+    }
   };
 
   useEffect(() => {
@@ -92,6 +136,7 @@ export default function HomePage() {
                     onChange={e => setSearchUni(e.target.value)}
                     className="w-full pl-10 pr-4 py-3.5 bg-gray-50 rounded-xl text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer"
                   >
+                    <option value="all">All Universities ({hostels.length} hostels)</option>
                     {universities.map(u => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
@@ -159,7 +204,7 @@ export default function HomePage() {
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Featured Hostels</h2>
               <p className="text-gray-500">Top-rated verified hostels picked by our team</p>
             </div>
-            <Link to="/hostels" className="hidden md:flex items-center gap-1 text-amber-600 hover:text-amber-700 font-semibold text-sm">
+            <Link to="/hostels?university=all" className="hidden md:flex items-center gap-1 text-amber-600 hover:text-amber-700 font-semibold text-sm">
               View All <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -194,7 +239,7 @@ export default function HomePage() {
             })}
           </div>
           <div className="text-center mt-8 md:hidden">
-            <Link to="/hostels" className="inline-flex items-center gap-1 text-amber-600 font-semibold">View All Hostels <ChevronRight className="w-4 h-4" /></Link>
+            <Link to="/hostels?university=all" className="inline-flex items-center gap-1 text-amber-600 font-semibold">View All Hostels <ChevronRight className="w-4 h-4" /></Link>
           </div>
         </div>
       </section>
@@ -263,7 +308,7 @@ export default function HomePage() {
             <Link to="/register" className="bg-white text-amber-600 px-8 py-3.5 rounded-xl font-bold hover:bg-amber-50 transition-colors shadow-lg">
               Create Free Account
             </Link>
-            <Link to="/hostels" className="bg-amber-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-amber-700 transition-colors border border-amber-400">
+            <Link to="/hostels?university=all" className="bg-amber-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-amber-700 transition-colors border border-amber-400">
               Browse Hostels
             </Link>
           </div>
@@ -289,6 +334,7 @@ export default function HomePage() {
                 <li><Link to="/hostels" className="hover:text-amber-400 transition-colors">Browse Hostels</Link></li>
                 <li><Link to="/register" className="hover:text-amber-400 transition-colors">Create Account</Link></li>
                 <li><Link to="/login" className="hover:text-amber-400 transition-colors">Sign In</Link></li>
+                <li><Link to="/terms" className="hover:text-amber-400 transition-colors">Terms &amp; Privacy Policy</Link></li>
               </ul>
             </div>
             <div>

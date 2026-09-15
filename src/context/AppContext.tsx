@@ -11,6 +11,7 @@ interface AppState {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isManager: boolean;
+  isLoading: boolean;
   selectedUniversity: string;
   bookings: Booking[];
   notifications: Notification[];
@@ -46,6 +47,7 @@ interface AppState {
   deleteUniversity: (id: string) => void;
   updateRoom: (room: Room) => void;
   updateHostel: (hostel: Hostel) => void;
+  updateUniversity: (uni: University) => void;
 }
 
 const AppContext = createContext<AppState>({} as AppState);
@@ -94,7 +96,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [user, setUser] = useState<User | null>(null);
   const [selectedUniversity, setSelectedUniversity] = useState(() => {
-    return typeof window !== 'undefined' ? localStorage.getItem('selectedUniversity') || 'u1' : 'u1';
+    return typeof window !== 'undefined' ? localStorage.getItem('selectedUniversity') || 'all' : 'all';
   });
   const [bookings, setBookings] = useState<Booking[]>(sampleBookings);
   const [notifications, setNotifications] = useState<Notification[]>(sampleNotifications);
@@ -103,12 +105,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [universities, setUniversities] = useState<University[]>([]);
-  const [savedHostels, setSavedHostels] = useState<string[]>([]);
+  const [savedHostels, setSavedHostels] = useState<string[]>(() => {
+    try {
+      const stored = typeof window !== 'undefined'
+        ? (localStorage.getItem('unihive_saved_hostels') || localStorage.getItem('savedHostels'))
+        : null;
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadUniversities = async () => {
     try {
       const res: any = await getUniversities();
-      if (res.status === 'success' && res.universities) setUniversities(res.universities);
+      if (res.status === 'success' && res.universities && res.universities.length > 0) {
+        setUniversities(res.universities);
+        setSelectedUniversity(prev => {
+          if (prev === 'all' || !prev) return 'all';
+          if (prev === 'u1' || !res.universities.some((u: any) => String(u.id) === String(prev))) {
+            return 'all';
+          }
+          return prev;
+        });
+      }
     } catch (e: any) {
       console.error('Failed to load universities', e);
     }
@@ -152,9 +173,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Load static data (universities, hostels, rooms)
   useEffect(() => {
-    loadUniversities();
-    loadHostels();
-    loadRooms();
+    setIsLoading(true);
+    Promise.all([loadUniversities(), loadHostels(), loadRooms()]).finally(() => {
+      setIsLoading(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -402,11 +424,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleSaveHostel = (id: string) => {
-    setSavedHostels(prev => prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id]);
+    setSavedHostels(prev => {
+      const updated = prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id];
+      try {
+        localStorage.setItem('savedHostels', JSON.stringify(updated));
+        localStorage.setItem('unihive_saved_hostels', JSON.stringify(updated));
+      } catch { /* ignore */ }
+      return updated;
+    });
   };
 
   const addUniversity = (uni: University) => {
     setUniversities(prev => [...prev, uni]);
+  };
+
+  const updateUniversity = (uni: University) => {
+    setUniversities(prev => prev.map(u => u.id === uni.id ? uni : u));
   };
 
   const addHostel = (hostel: Hostel) => {
@@ -463,6 +496,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       reviews,
       universities,
       savedHostels,
+      isLoading,
       logout,
       setSelectedUniversity,
       isManager: user?.role === 'manager',
@@ -490,6 +524,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteUniversity,
       updateRoom,
       updateHostel,
+      updateUniversity,
     }}>
       {children}
     </AppContext.Provider>

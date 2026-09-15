@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, User, LogOut, Shield, Home, Search, MessageSquare, Heart, Hexagon, CheckCircle, Users } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut, Shield, Home, Search, MessageSquare, Heart, CheckCircle, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -47,7 +47,7 @@ export default function Navbar() {
               <Home className="w-4 h-4" /> Home
             </Link>
 
-            <Link to="/hostels" className="text-gray-600 hover:text-amber-600 flex items-center gap-1.5 text-sm font-medium transition-colors">
+            <Link to="/hostels?university=all" className="text-gray-600 hover:text-amber-600 flex items-center gap-1.5 text-sm font-medium transition-colors">
               <Search className="w-4 h-4" /> Browse Hostels
             </Link>
 
@@ -92,36 +92,55 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setProfileOpen(!profileOpen)}
-                    className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 rounded-full px-3 py-1.5 transition-colors"
+                    className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 rounded-full pl-1.5 pr-3 py-1 transition-colors border border-amber-200/60"
                   >
-                    {/* ✅ FIX: avatar fallback */}
-                    <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
-                      {user?.avatar || user?.full_name?.charAt(0)}
+                    <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold overflow-hidden shrink-0 shadow-sm">
+                      {user?.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:') || user.avatar.includes('/')) ? (
+                        <img src={user.avatar} alt={user.full_name || 'User'} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{user?.avatar && user.avatar.length <= 4 ? user.avatar : (user?.full_name?.charAt(0) || 'U')}</span>
+                      )}
                     </div>
 
-                    {/* ✅ FIX: correct name */}
-                    <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">
-                      {user?.full_name?.split(' ')[0]}
+                    <span className="text-sm font-semibold text-gray-800 max-w-[100px] truncate">
+                      {user?.full_name?.split(' ')[0] || 'Account'}
                     </span>
                   </button>
 
                   {profileOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-800">
-                          {user?.full_name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {user?.email}
-                        </p>
+                      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold overflow-hidden shrink-0 shadow-sm">
+                          {user?.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:') || user.avatar.includes('/')) ? (
+                            <img src={user.avatar} alt={user.full_name || 'User'} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{user?.avatar && user.avatar.length <= 4 ? user.avatar : (user?.full_name?.charAt(0) || 'U')}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-gray-900 truncate">
+                            {user?.full_name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {user?.email}
+                          </p>
+                        </div>
                       </div>
+
+                      <Link
+                        to="/profile"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
+                      >
+                        <User className="w-4 h-4" /> My Profile
+                      </Link>
 
                       <Link
                         to="/dashboard"
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
                       >
-                        <User className="w-4 h-4" /> My Dashboard
+                        <Heart className="w-4 h-4" /> My Dashboard
                       </Link>
 
                       <Link
@@ -192,7 +211,7 @@ export default function Navbar() {
               <Home className="w-4 h-4" /> Home
             </Link>
 
-            <Link to="/hostels" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-amber-50 text-sm font-medium">
+            <Link to="/hostels?university=all" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-amber-50 text-sm font-medium">
               <Search className="w-4 h-4" /> Browse Hostels
             </Link>
 
@@ -206,9 +225,12 @@ export default function Navbar() {
                   <MessageSquare className="w-4 h-4" /> Messages
                 </Link>
 
-                {/* ✅ FIXED */}
+                <Link to="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-amber-50 text-sm font-medium">
+                  <User className="w-4 h-4" /> My Profile
+                </Link>
+
                 <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-amber-50 text-sm font-medium">
-                  <User className="w-4 h-4" /> Dashboard
+                  <Heart className="w-4 h-4" /> Dashboard
                 </Link>
 
                 {isAdmin && (

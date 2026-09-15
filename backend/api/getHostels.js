@@ -12,9 +12,11 @@ async function getHostelsHandler(req, res) {
         const [hostels] = await pool.query(`
             SELECT 
                 h.*,
+                MAX(u.phone) as manager_phone,
                 COALESCE(AVG(r.rating), 0) as rating,
                 COUNT(r.id) as review_count
             FROM hostels h
+            LEFT JOIN users u ON h.manager_id = u.id
             LEFT JOIN reviews r ON h.id = r.hostel_id
             GROUP BY h.id
         `);
@@ -54,6 +56,7 @@ async function getHostelsHandler(req, res) {
             mainImage: h.main_image,
             gallery: galleryImages,
             managerId: h.manager_id || null,
+            managerPhone: h.manager_phone || null,
             subaccountCode: h.subaccount_code || null,
             commissionType: h.commission_type || 'split',
             platformFee: parseFloat(h.platform_fee) || 0,

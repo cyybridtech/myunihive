@@ -22,9 +22,10 @@ import { useEffect, type ReactNode } from 'react';
 import InstallPWA from './components/InstallPWA';
 import RoommateFinderPage from './pages/RoommateFinderPage';
 import MaintenancePage from './pages/MaintenancePage';
+import ProfilePage from './pages/ProfilePage';
 
 // 🚧 Set to true for live under-development / maintenance mode
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -122,6 +123,16 @@ function AppLayout() {
 
         {/* ✅ OPTIONAL: redirect old route */}
         <Route path="/studentdashboard" element={<Navigate to="/dashboard" />} />
+
+        {/* ✅ USER PROFILE ROUTE */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/admin"

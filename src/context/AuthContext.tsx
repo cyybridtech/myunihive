@@ -6,8 +6,13 @@ interface User {
   full_name: string;
   email: string;
   role: string;
+  phone?: string;
+  university_id?: string;
   gender?: 'male' | 'female';
   avatar?: string;
+  ghana_card_number?: string;
+  created_at?: string;
+  verified?: boolean | number;
   token?: string;
 }
 
@@ -16,10 +21,11 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isManager: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password?: string, otp?: string) => Promise<User>;
 
-  register: (firstName: string, lastName: string, fullName: string, email: string, phone: string, universityId: string, password: string, gender: string, otp: string) => Promise<void>;
+  register: (firstName: string, lastName: string, fullName: string, email: string, phone: string, universityId: string, password: string, gender: string, otp?: string) => Promise<void>;
 
+  updateUser: (updatedFields: Partial<User>) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -53,10 +59,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password?: string, otp?: string) => {
     setLoading(true);
     try {
-      const data = await loginUser(email, password);
+      const data = await loginUser(email, password, otp);
       console.log('AuthContext login response', data);
 
       if (data.status === "success" && data.token) {
@@ -82,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     universityId: string,
     password: string,
     gender: string,
-    otp: string
+    otp: string = ''
   ) => {
     setLoading(true);
     try {
@@ -108,6 +114,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = (updatedFields: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const next = { ...prev, ...updatedFields };
+      try {
+        localStorage.setItem("user", JSON.stringify(next));
+      } catch (e) {
+        console.error("Failed to save updated user in storage", e);
+      }
+      return next;
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
@@ -122,6 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isManager: user?.role === "manager" || user?.role === "hostel_manager",
         login,
         register,
+        updateUser,
         logout,
         loading,
       }}

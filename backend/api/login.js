@@ -6,15 +6,13 @@
 const { getPool } = require('./config');
 
 async function loginHandler(req, res) {
-    let { email, password } = req.body || {};
+    let { email, password, otp } = req.body || {};
 
-    if (!email || !password) {
-        return res.status(400).json({ status: 'error', message: 'Invalid credentials' });
+    if (!email || (!password && !otp)) {
+        return res.status(400).json({ status: 'error', message: 'Email and either password or verification code are required' });
     }
 
     email = String(email).trim().toLowerCase();
-    password = String(password);
-
     const pool = getPool();
 
     try {
@@ -29,16 +27,32 @@ async function loginHandler(req, res) {
 
         const user = users[0];
 
-        // Verify password
-        const bcrypt = require('bcryptjs');
-        let storedPassword = String(user.password || '');
-        if (storedPassword.startsWith('$2y$')) {
-            storedPassword = `$2a$${storedPassword.slice(4)}`;
-        }
-        const validPassword = bcrypt.compareSync(password, storedPassword);
+        // 1. Verify via OTP if provided
+        if (otp) {
+            const cleanOtp = String(otp).trim();
+            const [otpRows] = await pool.execute(
+                'SELECT * FROM otps WHERE LOWER(email) = ? AND otp_code = ? AND expires_at > NOW()',
+                [email, cleanOtp]
+            );
 
-        if (!validPassword) {
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            if (otpRows.length === 0) {
+                return res.status(401).json({ status: 'error', message: 'Invalid or expired verification code' });
+            }
+
+            // Consume the OTP
+            await pool.execute('DELETE FROM otps WHERE LOWER(email) = ?', [email]);
+        } else {
+            // 2. Verify via Password
+            const bcrypt = require('bcryptjs');
+            let storedPassword = String(user.password || '');
+            if (storedPassword.startsWith('$2y$')) {
+                storedPassword = `$2a$${storedPassword.slice(4)}`;
+            }
+            const validPassword = bcrypt.compareSync(String(password), storedPassword);
+
+            if (!validPassword) {
+                return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            }
         }
 
         let role = user.role || '';

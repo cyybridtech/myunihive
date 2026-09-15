@@ -65,6 +65,13 @@ async function initSchema() {
             await p.execute("ALTER TABLE users MODIFY COLUMN role ENUM('student', 'admin', 'manager', 'hostel_manager') DEFAULT 'student'");
         } catch(e) { console.warn('Could not modify users role enum:', e.message); }
 
+        // Ensure user avatar and id_photo can store full Cloudinary URLs
+        try {
+            await p.execute("ALTER TABLE users MODIFY COLUMN avatar TEXT DEFAULT NULL");
+            await p.execute("ALTER TABLE users MODIFY COLUMN id_photo TEXT DEFAULT NULL");
+            await p.execute("ALTER TABLE users MODIFY COLUMN gender VARCHAR(20) DEFAULT 'male'");
+        } catch(e) { console.warn('Could not modify users columns:', e.message); }
+
         // Drop credits column from users table
         try {
             await p.execute("ALTER TABLE users DROP COLUMN credits");

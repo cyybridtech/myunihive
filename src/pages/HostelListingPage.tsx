@@ -5,61 +5,77 @@ import { useApp } from '../context/AppContext';
 import Map, { Marker, Popup, Layer } from 'react-map-gl/mapbox';
 import { updateMetaTags } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA3a2Z4NTcwdHY1MnBzOTd4MmIxem04In0.Fy1GZDtHXGf2INyt0_f8Kw';
-
+import { MAPBOX_TOKEN, MAPBOX_SATELLITE_STYLE, OSM_FALLBACK_STYLE } from '../utils/mapConfig';
 export default function HostelListingPage() {
-  const { filteredHostels, universities, filteredRooms, selectedUniversity, setSelectedUniversity, savedHostels, toggleSaveHostel, isAuthenticated, user } = useApp();
+  const { hostels, universities, filteredRooms, selectedUniversity, setSelectedUniversity, savedHostels, toggleSaveHostel, isAuthenticated, user } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const universityParam = searchParams.get('university');
+  const activeUniversity = (universityParam && universityParam.trim()) ? universityParam.trim() : (selectedUniversity || 'all');
 
   useEffect(() => {
     if (universityParam && universityParam !== selectedUniversity) {
       setSelectedUniversity(universityParam);
-    } else if (!universityParam && selectedUniversity) {
-      setSearchParams({ university: selectedUniversity }, { replace: true });
     }
-  }, [universityParam, selectedUniversity, setSearchParams, setSelectedUniversity]);
+  }, [universityParam, selectedUniversity, setSelectedUniversity]);
   const [search, setSearch] = useState('');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 20000]);
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
   const [minRating, setMinRating] = useState(0);
-  const [roomGenderFilter, setRoomGenderFilter] = useState<'any' | 'male' | 'female'>(user?.gender ?? 'any');
+  const [roomGenderFilter, setRoomGenderFilter] = useState<'any' | 'male' | 'female'>('any');
   const [sortBy, setSortBy] = useState<'rating' | 'price-low' | 'price-high' | 'distance'>('rating');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [popupInfo, setPopupInfo] = useState<any>(null);
+  const [mapStyle, setMapStyle] = useState<string | object>(MAPBOX_SATELLITE_STYLE);
   const mapRef = useRef<any>(null);
 
   const allFacilities = ['WiFi', 'Security', 'Water Tank', 'Study Room', 'Kitchen', 'Laundry', 'Parking', 'Generator', 'AC', 'CCTV', 'Gym', 'Swimming Pool'];
 
   const filtered = useMemo(() => {
-    let result = filteredHostels.filter(h => String(h.universityId) === String(selectedUniversity));
+    let result = (activeUniversity === 'all' || !activeUniversity)
+      ? hostels
+      : hostels.filter(h => String(h.universityId) === String(activeUniversity) || (h.university && String(h.university.id) === String(activeUniversity)));
+
+    // Fallback: if user selected a university param that has no direct matches, but activeUniversity was legacy 'u1'
+    if (result.length === 0 && hostels.length > 0 && activeUniversity === 'u1') {
+      result = hostels;
+    }
 
     if (search) {
       const s = search.toLowerCase();
-      result = result.filter(h => h.name.toLowerCase().includes(s) || h.address.toLowerCase().includes(s));
+      result = result.filter(h => h.name.toLowerCase().includes(s) || (h.address && h.address.toLowerCase().includes(s)));
     }
 
-    const hostelPrices = (hostelId: string) => {
-      const hostelRooms = filteredRooms.filter(r => r.hostelId === hostelId && r.available);
-      return hostelRooms.length > 0 ? Math.min(...hostelRooms.map(r => r.price)) : 0;
+    const hostelPrices = (h: any) => {
+      const hostelRooms = filteredRooms.filter(r => r.hostelId === h.id && r.available);
+      if (hostelRooms.length > 0) {
+        return Math.min(...hostelRooms.map(r => r.price));
+      }
+      if (h.priceRange) {
+        const digits = String(h.priceRange).replace(/[^\d]/g, ' ');
+        const numbers = digits.trim().split(/\s+/).map(Number).filter(n => !isNaN(n) && n > 0);
+        if (numbers.length > 0) return Math.min(...numbers);
+      }
+      return 0;
     };
 
     if (roomGenderFilter !== 'any') {
       result = result.filter(h => {
-        const hostelRooms = filteredRooms.filter(r => r.hostelId === h.id && r.available);
-        return hostelRooms.some(r => r.gender === roomGenderFilter);
+        const hostelRooms = filteredRooms.filter(r => r.hostelId === h.id);
+        // If rooms haven't been individually configured yet, keep the hostel visible
+        if (hostelRooms.length === 0) return true;
+        return hostelRooms.some(r => r.gender === roomGenderFilter || r.gender === 'unisex');
       });
     }
 
     result = result.filter(h => {
-      const minPrice = hostelPrices(h.id);
-      return minPrice >= priceRange[0] && (minPrice <= priceRange[1] || minPrice === 0);
+      const minPrice = hostelPrices(h);
+      if (minPrice === 0) return true;
+      return minPrice >= priceRange[0] && (minPrice <= priceRange[1] || priceRange[1] >= 20000);
     });
 
     if (selectedFacilities.length > 0) {
-      result = result.filter(h => selectedFacilities.every(f => h.facilities.includes(f)));
+      result = result.filter(h => selectedFacilities.every(f => (h.facilities || []).includes(f)));
     }
 
     if (minRating > 0) {
@@ -69,17 +85,17 @@ export default function HostelListingPage() {
     result.sort((a, b) => {
       switch (sortBy) {
         case 'rating': return b.rating - a.rating;
-        case 'price-low': return hostelPrices(a.id) - hostelPrices(b.id);
-        case 'price-high': return hostelPrices(b.id) - hostelPrices(a.id);
-        case 'distance': return parseFloat(a.distanceFromCampus) - parseFloat(b.distanceFromCampus);
+        case 'price-low': return hostelPrices(a) - hostelPrices(b);
+        case 'price-high': return hostelPrices(b) - hostelPrices(a);
+        case 'distance': return parseFloat(a.distanceFromCampus || '0') - parseFloat(b.distanceFromCampus || '0');
         default: return 0;
       }
     });
 
     return result;
-  }, [filteredHostels, filteredRooms, selectedUniversity, search, priceRange, selectedFacilities, minRating, sortBy]);
+  }, [hostels, filteredRooms, activeUniversity, search, priceRange, selectedFacilities, minRating, roomGenderFilter, sortBy]);
 
-  const currentUni = universities.find(u => u.id === selectedUniversity);
+  const currentUni = activeUniversity === 'all' ? null : universities.find(u => u.id === activeUniversity);
 
   // Re-center map when changing universities
   useEffect(() => {
@@ -93,11 +109,11 @@ export default function HostelListingPage() {
         });
       }
     }
-  }, [selectedUniversity, viewMode, filtered]);
+  }, [activeUniversity, viewMode, filtered]);
 
   // Dynamic SEO metadata updates
   useEffect(() => {
-    const uniName = currentUni ? currentUni.name : "Universities";
+    const uniName = currentUni ? currentUni.name : "Universities in Ghana";
     const title = `Student Hostels & Accommodation near ${uniName} | UNIHIVE`;
     const description = `Find verified student hostels and private rooms near ${uniName}. Search and filter by price range, distance from campus, security, WiFi, and more.`;
     const keywords = `student hostels near ${uniName}, unihive student housing, hostels in ghana, ug hostels, knust hostels, ucc hostels, student accommodation`;
@@ -107,15 +123,17 @@ export default function HostelListingPage() {
       description,
       keywords,
     });
-  }, [currentUni, selectedUniversity]);
+  }, [currentUni, activeUniversity]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Hostels near {currentUni?.name}</h1>
-          <p className="text-gray-500 text-sm mb-5">{filtered.length} verified hostels available</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            {currentUni ? `Hostels near ${currentUni.name}` : 'All Verified Student Hostels in Ghana'}
+          </h1>
+          <p className="text-gray-500 text-sm mb-5">{filtered.length} verified hostel{filtered.length === 1 ? '' : 's'} available</p>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
@@ -130,14 +148,15 @@ export default function HostelListingPage() {
             </div>
             <select
               aria-label="Select university"
-              value={selectedUniversity}
+              value={activeUniversity}
               onChange={e => {
                 const val = e.target.value;
                 setSelectedUniversity(val);
-                setSearchParams({ university: val });
+                setSearchParams(val === 'all' ? {} : { university: val });
               }}
               className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm font-medium appearance-none cursor-pointer min-w-[200px]"
             >
+              <option value="all">All Universities ({hostels.length})</option>
               {universities.map(u => (
                 <option key={u.id} value={u.id}>{u.name.split(' ').slice(0, 4).join(' ')}</option>
               ))}
@@ -207,16 +226,21 @@ export default function HostelListingPage() {
                 </div>
               </div>
             </div>
-            {(selectedFacilities.length > 0 || minRating > 0 || priceRange[0] > 0 || priceRange[1] < 5000) && (
+            {(selectedFacilities.length > 0 || minRating > 0 || roomGenderFilter !== 'any' || priceRange[0] > 0 || priceRange[1] < 20000) && (
               <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-gray-500">Active filters:</span>
+                  {roomGenderFilter !== 'any' && (
+                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-medium">
+                      Gender: {roomGenderFilter} <X className="w-3 h-3 cursor-pointer" onClick={() => setRoomGenderFilter('any')} />
+                    </span>
+                  )}
                   {selectedFacilities.map(f => (
                     <span key={f} className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-full">
                       {f} <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedFacilities(prev => prev.filter(x => x !== f))} />
                     </span>
                   ))}
-                  <button onClick={() => { setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); setRoomGenderFilter('any'); }} className="text-xs text-red-500 hover:text-red-600 ml-2 font-medium">Clear all</button>
+                  <button onClick={() => { setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 20000]); setRoomGenderFilter('any'); }} className="text-xs text-red-500 hover:text-red-600 ml-2 font-medium">Clear all</button>
                 </div>
               </div>
             )}
@@ -242,8 +266,15 @@ export default function HostelListingPage() {
               <Search className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">No hostels found</h3>
-            <p className="text-gray-500 mb-6">Try adjusting your filters or searching for a different university.</p>
-            <button onClick={() => { setSearch(''); setSelectedFacilities([]); setMinRating(0); setPriceRange([0, 5000]); }} className="text-amber-600 font-semibold hover:text-amber-700">Clear all filters</button>
+            <p className="text-gray-500 mb-6">Try adjusting your filters or search across all universities.</p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button onClick={() => { setSearch(''); setSelectedFacilities([]); setMinRating(0); setRoomGenderFilter('any'); setPriceRange([0, 20000]); }} className="px-4 py-2 text-amber-600 font-semibold hover:bg-amber-50 rounded-xl transition-colors text-sm">
+                Clear filters
+              </button>
+              <button onClick={() => { setSelectedUniversity('all'); setSearchParams({ university: 'all' }); setSearch(''); setRoomGenderFilter('any'); setPriceRange([0, 20000]); setSelectedFacilities([]); setMinRating(0); }} className="bg-amber-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-amber-600 shadow-md transition-colors">
+                View all hostels ({hostels.length})
+              </button>
+            </div>
           </div>
         ) : viewMode === 'map' ? (
           <div className="h-[calc(100vh-250px)] min-h-[500px] w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative">
@@ -256,8 +287,12 @@ export default function HostelListingPage() {
                 pitch: 60,
                 bearing: -17.6
               }}
-              mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+              mapStyle={mapStyle}
               mapboxAccessToken={MAPBOX_TOKEN}
+              onError={(e) => {
+                console.warn('Mapbox satellite tiles unavailable, switching to OpenStreetMap fallback:', e);
+                setMapStyle(OSM_FALLBACK_STYLE);
+              }}
               antialias={true}
             >
               <Layer

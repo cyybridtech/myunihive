@@ -34,8 +34,8 @@ const parseJsonResponse = async (res) => {
         } catch {
             data = text;
         }
-        const message = data?.message || data?.error || res.statusText || 'Unknown API error';
-        throw new Error(`API error ${res.status}: ${message}`);
+        const message = data?.message || data?.error || res.statusText || 'Unknown error';
+        throw new Error(message);
     }
 
     if (contentType.includes('application/json')) {

@@ -46,6 +46,18 @@ async function updateHostelHandler(req, res) {
         if (req.body.bank_name !== undefined) { updates.push('bank_name = ?'); values.push(req.body.bank_name); }
         if (req.body.account_number !== undefined) { updates.push('account_number = ?'); values.push(req.body.account_number); }
         if (req.body.subaccount_code !== undefined) { updates.push('subaccount_code = ?'); values.push(req.body.subaccount_code); }
+        if (req.body.payment_period !== undefined) { updates.push('payment_period = ?'); values.push(req.body.payment_period); }
+        if (req.body.manager_id !== undefined) { updates.push('manager_id = ?'); values.push(req.body.manager_id || null); }
+        if (req.body.lat !== undefined) { updates.push('lat = ?'); values.push(req.body.lat !== null && req.body.lat !== '' ? Number(req.body.lat) : null); }
+        if (req.body.lng !== undefined) { updates.push('lng = ?'); values.push(req.body.lng !== null && req.body.lng !== '' ? Number(req.body.lng) : null); }
+        if (req.body.facilities !== undefined) {
+            updates.push('facilities = ?');
+            values.push(typeof req.body.facilities === 'string' ? req.body.facilities : JSON.stringify(req.body.facilities));
+        }
+        if (req.body.gallery !== undefined) {
+            updates.push('gallery = ?');
+            values.push(typeof req.body.gallery === 'string' ? req.body.gallery : JSON.stringify(req.body.gallery));
+        }
 
         if (updates.length === 0) {
             return res.status(400).json({ status: 'error', message: 'No fields to update' });

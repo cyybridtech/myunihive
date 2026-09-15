@@ -28,6 +28,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
@@ -100,6 +101,15 @@ export default defineConfig({
   build: {
     minify: 'esbuild',
     chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'mapbox-vendor': ['mapbox-gl'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'icons': ['lucide-react']
+        }
+      }
+    }
   },
   server: {
     port: 5173,

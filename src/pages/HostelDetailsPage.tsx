@@ -1,13 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell } from 'lucide-react';
+import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell, Car, Footprints, Navigation, Clock } from 'lucide-react';
 import Map, { Marker, Source, Layer } from 'react-map-gl/mapbox';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA3a2Z4NTcwdHY1MnBzOTd4MmIxem04In0.Fy1GZDtHXGf2INyt0_f8Kw';
-
-
+import { MAPBOX_TOKEN, MAPBOX_SATELLITE_STYLE, OSM_FALLBACK_STYLE, fetchWalkingRoute } from '../utils/mapConfig';
 import { useApp } from '../context/AppContext';
 import { createBooking, verifyPayment, submitReview, deleteBooking, resetHostelRooms } from '../api/api.js';
 
@@ -16,9 +13,9 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live
 export default function HostelDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { filteredHostels, filteredRooms, reviews, universities, isAuthenticated, savedHostels, toggleSaveHostel, addBooking, removeBooking, user, addReview, refreshBookings, refreshData, refreshNotifications } = useApp();
+  const { hostels, filteredRooms, reviews, universities, isAuthenticated, savedHostels, toggleSaveHostel, addBooking, removeBooking, user, addReview, refreshBookings, refreshData, refreshNotifications } = useApp();
 
-  const hostel = filteredHostels.find(h => h.id === id);
+  const hostel = hostels.find(h => h.id === id);
   const hostelRooms = filteredRooms.filter(r => r.hostelId === id);
   const hostelReviews = reviews.filter(r => r.hostelId === id);
   const uni = universities.find(u => u.id === hostel?.universityId);
@@ -39,7 +36,9 @@ export default function HostelDetailsPage() {
   const [loadingReview, setLoadingReview] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [walkingDistance, setWalkingDistance] = useState<string | null>(null);
+  const [commuteInfo, setCommuteInfo] = useState<{ distanceKm: string; walkMin: number; driveMin: number } | null>(null);
   const [routeGeometry, setRouteGeometry] = useState<any>(null);
+  const [mapStyle, setMapStyle] = useState<string | object>(MAPBOX_SATELLITE_STYLE);
   const mapRef = useRef<any>(null);
   
   const isManagerOrAdmin = user?.role === 'admin' || user?.id === hostel?.managerId;
@@ -138,20 +137,55 @@ export default function HostelDetailsPage() {
   }, [hostel, uni, hostelRooms, hostelReviews]);
 
   useEffect(() => {
-    if (hostel?.lat && hostel?.lng && uni && (uni as any).lat && (uni as any).lng && MAPBOX_TOKEN) {
-      fetch(`https://api.mapbox.com/directions/v5/mapbox/walking/${hostel.lng},${hostel.lat};${(uni as any).lng},${(uni as any).lat}?geometries=geojson&access_token=${MAPBOX_TOKEN}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.routes && data.routes[0]) {
-            const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
-            const durationMin = Math.round(data.routes[0].duration / 60);
-            setWalkingDistance(`${distanceKm}km (${durationMin} min walk)`);
-            setRouteGeometry(data.routes[0].geometry);
-          }
-        })
-        .catch(console.error);
+    if (hostel?.lat && hostel?.lng && uni && (uni as any).lat && (uni as any).lng) {
+      fetchWalkingRoute(
+        hostel.lng as number,
+        hostel.lat as number,
+        (uni as any).lng,
+        (uni as any).lat
+      ).then(route => {
+        if (route) {
+          const walkMin = route.durationMin;
+          const numKm = parseFloat(route.distanceKm) || 1;
+          const driveMin = Math.max(2, Math.round(numKm * 3));
+          setCommuteInfo({
+            distanceKm: route.distanceKm,
+            walkMin,
+            driveMin,
+          });
+          setWalkingDistance(`${route.distanceKm}km (${walkMin} min walk)`);
+          setRouteGeometry(route.geometry);
+        }
+      });
+    } else if (hostel?.distanceFromCampus) {
+      const text = hostel.distanceFromCampus.toLowerCase();
+      let walkMin = 10;
+      let driveMin = 3;
+      let distKm = '1.0';
+
+      if (text.includes('min')) {
+        walkMin = parseInt(text.replace(/\D/g, '')) || 10;
+        driveMin = Math.max(2, Math.round(walkMin / 3));
+        distKm = ((walkMin * 80) / 1000).toFixed(1);
+      } else if (text.includes('km')) {
+        const km = parseFloat(text) || 1;
+        distKm = km.toFixed(1);
+        walkMin = Math.round(km * 12);
+        driveMin = Math.max(2, Math.round(km * 3));
+      } else if (text.includes('m')) {
+        const meters = parseInt(text) || 500;
+        distKm = (meters / 1000).toFixed(1);
+        walkMin = Math.max(2, Math.round(meters / 80));
+        driveMin = 2;
+      }
+
+      setCommuteInfo({
+        distanceKm: distKm,
+        walkMin,
+        driveMin,
+      });
     }
-  }, [hostel?.lat, hostel?.lng, uni]);
+  }, [hostel?.lat, hostel?.lng, hostel?.distanceFromCampus, uni]);
 
   if (!hostel) {
     return (
@@ -371,6 +405,18 @@ export default function HostelDetailsPage() {
     }
   };
 
+  const managerPhoneNumber = (hostel as any).managerPhone
+    ? (hostel as any).managerPhone.replace(/\D/g, '').replace(/^0/, '233')
+    : '233533143634';
+
+  const whatsappInquiryMessage = encodeURIComponent(
+    `Hello! I'm inquiring about ${hostel.name} near ${uni?.name || 'campus'} on UniHive.${
+      selectedRoomData ? ` I'm interested in the ${selectedRoomData.type} (Room ${selectedRoomData.roomNumber}) priced at GH₵${selectedRoomData.price.toLocaleString()}.` : ''
+    } Is it available for an in-person or virtual viewing?`
+  );
+
+  const whatsappUrl = `https://wa.me/${managerPhoneNumber}?text=${whatsappInquiryMessage}`;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Image Gallery */}
@@ -459,7 +505,7 @@ export default function HostelDetailsPage() {
             <div className="bg-white rounded-2xl p-6 border border-gray-100">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Location</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Location & Commute</h2>
                   <p className="text-sm text-gray-500">{hostel.address}</p>
                 </div>
                 {hostel.lat != null && hostel.lng != null && (
@@ -469,12 +515,50 @@ export default function HostelDetailsPage() {
                       const url = `https://www.google.com/maps/dir/?api=1&destination=${hostel.lat},${hostel.lng}`;
                       window.open(url, '_blank');
                     }}
-                    className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600"
+                    className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
                   >
                     Get Directions
                   </button>
                 )}
+              </div>
 
+              {/* Commute Estimates Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                <div className="bg-amber-50/70 border border-amber-100 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                    <Footprints className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Walking Time</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {commuteInfo ? `${commuteInfo.walkMin} min walk` : hostel.distanceFromCampus || '8 min walk'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0">
+                    <Car className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Drive / Trotro</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {commuteInfo ? `${commuteInfo.driveMin} min ride` : '3 min ride'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 flex items-center gap-3 col-span-2 sm:col-span-1">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                    <Navigation className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">To Campus</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">
+                      {commuteInfo ? `${commuteInfo.distanceKm} km` : hostel.distanceFromCampus || 'Nearby'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {hostel.lat != null && hostel.lng != null ? (
@@ -502,8 +586,12 @@ export default function HostelDetailsPage() {
                         }, 500);
                       }}
                       style={{ width: '100%', height: '100%' }}
-                      mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+                      mapStyle={mapStyle}
                       mapboxAccessToken={MAPBOX_TOKEN}
+                      onError={(e) => {
+                        console.warn('Mapbox satellite tiles unavailable, switching to OpenStreetMap fallback:', e);
+                        setMapStyle(OSM_FALLBACK_STYLE);
+                      }}
                       antialias={true}
                     >
                       <Layer
@@ -666,7 +754,13 @@ export default function HostelDetailsPage() {
                   {hostelReviews.map(review => (
                     <div key={review.id} className="border-b border-gray-100 pb-5 last:border-0 last:pb-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">{review.userAvatar}</div>
+                        <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm overflow-hidden shrink-0 shadow-sm">
+                          {review.userAvatar && (review.userAvatar.startsWith('http') || review.userAvatar.startsWith('data:') || review.userAvatar.includes('/')) ? (
+                            <img src={review.userAvatar} alt={review.userName} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{review.userAvatar && review.userAvatar.length <= 4 ? review.userAvatar : (review.userName?.charAt(0) || 'U')}</span>
+                          )}
+                        </div>
                         <div>
                           <p className="font-semibold text-gray-800 text-sm">{review.userName}</p>
                           <p className="text-xs text-gray-400">{review.date}</p>
@@ -752,18 +846,38 @@ export default function HostelDetailsPage() {
               </div>
 
               <div className="bg-white rounded-2xl p-6 border border-gray-100 mt-4">
-                <h3 className="font-bold text-gray-900 mb-3">Hostel Manager</h3>
-                <p className="text-sm text-gray-600 mb-4">Have questions about the rooms, facilities, or policies?</p>
-                <button
-                  onClick={() => {
-                    if (!isAuthenticated) { navigate('/login'); return; }
-                    if (!hostel.managerId) { alert('This hostel has not been claimed by a manager yet.'); return; }
-                    navigate('/messages', { state: { startChatWith: hostel.managerId } });
-                  }}
-                  className="w-full py-3 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
-                >
-                  <MessageSquare className="w-4 h-4" /> Message Manager
-                </button>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-gray-900">Hostel Manager</h3>
+                  <span className="text-[11px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Available
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">Have questions about rooms, water/light supply, or viewing times?</p>
+                
+                <div className="space-y-2.5">
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold transition-all shadow-md shadow-[#25D366]/20 text-sm flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                    </svg>
+                    Chat on WhatsApp
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      if (!isAuthenticated) { navigate('/login'); return; }
+                      if (!hostel.managerId) { alert('This hostel has not been claimed by a manager yet.'); return; }
+                      navigate('/messages', { state: { startChatWith: hostel.managerId } });
+                    }}
+                    className="w-full py-3 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare className="w-4 h-4" /> UniHive Message
+                  </button>
+                </div>
               </div>
             </div>
           </div>

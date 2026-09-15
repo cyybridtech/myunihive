@@ -3,13 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createHostel, uploadImage } from '../api/api.js';
-import { Building2, Plus, X, UploadCloud, MapPin, DollarSign, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { Building2, X, UploadCloud, MapPin, DollarSign, Image as ImageIcon, ArrowLeft, CheckCircle } from 'lucide-react';
 import Map, { Marker, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiY3l5YnJpZCIsImEiOiJjbXA3a2Z4NTcwdHY1MnBzOTd4MmIxem04In0.Fy1GZDtHXGf2INyt0_f8Kw';
-
-
+import { MAPBOX_TOKEN, MAPBOX_SATELLITE_STYLE, OSM_FALLBACK_STYLE } from '../utils/mapConfig';
 export default function AddHostelPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -23,6 +20,7 @@ export default function AddHostelPage() {
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const [mapStyle, setMapStyle] = useState<string | object>(MAPBOX_SATELLITE_STYLE);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -48,10 +46,33 @@ export default function AddHostelPage() {
 
   const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c * 10) / 10;
+  }
+
   const handlePickLocation = useCallback((lat: number, lng: number) => {
     setMapLocation({ lat, lng });
     setFormData(prev => ({ ...prev, lat, lng }));
   }, []);
+
+  // Auto-calculate distance when university or location pin changes
+  useEffect(() => {
+    if (mapLocation && formData.universityId) {
+      const uni = universities.find(u => u.id === formData.universityId);
+      if (uni && typeof uni.lat === 'number' && typeof uni.lng === 'number') {
+        const d = calculateDistanceKm(uni.lat, uni.lng, mapLocation.lat, mapLocation.lng);
+        setFormData(prev => ({ ...prev, distance: `${d} km` }));
+      }
+    }
+  }, [mapLocation, formData.universityId, universities]);
 
   const handleMapClick = useCallback((e: any) => {
     if (e.lngLat) {
@@ -364,8 +385,12 @@ export default function AddHostelPage() {
                         bearing: -17.6
                       }}
                       style={mapContainerStyle}
-                      mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+                      mapStyle={mapStyle}
                       mapboxAccessToken={MAPBOX_TOKEN}
+                      onError={(e) => {
+                        console.warn('Mapbox satellite tiles unavailable, switching to OpenStreetMap fallback:', e);
+                        setMapStyle(OSM_FALLBACK_STYLE);
+                      }}
                       onClick={handleMapClick}
                       cursor="pointer"
                       antialias={true}
@@ -398,35 +423,19 @@ export default function AddHostelPage() {
                 </div>
 
 
-                <div className="grid sm:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude</label>
-                    <input
-                      type="text"
-                      value={formData.lat}
-                      onChange={e => handleLatChange(e.target.value)}
-                      placeholder="Latitude (e.g. 5.6037)"
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude</label>
-                    <input
-                      type="text"
-                      value={formData.lng}
-                      onChange={e => handleLngChange(e.target.value)}
-                      placeholder="Longitude (e.g. -0.1870)"
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                    />
-                  </div>
+                <div className="mt-3">
+                  {!coordinatesMissing ? (
+                    <div className="flex items-center gap-2 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-xl">
+                      <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+                      <span>Location successfully pinned on map</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl">
+                      <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>Search above or click on the map to pin the hostel location.</span>
+                    </div>
+                  )}
                 </div>
-
-                {!coordinatesMissing && (
-                  <p className="text-xs text-green-700 mt-2">Coordinates selected successfully.</p>
-                )}
-                {coordinatesMissing && (
-                  <p className="text-xs text-gray-500 mt-2">Click on the map to set Hostel coordinates.</p>
-                )}
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5">
@@ -458,8 +467,17 @@ export default function AddHostelPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">Distance from Campus</label>
-                  <input value={formData.distance} onChange={e => setFormData({ ...formData, distance: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. 1.5km" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center justify-between">
+                    <span>Distance from Campus</span>
+                    {(() => {
+                      const uni = universities.find(u => u.id === formData.universityId);
+                      if (uni?.lat && uni?.lng && mapLocation?.lat) {
+                        return <span className="text-xs text-green-600 font-semibold">⚡ Auto-calculated</span>;
+                      }
+                      return <span className="text-xs text-gray-400 font-normal">Auto-calc when pinned</span>;
+                    })()}
+                  </label>
+                  <input value={formData.distance} onChange={e => setFormData({ ...formData, distance: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="e.g. 1.5 km" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Facilities (comma-separated)</label>
@@ -488,16 +506,9 @@ export default function AddHostelPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Manager Phone</label>
                   <input type="tel" value={formData.managerPhone} onChange={e => setFormData({ ...formData, managerPhone: e.target.value })} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="+233 24 123 4567" />
                 </div>
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Manager Password</label>
                   <input type="password" value={formData.managerPassword} onChange={e => setFormData({ ...formData, managerPassword: e.target.value })} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none" placeholder="Create a password" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Manager Gender</label>
-                  <select value={formData.managerGender} onChange={e => setFormData({ ...formData, managerGender: e.target.value })} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:outline-none">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
                 </div>
               </div>
             </div>

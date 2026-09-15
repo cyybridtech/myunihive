@@ -23,7 +23,7 @@ type Tab = 'overview' | 'bookings' | 'payments' | 'notifications' | 'saved';
 
 export default function StudentDashboard() {
   // 1. ALL HOOKS AT THE TOP
-  const { user, bookings, notifications, hostels, rooms, universities, savedHostels, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshNotifications, cancelBooking, deleteNotification } = useApp();
+  const { user, bookings, notifications, hostels, rooms, universities, savedHostels, toggleSaveHostel, markNotificationRead, markAllNotificationsRead, refreshBookings, refreshNotifications, cancelBooking, deleteNotification } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [pushEnabled, setPushEnabled] = useState(Notification.permission === 'granted');
   const [savedCard, setSavedCard] = useState<{ card_type: string; last4: string; exp_month: string; exp_year: string } | null | undefined>(undefined);
@@ -34,7 +34,7 @@ export default function StudentDashboard() {
     refreshNotifications();
     // Fetch saved card silently
     getSavedCard()
-      .then(res => setSavedCard(res.card || null))
+      .then((res: any) => setSavedCard(res.card || null))
       .catch(() => setSavedCard(null));
   }, []);
 
@@ -122,7 +122,7 @@ export default function StudentDashboard() {
               refreshBookings();
               refreshNotifications();
               // Refresh saved card — a new card may have been used
-              getSavedCard().then(res => setSavedCard(res.card || null)).catch(() => {});
+              getSavedCard().then((res: any) => setSavedCard(res.card || null)).catch(() => {});
               alert('Payment successful!');
             } else {
               alert('Payment completed but could not be verified: ' + (verification.message || 'Please refresh and check your bookings.'));
@@ -237,7 +237,13 @@ export default function StudentDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-bold">{user.avatar}</div>
+              <div className="w-16 h-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-bold overflow-hidden shadow-md shrink-0">
+                {user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:') || user.avatar.includes('/')) ? (
+                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{user.avatar && user.avatar.length <= 4 ? user.avatar : (user.name?.charAt(0) || 'U')}</span>
+                )}
+              </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
                 <p className="text-gray-500 text-sm">{uni?.name} • Member since {user.joinDate}</p>

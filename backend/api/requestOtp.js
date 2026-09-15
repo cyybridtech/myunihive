@@ -7,25 +7,31 @@ const { getPool } = require('./config');
 const { sendOtpEmail } = require('./sendEmail');
 
 async function requestOtpHandler(req, res) {
-    const { email, full_name } = req.body || {};
+    const { email, full_name, type } = req.body || {};
 
-    if (!email || !full_name) {
-        return res.status(400).json({ status: 'warn', message: 'Email and full name are required' });
+    if (!email) {
+        return res.status(400).json({ status: 'warn', message: 'Email is required' });
     }
 
     const pool = getPool();
 
     try {
-        // First check if user already exists
         const normalizedEmail = String(email).trim().toLowerCase();
 
         const [existing] = await pool.execute(
-            'SELECT id FROM users WHERE email = ?',
+            'SELECT id, full_name FROM users WHERE email = ?',
             [normalizedEmail]
         );
 
-        if (existing.length > 0) {
-            return res.status(400).json({ status: 'error', message: 'Email already registered. Please sign in.' });
+        if (type === 'login') {
+            if (existing.length === 0) {
+                return res.status(404).json({ status: 'error', message: 'No account found with this email. Please register first.' });
+            }
+        } else {
+            // Default is register
+            if (existing.length > 0) {
+                return res.status(400).json({ status: 'error', message: 'Email already registered. Please sign in.' });
+            }
         }
 
         // Generate a 6-digit OTP
@@ -40,28 +46,26 @@ async function requestOtpHandler(req, res) {
             `INSERT INTO otps (email, otp_code, expires_at) 
              VALUES (?, ?, ?) 
              ON DUPLICATE KEY UPDATE otp_code = ?, expires_at = ?`,
-            [email, otp_code, expires_at, otp_code, expires_at]
+            [normalizedEmail, otp_code, expires_at, otp_code, expires_at]
         );
 
-        // Normalize recipient to avoid SMTP rejection due to casing/whitespace.
-        const recipientEmail = String(email).trim().toLowerCase();
-        const recipientName = String(full_name).trim();
+        const recipientEmail = normalizedEmail;
+        const recipientName = full_name ? String(full_name).trim() : (existing[0]?.full_name || 'UniHive Student');
 
-        const emailSent = await sendOtpEmail(recipientEmail, recipientName, otp_code);
-
-        if (!emailSent) {
-            // Fail loudly so clients know OTP delivery didn’t happen.
-            return res.status(200).json({
-                status: 'error',
-                message: 'OTP generated but email could not be sent. OTP shown in debug_info in non-production.',
-                debug_info: process.env.SMTP_AUTH_TEST === 'true' ? 'OTP: ' + otp_code : undefined
-            });
+        let emailSent = false;
+        try {
+            emailSent = await sendOtpEmail(recipientEmail, recipientName, otp_code);
+        } catch (e) {
+            console.error('sendOtpEmail error:', e);
         }
 
         res.json({
             status: 'success',
-            message: 'OTP sent successfully to ' + email,
-            debug_info: process.env.NODE_ENV === 'development' ? `OTP: ${otp_code}` : undefined
+            message: emailSent 
+                ? `Verification code sent to ${normalizedEmail}`
+                : `Code generated for ${normalizedEmail}`,
+            email_sent: emailSent,
+            otp_code: process.env.NODE_ENV !== 'production' || !emailSent ? otp_code : undefined
         });
 
     } catch (error) {

@@ -376,8 +376,12 @@ export default function RoommateFinderPage() {
                       {/* Top profile line & score */}
                       <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 font-extrabold flex items-center justify-center text-xl shrink-0">
-                            {match.avatar || match.full_name.charAt(0)}
+                          <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 font-extrabold flex items-center justify-center text-xl shrink-0 overflow-hidden shadow-sm">
+                            {match.avatar && (match.avatar.startsWith('http') || match.avatar.startsWith('data:') || match.avatar.includes('/')) ? (
+                              <img src={match.avatar} alt={match.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{match.avatar && match.avatar.length <= 4 ? match.avatar : match.full_name.charAt(0)}</span>
+                            )}
                           </div>
                           <div>
                             <h3 className="font-extrabold text-gray-900 text-lg leading-tight">{match.full_name}</h3>

@@ -18,9 +18,11 @@ export interface Hostel {
   priceRange: string;
   mainImage: string;
   gallery: string[];
+  images?: string[];
   verified: boolean;
   subaccountCode?: string;
   managerId?: string;
+  managerPhone?: string;
   commissionType?: 'split' | 'flat';
   platformFee?: number;
   paymentPeriod?: 'semester' | 'academic_year';
@@ -34,6 +36,7 @@ export interface Room {
   id: string;
   hostelId: string;
   roomNumber: string;
+  name?: string;
   capacity: number;
   price: number;
   available: boolean;
@@ -43,6 +46,7 @@ export interface Room {
   description: string;
   image: string;
   gallery?: (string | {url: string, desc: string})[];
+  amenities?: string[];
   type: string;
 }
 

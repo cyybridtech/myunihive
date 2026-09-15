@@ -62,8 +62,8 @@ const parseJsonResponse = async (res) => {
     } catch {
       data = text;
     }
-    const message = data?.message || data?.error || res.statusText || 'Unknown API error';
-    throw new Error(`API error ${res.status}: ${message}`);
+    const message = data?.message || data?.error || res.statusText || 'Unknown error';
+    throw new Error(message);
   }
 
   if (contentType.includes('application/json')) {
@@ -122,19 +122,19 @@ const getUserId = () => {
 
 // ============ AUTH APIS ============
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (email, password, otp) => {
   return fetchJson(`${BASE_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, otp }),
   });
 };
 
-export const requestOtp = async (email, fullName) => {
+export const requestOtp = async (email, fullName, type = 'register') => {
   return fetchJson(`${BASE_URL}/request-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, full_name: fullName }),
+    body: JSON.stringify({ email, full_name: fullName, type }),
   });
 };
 
@@ -453,3 +453,38 @@ export const chargeCard = async (bookingId) => {
 export const getPayoutStats = async () => {
   return fetchJson(`${BASE_URL}/getPayoutStats`, { method: 'GET' });
 };
+
+// ============ STATS API ============
+
+export const getPlatformStats = async () => {
+  return fetchJson(`${BASE_URL}/stats`, { method: 'GET' });
+};
+
+// ============ USER PROFILE & SECURITY APIS ============
+
+export const updateUserProfile = async (userData) => {
+  return fetchJson(`${BASE_URL}/user/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData)
+  });
+};
+
+export const changeUserPassword = async (passwordData) => {
+  return fetchJson(`${BASE_URL}/user/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(passwordData)
+  });
+};
+
+// ============ UNIVERSITY UPDATE API ============
+
+export const updateUniversity = async (id, uniData) => {
+  return fetchJson(`${BASE_URL}/updateUniversity`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...uniData })
+  });
+};
+

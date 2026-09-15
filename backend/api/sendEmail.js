@@ -26,11 +26,11 @@ const transportOptions = {
     service: 'Gmail',
     auth: {
         user: EMAIL_USER,
-        pass: EMAIL_PASS
+        pass: EMAIL_PASS ? String(EMAIL_PASS).replace(/\s+/g, '') : ''
     },
-    connectionTimeout: 3000,
-    greetingTimeout: 3000,
-    socketTimeout: 3000
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 };
 
 const transporter = nodemailer.createTransport(transportOptions);
@@ -51,7 +51,7 @@ if (!process.env.BREVO_API_KEY) {
     console.log('[EMAIL] BREVO_API_KEY detected. Bypassing SMTP transporter verification.');
 }
 
-function buildHtmlEmail(title, intro, contentHtml, closing) {
+function buildHtmlEmail(title, intro, contentHtml, closing, badgeText = 'SECURITY NOTIFICATION') {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -59,59 +59,98 @@ function buildHtmlEmail(title, intro, contentHtml, closing) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title}</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; margin: 0; padding: 0; -webkit-font-smoothing: antialiased;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f6f8fa; padding: 30px 0;">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; -webkit-font-smoothing: antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f1f5f9; padding: 40px 15px;">
     <tr>
       <td align="center">
-        <!-- Main Card Container -->
-        <table width="600" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04); border: 1px solid #e1e8ed;">
-          <!-- Top Accent Bar -->
+        <!-- Main Card -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08); border: 1px solid #e2e8f0;">
+          <!-- Top Amber Accent -->
           <tr>
-            <td height="4" style="background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);"></td>
+            <td height="5" style="background: linear-gradient(90deg, #f59e0b 0%, #d97706 50%, #f59e0b 100%);"></td>
           </tr>
-          <!-- Header (Branded Logo Section) -->
+
+          <!-- Header -->
           <tr>
-            <td style="padding: 24px 32px 20px 32px; border-bottom: 1px solid #f1f5f9;">
+            <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px 36px;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td align="left" style="vertical-align: middle;">
+                  <td>
                     <table cellpadding="0" cellspacing="0">
                       <tr>
-                        <!-- Stylized Hexagon/Hive Box -->
-                        <td style="background-color: #f59e0b; padding: 7px 10px; border-radius: 8px; vertical-align: middle; text-align: center;">
-                          <span style="color: #ffffff; font-weight: 900; font-size: 16px; font-family: -apple-system, sans-serif; line-height: 1; display: block;">H</span>
+                        <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); width: 40px; height: 40px; border-radius: 12px; text-align: center; vertical-align: middle; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);">
+                          <span style="color: #ffffff; font-weight: 900; font-size: 20px; line-height: 40px; font-family: -apple-system, sans-serif;">H</span>
                         </td>
-                        <td style="padding-left: 10px; font-size: 20px; font-weight: 800; color: #1f2937; vertical-align: middle; font-family: -apple-system, sans-serif;">
-                          Uni<span style="color: #f59e0b;">Hive</span>
+                        <td style="padding-left: 14px; vertical-align: middle;">
+                          <span style="font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; font-family: -apple-system, sans-serif;">Uni<span style="color: #f59e0b;">Hive</span></span>
+                          <span style="display: block; font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-top: 3px;">Verified Student Hostels • Ghana</span>
                         </td>
                       </tr>
                     </table>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 12px; border-radius: 20px; display: inline-block;">
+                      ${badgeText}
+                    </span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          <!-- Body Content Area -->
+
+          <!-- Content Body -->
           <tr>
-            <td style="padding: 36px 32px 30px 32px;">
-              <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1f2937; line-height: 1.3;">${title}</h1>
-              <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">${intro}</p>
+            <td style="padding: 40px 36px 32px 36px;">
+              <h1 style="margin: 0 0 14px 0; font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1.3; letter-spacing: -0.3px;">${title}</h1>
+              <p style="margin: 0 0 28px 0; color: #475569; font-size: 15px; line-height: 1.65;">${intro}</p>
               
               <!-- Custom content insertion -->
               ${contentHtml}
               
               <!-- Closing segment -->
-              <p style="margin: 24px 0 0 0; color: #4b5563; font-size: 15px; line-height: 1.6;">${closing}</p>
+              <p style="margin: 28px 0 0 0; color: #64748b; font-size: 14px; line-height: 1.6;">${closing}</p>
             </td>
           </tr>
-          <!-- Footer Branding Bar -->
+
+          <!-- Security Note -->
           <tr>
-            <td style="background-color: #fafbfd; padding: 24px 32px; border-top: 1px solid #f1f5f9; text-align: center;">
-              <p style="margin: 0; color: #1f2937; font-size: 14px; font-weight: 700;">Uni<span style="color: #f59e0b;">Hive</span></p>
-              <p style="margin: 4px 0 16px 0; color: #6b7280; font-size: 11px;">Student housing made simple.</p>
+            <td style="padding: 0 36px 28px 36px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px;">
+                <tr>
+                  <td width="24" style="vertical-align: top; padding-right: 10px;">
+                    <span style="font-size: 16px;">🛡️</span>
+                  </td>
+                  <td style="font-size: 12px; color: #64748b; line-height: 1.5;">
+                    <strong style="color: #334155;">Security Reminder:</strong> UniHive staff will never ask for your passwords, OTP codes, or MoMo PINs over email, phone, or chat.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #fafbfd; padding: 28px 36px; border-top: 1px solid #f1f5f9; text-align: center;">
+              <p style="margin: 0 0 6px 0; color: #0f172a; font-size: 14px; font-weight: 800;">
+                Uni<span style="color: #f59e0b;">Hive</span> Ghana
+              </p>
+              <p style="margin: 0 0 16px 0; color: #64748b; font-size: 12px;">
+                Safe, verified student accommodation near Legon, KNUST, UCC, UPSA, and major Ghanaian campuses.
+              </p>
+              
+              <table align="center" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                <tr>
+                  <td>
+                    <a href="https://wa.me/233533143634" target="_blank" style="display: inline-block; background: #25D366; color: #ffffff; font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);">
+                      💬 Student Support WhatsApp
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
               <div style="border-top: 1px solid #e2e8f0; padding-top: 16px;">
-                <p style="margin: 0; color: #9ca3af; font-size: 10px; line-height: 1.4;">
-                  This is an automated notification from your UniHive account. Please do not reply directly to this email.
+                <p style="margin: 0; color: #94a3b8; font-size: 11px; line-height: 1.5;">
+                  This email was sent automatically to you regarding your UniHive account. © ${new Date().getFullYear()} UniHive Technologies. All rights reserved.
                 </p>
               </div>
             </td>
@@ -125,7 +164,7 @@ function buildHtmlEmail(title, intro, contentHtml, closing) {
 }
 
 async function sendMail(options) {
-    // If a Brevo API key is provided, use the HTTP API (Port 443) to completely bypass Render's SMTP blocks
+    // If a Brevo API key is provided, try Brevo HTTP API first
     if (process.env.BREVO_API_KEY) {
         try {
             const response = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -150,12 +189,10 @@ async function sendMail(options) {
                 console.log(`[EMAIL] Sent to ${options.to} via Brevo HTTP API. messageId=${data.messageId}`);
                 return true;
             } else {
-                console.error(`[EMAIL] Brevo API FAILED:`, data);
-                return false;
+                console.warn(`[EMAIL] Brevo API rejected (code: ${data.code || response.status}). Falling back to Gmail SMTP...`);
             }
         } catch (error) {
-            console.error(`[EMAIL] Brevo API Request Error:`, error.message);
-            return false;
+            console.warn(`[EMAIL] Brevo API Request Error: ${error.message}. Falling back to Gmail SMTP...`);
         }
     }
 
@@ -189,28 +226,54 @@ async function sendMail(options) {
 /**
  * Send welcome email to new user
  */
-/**
- * Send welcome email to new user
- */
 async function sendWelcomeEmail(email, full_name, user_id) {
-    const subject = 'Welcome to UniHive — Your Student Home Journey Starts Here';
-    const text = `Hi ${full_name},\n\nWelcome to UniHive! Your account is now active and ready for bookings.\n\nAccount ID: ${user_id}\n\nIf you have any questions, reply to this email and our support team will help.\n\nBest regards,\nUniHive Team`;
+    const subject = 'Welcome to UniHive — Your Verified Student Housing Journey Starts Here';
+    const text = `Hi ${full_name},\n\nWelcome to UniHive! Your student account is active.\n\nAccount ID: ${user_id}\n\nYou can now browse verified hostels near your university, connect with roommates, and book rooms with zero landlord scams.\n\nVisit: https://unihive-9k0l.onrender.com/dashboard\n\nBest regards,\nUniHive Team`;
+    
     const html = buildHtmlEmail(
-        'Welcome to UniHive!',
-        `Hi ${full_name}, welcome aboard! Your UniHive account is set up and ready to use.`,
-        `<div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 18px; border-radius: 10px; margin-bottom: 20px;">
-            <p style="margin: 0; color: #1f2937; font-size: 15px;"><strong>Account ID:</strong> ${user_id}</p>
+        'Welcome to UniHive, ' + (full_name.split(' ')[0] || 'Student') + '! 🎓',
+        `We are thrilled to welcome you to <strong>UniHive</strong> — Ghana's most trusted student accommodation platform. Your account is verified and ready.`,
+        `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 24px; margin-bottom: 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">
+                  <span style="color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase;">Your Student ID</span>
+                  <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: 800; color: #0f172a; font-family: monospace;">${user_id}</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-top: 16px;">
+                  <p style="margin: 0 0 12px 0; color: #0f172a; font-size: 14px; font-weight: 700;">What you can do right now:</p>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="28" style="vertical-align: top; padding-bottom: 8px;">✅</td>
+                      <td style="color: #475569; font-size: 14px; padding-bottom: 8px;">Explore 100% verified hostels near your university</td>
+                    </tr>
+                    <tr>
+                      <td width="28" style="vertical-align: top; padding-bottom: 8px;">✅</td>
+                      <td style="color: #475569; font-size: 14px; padding-bottom: 8px;">Reserve your room securely using Mobile Money or Card</td>
+                    </tr>
+                    <tr>
+                      <td width="28" style="vertical-align: top; padding-bottom: 8px;">✅</td>
+                      <td style="color: #475569; font-size: 14px; padding-bottom: 8px;">Chat directly with hostel managers on WhatsApp</td>
+                    </tr>
+                    <tr>
+                      <td width="28" style="vertical-align: top;">✅</td>
+                      <td style="color: #475569; font-size: 14px;">Find compatible roommates with lifestyle compatibility scores</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
           </div>
-          <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">You can now search hostels, book rooms, and manage your accommodation from your UniHive dashboard.</p>
-          <ul style="margin: 0 0 24px 0; padding-left: 20px; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            <li style="margin-bottom: 6px;">Browse verified hostels near your campus</li>
-            <li style="margin-bottom: 6px;">Reserve rooms quickly and securely</li>
-            <li style="margin-bottom: 6px;">Track your bookings and check-in status</li>
-          </ul>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="https://unihive-9k0l.onrender.com/dashboard" style="background-color: #f59e0b; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); font-size: 15px;">Go to Dashboard</a>
+
+          <div style="text-align: center; margin: 32px 0 16px 0;">
+            <a href="https://unihive-9k0l.onrender.com/hostels?university=all" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; padding: 15px 36px; text-decoration: none; border-radius: 14px; font-weight: 800; display: inline-block; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35); font-size: 15px; letter-spacing: 0.2px;">
+              Explore Verified Hostels →
+            </a>
           </div>`,
-        'Need help? Simply reply to this email and a UniHive team member will assist you.'
+        'Need anything? Simply reply directly to this email or reach our student concierge on WhatsApp.',
+        'WELCOME ABOARD'
     );
 
     return sendMail({ to: email, subject, text, html });
@@ -220,25 +283,55 @@ async function sendWelcomeEmail(email, full_name, user_id) {
  * Send booking confirmation email with auth code
  */
 async function sendBookingEmail(email, full_name, booking_id, room_number, hostel_name, auth_code) {
-    const subject = 'UniHive Booking Confirmed — Your Check-in Code is Ready';
-    const text = `Hi ${full_name},\n\nYour UniHive booking has been confirmed.\n\nBooking ID: ${booking_id}\nHostel: ${hostel_name}\nRoom: ${room_number}\nCheck-in Code: ${auth_code}\n\nShow this code at check-in.\n\nBest,\nUniHive Team`;
+    const subject = `Booking Confirmed: ${hostel_name} — Check-in Code: ${auth_code}`;
+    const text = `Hi ${full_name},\n\nCongratulations! Your booking at ${hostel_name} is confirmed.\n\nBooking ID: ${booking_id}\nRoom: ${room_number}\nCheck-in Code: ${auth_code}\n\nPresent this code to the manager upon arrival.\n\nBest regards,\nUniHive Team`;
+    
     const html = buildHtmlEmail(
-        'Booking Confirmed!',
-        `Hi ${full_name}, your room booking is successfully confirmed. Keep this email for your check-in details.`,
-        `<div style="background: #f8fafc; border-left: 4px solid #1f2937; padding: 18px; border-radius: 10px; margin-bottom: 24px; border: 1px solid #e2e8f0; border-left-width: 4px;">
-            <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 14px;"><strong>Booking ID:</strong> <span style="color: #1f2937;">${booking_id}</span></p>
-            <p style="margin: 0 0 8px 0; color: #4b5563; font-size: 14px;"><strong>Hostel:</strong> <span style="color: #1f2937; font-weight: 700;">${hostel_name}</span></p>
-            <p style="margin: 0; color: #4b5563; font-size: 14px;"><strong>Room:</strong> <span style="color: #1f2937; font-weight: 700;">${room_number}</span></p>
+        'Booking Confirmed! 🎉',
+        `Hi <strong style="color: #0f172a;">${full_name}</strong>, your accommodation booking at <strong>${hostel_name}</strong> has been approved and confirmed.`,
+        `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 22px; margin-bottom: 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding-bottom: 10px;">
+                  <span style="color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 700;">Hostel Name</span>
+                  <p style="margin: 2px 0 0 0; color: #0f172a; font-size: 16px; font-weight: 800;">${hostel_name}</p>
+                </td>
+                <td style="padding-bottom: 10px; text-align: right;">
+                  <span style="color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 700;">Room Allocated</span>
+                  <p style="margin: 2px 0 0 0; color: #d97706; font-size: 16px; font-weight: 800;">Room ${room_number}</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                  <span style="color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 700;">Booking Reference</span>
+                  <p style="margin: 2px 0 0 0; color: #475569; font-size: 13px; font-family: monospace;">${booking_id}</p>
+                </td>
+                <td style="padding-top: 10px; border-top: 1px solid #e2e8f0; text-align: right;">
+                  <span style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; display: inline-block;">
+                    ✓ PAID & RESERVED
+                  </span>
+                </td>
+              </tr>
+            </table>
           </div>
-          <div style="background: #fffbeb; border: 1px dashed #f59e0b; padding: 22px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
-            <p style="margin: 0 0 8px 0; color: #b45309; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Secure Check-in Code</p>
-            <p style="margin: 0; font-size: 32px; letter-spacing: 6px; color: #78350f; font-weight: 800; font-family: monospace; line-height: 1.2;">${auth_code}</p>
-            <p style="margin: 8px 0 0 0; color: #92400e; font-size: 12px; line-height: 1.4;">Present this code to the hostel manager at check-in.</p>
+
+          <div style="background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%); border: 2px dashed #f59e0b; padding: 26px 20px; border-radius: 18px; text-align: center; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);">
+            <p style="margin: 0 0 8px 0; color: #b45309; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">Official Check-in Passcode</p>
+            <div style="margin: 8px 0; display: inline-block; background: #ffffff; padding: 12px 24px; border-radius: 12px; border: 1px solid #fde68a;">
+              <span style="font-size: 34px; letter-spacing: 8px; font-weight: 900; color: #78350f; font-family: monospace; line-height: 1;">${auth_code}</span>
+            </div>
+            <p style="margin: 10px 0 0 0; color: #92400e; font-size: 12px; font-weight: 600;">
+              Show this code to the hostel manager when checking in.
+            </p>
           </div>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="https://unihive-9k0l.onrender.com/dashboard" style="background-color: #f59e0b; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); font-size: 15px;">View Bookings</a>
+
+          <div style="text-align: center; margin: 28px 0 12px 0;">
+            <a href="https://unihive-9k0l.onrender.com/dashboard" style="background: #0f172a; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; display: inline-block; font-size: 14px;">
+              View in Student Dashboard →
+            </a>
           </div>`,
-        'Reply to this email if you need help with your booking or check-in.'
+        'Safe travels and enjoy your stay! Reply to this email if you need check-in assistance.',
+        'CONFIRMED RESERVATION'
     );
 
     return sendMail({ to: email, subject, text, html });
@@ -248,16 +341,26 @@ async function sendBookingEmail(email, full_name, booking_id, room_number, hoste
  * Send OTP Verification email
  */
 async function sendOtpEmail(email, full_name, otp_code) {
-    const subject = 'UniHive Verification Code';
-    const text = `Hi ${full_name},\n\nYour verification code is ${otp_code}. It expires in 15 minutes.\n\nIf you did not request this, please ignore this message.\n\nBest,\nUniHive Team`;
+    const subject = `${otp_code} is your UniHive verification code`;
+    const text = `Hi ${full_name},\n\nYour 6-digit UniHive verification code is: ${otp_code}\n\nThis code expires in 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nUniHive Student Team`;
+    
     const html = buildHtmlEmail(
-        'Verify Your Email',
-        `Hi ${full_name}, use the verification code below to confirm your email address and continue registration.`,
-        `<div style="background: #fffbeb; border: 1px dashed #f59e0b; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
-            <p style="margin: 0 0 8px 0; color: #b45309; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Your verification code</p>
-            <p style="margin: 0; color: #78350f; font-size: 36px; letter-spacing: 8px; font-weight: 800; font-family: monospace; line-height: 1.2;">${otp_code}</p>
-          </div>`,
-        'This code will expire in 15 minutes. If you did not request this verification code, please ignore this email.'
+        'Verify Your Account',
+        `Hi <strong style="color: #0f172a;">${full_name}</strong>, please use the 6-digit confirmation code below to complete your verification on UniHive.`,
+        `<div style="background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%); border: 2px dashed #f59e0b; padding: 32px 20px; border-radius: 20px; text-align: center; margin-bottom: 24px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.1);">
+            <p style="margin: 0 0 10px 0; color: #b45309; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">One-Time Confirmation Code</p>
+            <div style="margin: 12px 0; display: inline-block; background: #ffffff; padding: 14px 28px; border-radius: 14px; border: 1px solid #fde68a; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);">
+              <span style="font-size: 42px; letter-spacing: 12px; font-weight: 900; color: #78350f; font-family: 'SF Mono', Consolas, Menlo, Monaco, monospace; line-height: 1;">${otp_code}</span>
+            </div>
+            <p style="margin: 14px 0 0 0; color: #92400e; font-size: 12px; font-weight: 600;">
+              ⏱️ Valid for 15 minutes • Single use only
+            </p>
+          </div>
+          <p style="color: #64748b; font-size: 13px; margin: 0; line-height: 1.5; text-align: center;">
+            Enter this code in your browser to verify your identity and activate your account.
+          </p>`,
+        'If you did not initiate this request, you can safely ignore this email. No changes will be made to your account.',
+        'ACCOUNT VERIFICATION'
     );
 
     return sendMail({ to: email, subject, text, html });
@@ -267,16 +370,26 @@ async function sendOtpEmail(email, full_name, otp_code) {
  * Send Password Reset Verification email
  */
 async function sendPasswordResetEmail(email, full_name, reset_code) {
-    const subject = 'UniHive Password Reset Code';
-    const text = `Hi ${full_name},\n\nYour password reset code is ${reset_code}. It expires in 15 minutes.\n\nIf you did not request this, ignore this message.\n\nBest,\nUniHive Team`;
+    const subject = `${reset_code} is your UniHive password reset code`;
+    const text = `Hi ${full_name},\n\nA password reset request was received for your UniHive account.\n\nYour reset code is: ${reset_code}\n\nThis code expires in 15 minutes.\n\nIf you did not request this, please ignore this message.\n\nBest regards,\nUniHive Support`;
+    
     const html = buildHtmlEmail(
         'Reset Your Password',
-        `Hi ${full_name}, a password reset request was received for your UniHive account.`,
-        `<div style="background: #fffbeb; border: 1px dashed #f59e0b; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
-            <p style="margin: 0 0 8px 0; color: #b45309; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Your reset code</p>
-            <p style="margin: 0; color: #78350f; font-size: 36px; letter-spacing: 8px; font-weight: 800; font-family: monospace; line-height: 1.2;">${reset_code}</p>
-          </div>`,
-        'If you did not request a password reset, no action is required and you can ignore this email.'
+        `Hi <strong style="color: #0f172a;">${full_name}</strong>, a request was made to reset the password associated with your UniHive account.`,
+        `<div style="background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%); border: 2px dashed #ea580c; padding: 32px 20px; border-radius: 20px; text-align: center; margin-bottom: 24px; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.1);">
+            <p style="margin: 0 0 10px 0; color: #c2410c; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">Password Reset Code</p>
+            <div style="margin: 12px 0; display: inline-block; background: #ffffff; padding: 14px 28px; border-radius: 14px; border: 1px solid #fed7aa; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);">
+              <span style="font-size: 42px; letter-spacing: 12px; font-weight: 900; color: #9a3412; font-family: 'SF Mono', Consolas, Menlo, Monaco, monospace; line-height: 1;">${reset_code}</span>
+            </div>
+            <p style="margin: 14px 0 0 0; color: #c2410c; font-size: 12px; font-weight: 600;">
+              ⏱️ Valid for 15 minutes • Do not share this code
+            </p>
+          </div>
+          <p style="color: #64748b; font-size: 13px; margin: 0; line-height: 1.5; text-align: center;">
+            Enter this code on the password reset page to create a new secure password.
+          </p>`,
+        'If you did not request a password reset, your account is safe and you can ignore this email.',
+        'SECURITY ALERT'
     );
 
     return sendMail({ to: email, subject, text, html });

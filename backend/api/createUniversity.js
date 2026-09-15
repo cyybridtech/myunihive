@@ -7,7 +7,7 @@
 const { getPool } = require('./config');
 
 async function createUniversityHandler(req, res) {
-    const { name, city, country } = req.body || {};
+    const { name, city, country, lat, lng } = req.body || {};
     const user_role = req.role;
 
     if (!user_role || user_role !== 'admin') {
@@ -26,8 +26,15 @@ async function createUniversityHandler(req, res) {
 
         // Insert
         await pool.execute(
-            'INSERT INTO universities (id, name, city, country) VALUES (?, ?, ?, ?)',
-            [id, name, city || '', country || 'Ghana']
+            'INSERT INTO universities (id, name, city, country, lat, lng) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                id,
+                name.trim(),
+                city || '',
+                country || 'Ghana',
+                lat !== undefined && lat !== null && lat !== '' ? Number(lat) : null,
+                lng !== undefined && lng !== null && lng !== '' ? Number(lng) : null
+            ]
         );
 
         res.json({ status: 'success', id: id });

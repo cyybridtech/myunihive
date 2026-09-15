@@ -61,6 +61,14 @@ async function updateRoomHandler(req, res) {
         if (description !== undefined) { updates.push('description = ?'); values.push(description); }
         if (image !== undefined) { updates.push('image = ?'); values.push(image); }
         if (available !== undefined) { updates.push('available = ?'); values.push(available ? 1 : 0); }
+        if (req.body.amenities !== undefined) {
+            updates.push('amenities = ?');
+            values.push(typeof req.body.amenities === 'string' ? req.body.amenities : JSON.stringify(req.body.amenities));
+        }
+        if (req.body.gallery !== undefined) {
+            updates.push('gallery = ?');
+            values.push(typeof req.body.gallery === 'string' ? req.body.gallery : JSON.stringify(req.body.gallery));
+        }
 
         if (updates.length === 0) {
             return res.status(400).json({ status: 'error', message: 'No fields to update' });

@@ -21,7 +21,9 @@ const requestOtpHandler = require('./api/requestOtp');
 const forgotPasswordHandler = require('./api/forgotPassword');
 const resetPasswordHandler = require('./api/resetPassword');
 const logoutHandler = require('./api/logout');
-const userHandler = require('./api/user');
+const { userHandler, updateProfileHandler, changePasswordHandler } = require('./api/user');
+const statsHandler = require('./api/stats');
+const updateUniversityHandler = require('./api/updateUniversity');
 const getHostelsHandler = require('./api/getHostels');
 const getRoomsHandler = require('./api/getRooms');
 const createHostelHandler = require('./api/createHostel');
@@ -157,6 +159,9 @@ app.post('/api/reset-password', wrapHandler(resetPasswordHandler));
 app.post('/api/logout', wrapHandler(logoutHandler));
 app.get('/api/user', wrapHandler(userHandler));
 app.post('/api/user', wrapHandler(userHandler));
+app.post('/api/user/update', wrapHandler(updateProfileHandler));
+app.post('/api/user/change-password', wrapHandler(changePasswordHandler));
+app.get('/api/stats', wrapHandler(statsHandler));
 
 // Hostels
 app.get('/api/getHostels', wrapHandler(getHostelsHandler));
@@ -204,6 +209,7 @@ app.post('/api/updateRoomOccupancy', wrapHandler(updateRoomOccupancyHandler));
 // Universities
 app.get('/api/getUniversities', wrapHandler(getUniversitiesHandler));
 app.post('/api/createUniversity', wrapHandler(createUniversityHandler));
+app.post('/api/updateUniversity', wrapHandler(updateUniversityHandler));
 
 // Reviews
 app.get('/api/reviews', wrapHandler(reviewsHandler));
@@ -282,6 +288,15 @@ if (!process.env.VERCEL) {
         `);
     });
 }
+
+// Process error resilience to prevent server crashes
+process.on('uncaughtException', (err) => {
+    console.error('[UNCAUGHT EXCEPTION]', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[UNHANDLED REJECTION]', reason);
+});
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
