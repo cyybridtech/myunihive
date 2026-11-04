@@ -36,8 +36,19 @@ async function deleteRoomHandler(req, res) {
             }
         }
 
-        await pool.execute('DELETE FROM bookings WHERE room_id = ?', [room_id]);
+        // Safeguard: Reject deletion if room has active paid bookings
+        const [activeBookings] = await pool.execute(
+            `SELECT COUNT(*) as count FROM bookings WHERE room_id = ? AND (payment_status = 'paid' OR status = 'approved')`,
+            [room_id]
+        );
+        if (activeBookings[0]?.count > 0) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Cannot delete a room with active or paid bookings. Please reassign or cancel bookings first.'
+            });
+        }
 
+        await pool.execute('DELETE FROM bookings WHERE room_id = ?', [room_id]);
         await pool.execute('DELETE FROM rooms WHERE id = ?', [room_id]);
 
         res.json({ status: 'success', message: 'Room deleted' });

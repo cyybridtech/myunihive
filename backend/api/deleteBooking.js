@@ -41,10 +41,18 @@ async function deleteBookingHandler(req, res) {
         [booking_id]
       );
 
-      await connection.execute(
-        `UPDATE rooms SET available = 1 WHERE id = ?`,
+      // Only set room available if total occupancy is below capacity
+      const [roomData] = await connection.execute(
+        `SELECT r.capacity, r.manual_occupancy,
+                (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND (b.status = 'approved' OR b.payment_status = 'paid') AND b.status NOT IN ('cancelled', 'rejected', 'completed', 'expired')) as paid_count
+         FROM rooms r WHERE r.id = ?`,
         [booking.room_id]
       );
+      if (roomData.length > 0) {
+        const totalOcc = (parseInt(roomData[0].paid_count) || 0) + (parseInt(roomData[0].manual_occupancy) || 0);
+        const isAvail = totalOcc < (parseInt(roomData[0].capacity) || 1) ? 1 : 0;
+        await connection.execute('UPDATE rooms SET available = ? WHERE id = ?', [isAvail, booking.room_id]);
+      }
 
       await connection.commit();
       connection.release();

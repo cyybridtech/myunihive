@@ -31,6 +31,18 @@ async function deleteHostelHandler(req, res) {
             return res.status(404).json({ status: 'error', message: 'Hostel not found' });
         }
 
+        // Safeguard: Reject deletion if hostel has active paid bookings
+        const [activeBookings] = await pool.execute(
+            `SELECT COUNT(*) as count FROM bookings WHERE hostel_id = ? AND (payment_status = 'paid' OR status = 'approved')`,
+            [hostel_id]
+        );
+        if (activeBookings[0]?.count > 0) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Cannot delete hostel with active or paid resident bookings. Please resolve active bookings first.'
+            });
+        }
+
         // Delete in correct order (respect foreign keys)
         await pool.execute('DELETE FROM bookings WHERE hostel_id = ?', [hostel_id]);
         await pool.execute('DELETE FROM reviews WHERE hostel_id = ?', [hostel_id]);

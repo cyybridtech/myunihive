@@ -25,9 +25,17 @@ async function userHandler(req, res) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
+        const userObj = users[0];
+        if (userObj.role !== 'admin') {
+            const [hostels] = await pool.execute('SELECT COUNT(*) as count FROM hostels WHERE manager_id = ?', [userObj.id]);
+            if (hostels[0].count > 0) {
+                userObj.role = 'hostel_manager';
+            }
+        }
+
         res.json({
             status: 'success',
-            user: users[0]
+            user: userObj
         });
 
     } catch (error) {

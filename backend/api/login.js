@@ -57,14 +57,16 @@ async function loginHandler(req, res) {
 
         let role = user.role || '';
 
-        // Auto-detect hostel manager role if user owns a hostel
-        if (!role) {
+        // Auto-detect hostel manager role if user manages any hostel
+        if (role !== 'admin') {
             const [hostels] = await pool.execute(
                 'SELECT COUNT(*) as count FROM hostels WHERE manager_id = ?',
                 [user.id]
             );
             if (hostels[0].count > 0) {
                 role = 'hostel_manager';
+                // Synchronize users table if role was student or empty
+                await pool.execute('UPDATE users SET role = "hostel_manager" WHERE id = ? AND role != "admin"', [user.id]);
             }
         }
 

@@ -8,8 +8,10 @@ const bcrypt = require('bcryptjs');
 
 async function resetPasswordHandler(req, res) {
     const { email, otp, new_password } = req.body || {};
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const cleanOtp = String(otp || '').trim();
 
-    if (!email || !otp || !new_password) {
+    if (!normalizedEmail || !cleanOtp || !new_password) {
         return res.status(400).json({ status: 'error', message: 'Email, code, and new password are required' });
     }
 
@@ -20,10 +22,10 @@ async function resetPasswordHandler(req, res) {
     const pool = getPool();
 
     try {
-        // Verify OTP
+        // Verify OTP (case-insensitive email)
         const [otpRecords] = await pool.execute(
-            'SELECT id FROM otps WHERE email = ? AND otp_code = ? AND expires_at > NOW()',
-            [email, otp]
+            'SELECT id FROM otps WHERE LOWER(email) = ? AND otp_code = ? AND expires_at > NOW()',
+            [normalizedEmail, cleanOtp]
         );
 
         if (otpRecords.length === 0) {
@@ -35,8 +37,8 @@ async function resetPasswordHandler(req, res) {
 
         // Update user password
         const [updateResult] = await pool.execute(
-            'UPDATE users SET password = ? WHERE email = ?',
-            [hashedPassword, email]
+            'UPDATE users SET password = ? WHERE LOWER(email) = ?',
+            [hashedPassword, normalizedEmail]
         );
 
         if (updateResult.affectedRows === 0) {

@@ -8,8 +8,9 @@ const { sendPasswordResetEmail } = require('./sendEmail');
 
 async function forgotPasswordHandler(req, res) {
     const { email } = req.body || {};
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
-    if (!email) {
+    if (!normalizedEmail) {
         return res.status(400).json({ status: 'error', message: 'Email is required' });
     }
 
@@ -18,8 +19,8 @@ async function forgotPasswordHandler(req, res) {
     try {
         // Check if user exists
         const [users] = await pool.execute(
-            'SELECT id, full_name FROM users WHERE email = ?',
-            [email]
+            'SELECT id, full_name FROM users WHERE LOWER(email) = ?',
+            [normalizedEmail]
         );
 
         if (users.length === 0) {
@@ -41,11 +42,11 @@ async function forgotPasswordHandler(req, res) {
             `INSERT INTO otps (email, otp_code, expires_at) 
              VALUES (?, ?, ?) 
              ON DUPLICATE KEY UPDATE otp_code = ?, expires_at = ?`,
-            [email, otp_code, expires_at, otp_code, expires_at]
+            [normalizedEmail, otp_code, expires_at, otp_code, expires_at]
         );
 
         // Send Email
-        const emailSent = await sendPasswordResetEmail(email, user.full_name, otp_code);
+        const emailSent = await sendPasswordResetEmail(normalizedEmail, user.full_name, otp_code);
         
         if (!emailSent) {
             console.warn('Failed to send password reset email, but OTP was generated.');

@@ -19,7 +19,11 @@ async function approveBookingHandler(req, res) {
         return res.status(401).json({ status: 'error', message: 'Authentication required' });
     }
 
-    const isManagerRole = user_role === 'manager' || user_role === 'hostel_manager';
+    let isManagerRole = user_role === 'manager' || user_role === 'hostel_manager';
+    if (!isManagerRole && user_role !== 'admin') {
+        const [hostelCheck] = await pool.execute('SELECT COUNT(*) as count FROM hostels WHERE manager_id = ?', [user_id]);
+        if (hostelCheck[0]?.count > 0) isManagerRole = true;
+    }
     if (user_role !== 'admin' && !isManagerRole) {
         return res.status(403).json({ status: 'error', message: 'Admin or hostel manager access required' });
     }

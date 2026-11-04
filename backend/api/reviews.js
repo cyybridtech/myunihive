@@ -53,6 +53,14 @@ async function createReview(req, res) {
             [user_id, hostel_id, ratingNum, comment || '', is_anonymous ? 1 : 0]
         );
 
+        // Synchronize cached average rating on hostel
+        await pool.execute(
+            `UPDATE hostels 
+             SET rating = (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE hostel_id = ?) 
+             WHERE id = ?`,
+            [hostel_id, hostel_id]
+        );
+
         res.json({
             status: 'success',
             message: 'Review submitted',

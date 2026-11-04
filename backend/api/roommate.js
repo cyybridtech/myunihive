@@ -105,15 +105,20 @@ async function getMatches(req, res) {
             return res.json({ status: 'success', setupRequired: true, matches: [] });
         }
 
-        // 2. Fetch all other roommate profiles at the same university
-        const [otherProfiles] = await pool.execute(
-            `SELECT p.*, u.full_name, u.avatar, u.email, u.phone, u.role, uni.name as university_name
-             FROM roommate_profiles p
-             JOIN users u ON p.user_id = u.id
-             LEFT JOIN universities uni ON u.university_id = uni.id
-             WHERE u.id != ? AND u.university_id = ? AND u.role = 'student'`,
-            [user_id, userUniversityId]
-        );
+        // 2. Fetch other roommate profiles (same university if specified, or all student peers)
+        let query = `
+            SELECT p.*, u.full_name, u.avatar, u.email, u.phone, u.role, u.university_id as other_university_id, uni.name as university_name
+            FROM roommate_profiles p
+            JOIN users u ON p.user_id = u.id
+            LEFT JOIN universities uni ON u.university_id = uni.id
+            WHERE u.id != ? AND u.role = 'student'
+        `;
+        const params = [user_id];
+        if (userUniversityId) {
+            query += ` AND (u.university_id = ? OR u.university_id IS NULL)`;
+            params.push(userUniversityId);
+        }
+        const [otherProfiles] = await pool.execute(query, params);
 
         // 3. Compute dynamic compatibility percentage
         const matches = otherProfiles.map(other => {

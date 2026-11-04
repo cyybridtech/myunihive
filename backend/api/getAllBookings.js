@@ -19,7 +19,11 @@ async function getAllBookingsHandler(req, res) {
     try {
         let bookings;
         
-        const isManagerRole = user_role === 'manager' || user_role === 'hostel_manager';
+        let isManagerRole = user_role === 'manager' || user_role === 'hostel_manager';
+        if (!isManagerRole && user_role !== 'admin') {
+            const [hostelCheck] = await pool.execute('SELECT COUNT(*) as count FROM hostels WHERE manager_id = ?', [user_id]);
+            if (hostelCheck[0]?.count > 0) isManagerRole = true;
+        }
         const baseQuery = `
             SELECT b.*, 
                    h.name as hostel_name, 
