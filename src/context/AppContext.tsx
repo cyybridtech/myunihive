@@ -107,9 +107,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [universities, setUniversities] = useState<University[]>([]);
   const [savedHostels, setSavedHostels] = useState<string[]>(() => {
     try {
-      const stored = typeof window !== 'undefined'
-        ? (localStorage.getItem('unihive_saved_hostels') || localStorage.getItem('savedHostels'))
-        : null;
+      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      const userId = parsedUser?.id;
+      if (!userId) return [];
+      const stored = localStorage.getItem(`unihive_saved_hostels_${userId}`);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -244,10 +246,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.error('Notifications fetch error:', error);
           setNotifications(sampleNotifications);
         });
+
+      // Load user-specific saved hostels
+      try {
+        const userSaved = localStorage.getItem(`unihive_saved_hostels_${auth.user.id}`);
+        setSavedHostels(userSaved ? JSON.parse(userSaved) : []);
+      } catch {
+        setSavedHostels([]);
+      }
     } else {
       setUser(null);
       setBookings([]);
       setNotifications([]);
+      setSavedHostels([]);
     }
   }, [auth.user]);
 
@@ -427,8 +438,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSavedHostels(prev => {
       const updated = prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id];
       try {
-        localStorage.setItem('savedHostels', JSON.stringify(updated));
-        localStorage.setItem('unihive_saved_hostels', JSON.stringify(updated));
+        const userId = auth.user?.id;
+        if (userId) {
+          localStorage.setItem(`unihive_saved_hostels_${userId}`, JSON.stringify(updated));
+        }
+        // Remove old global keys to prevent bleed-through
+        localStorage.removeItem('savedHostels');
+        localStorage.removeItem('unihive_saved_hostels');
       } catch { /* ignore */ }
       return updated;
     });

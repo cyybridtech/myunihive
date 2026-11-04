@@ -104,7 +104,7 @@ async function verifyPaymentHandler(req, res) {
             const [occupancyResult] = await connection.execute(
                 `SELECT COUNT(*) as count 
                  FROM bookings 
-                 WHERE room_id = ? AND (payment_status = 'paid' OR status = 'approved') AND id != ?`,
+                 WHERE room_id = ? AND (status = 'approved' OR (payment_status = 'paid' AND status NOT IN ('cancelled', 'rejected', 'completed', 'expired'))) AND id != ?`,
                 [details.room_id, booking_id]
             );
 

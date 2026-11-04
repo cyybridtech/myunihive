@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 
 export default function InstallPWA() {
   const [supportsPWA, setSupportsPWA] = useState(false);
   const [promptInstall, setPromptInstall] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    return sessionStorage.getItem('unihive_pwa_dismissed') === 'true';
+  });
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -20,7 +23,7 @@ export default function InstallPWA() {
       setIsInstalled(true);
     }
 
-    return () => window.removeEventListener('transitionend', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
   const onClick = (evt: React.MouseEvent<HTMLButtonElement>) => {
@@ -36,19 +39,39 @@ export default function InstallPWA() {
     });
   };
 
-  if (!supportsPWA || isInstalled) {
+  const handleDismiss = () => {
+    setDismissed(true);
+    try {
+      sessionStorage.setItem('unihive_pwa_dismissed', 'true');
+    } catch { /* ignore */ }
+  };
+
+  if (!supportsPWA || isInstalled || dismissed) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-      <button
-        className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
-        onClick={onClick}
-      >
-        <Download size={20} />
-        Install UniHive App
-      </button>
+    <div className="fixed bottom-5 right-5 z-40 animate-fade-in">
+      <div className="bg-slate-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl shadow-2xl border border-slate-700/60 flex items-center gap-3">
+        <button
+          onClick={onClick}
+          className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+        >
+          <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
+            <Download className="w-4 h-4 text-slate-950" />
+          </div>
+          <span>Install App</span>
+        </button>
+        <div className="h-4 w-px bg-slate-700"></div>
+        <button
+          onClick={handleDismiss}
+          aria-label="Dismiss app install banner"
+          className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
+

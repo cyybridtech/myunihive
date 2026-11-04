@@ -30,7 +30,7 @@ export default function RegisterPage() {
   const uniDropdownRef = useRef<HTMLDivElement>(null);
 
   // OTP Step State
-  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [step, setStep] = useState<'form' | 'otp' | 'welcome'>('form');
   const [otpValues, setOtpValues] = useState<string[]>(['', '', '', '', '', '']);
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -212,7 +212,7 @@ export default function RegisterPage() {
         formData.gender,
         fullOtp
       );
-      navigate('/dashboard');
+      setStep('welcome');
     } catch (err: any) {
       setError(err.message || 'Registration failed. The code may be incorrect or expired.');
     } finally {
@@ -298,10 +298,12 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your account</h1>
-            <p className="text-gray-500 text-sm mt-1">Join thousands of students finding verified hostels across Ghana</p>
-          </div>
+          {step !== 'welcome' && (
+            <div className="mb-6">
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your account</h1>
+              <p className="text-gray-500 text-sm mt-1">Join thousands of students finding verified hostels across Ghana</p>
+            </div>
+          )}
 
           {/* Feedback error */}
           {error && (
@@ -311,7 +313,64 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {step === 'form' ? (
+          {step === 'welcome' ? (
+            <div className="text-center space-y-5 py-2">
+              <div className="relative inline-block mx-auto mb-1">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white flex items-center justify-center mx-auto shadow-xl shadow-amber-500/30">
+                  <GraduationCap className="w-10 h-10 text-white" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-green-500 text-white p-1.5 rounded-full border-2 border-white shadow-md">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+              </div>
+
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200 mb-2.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Account Verified & Active
+                </span>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                  Welcome to UniHive, {formData.firstName}! 🎓
+                </h2>
+                <p className="text-xs text-gray-500 mt-1.5 max-w-sm mx-auto leading-relaxed">
+                  Your student account is active. A welcome confirmation message has also been sent to <span className="font-semibold text-gray-800">{formData.email}</span>.
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-amber-50/60 border border-amber-200/80 rounded-2xl p-4 text-left space-y-2.5">
+                <p className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wider">Your Student Privileges</p>
+                <div className="flex items-start gap-2.5 text-xs text-gray-700">
+                  <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-800 font-bold flex items-center justify-center shrink-0 mt-0.5 text-[11px]">✓</div>
+                  <p><strong className="text-gray-900">100% Verified Hostels:</strong> Real photos, live vacancy, direct WhatsApp contacts with managers.</p>
+                </div>
+                <div className="flex items-start gap-2.5 text-xs text-gray-700">
+                  <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-800 font-bold flex items-center justify-center shrink-0 mt-0.5 text-[11px]">✓</div>
+                  <p><strong className="text-gray-900">Roommate Matchmaker:</strong> Match with compatible students based on lifestyle and sleep habits.</p>
+                </div>
+                <div className="flex items-start gap-2.5 text-xs text-gray-700">
+                  <div className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-800 font-bold flex items-center justify-center shrink-0 mt-0.5 text-[11px]">✓</div>
+                  <p><strong className="text-gray-900">Scam-Free Payments:</strong> Direct reservation secured with instant official check-in passcodes.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-extrabold text-sm transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Go to Student Dashboard <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/hostels?university=all')}
+                  className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Browse Campus Hostels Now
+                </button>
+              </div>
+            </div>
+          ) : step === 'form' ? (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               {/* Names */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

@@ -84,6 +84,9 @@ async function initSchema() {
         await p.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL");
         await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_at timestamp NOT NULL DEFAULT current_timestamp()");
         await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paystack_reference VARCHAR(100) DEFAULT NULL");
+        try {
+            await p.execute("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending','approved','completed','cancelled','expired','rejected') DEFAULT 'pending'");
+        } catch(e) { console.warn('Could not modify bookings status enum:', e.message); }
         await p.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE");
 
         // Saved cards for one-click re-charge

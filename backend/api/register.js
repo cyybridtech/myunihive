@@ -64,7 +64,7 @@ async function registerHandler(req, res) {
         const jwt = require('jsonwebtoken');
         const token = jwt.sign(
             { id: user_id, email: email, role: 'student' },
-            process.env.JWT_SECRET || 'your-secret-key',
+            process.env.JWT_SECRET || 'UniHiveChangeMePleaseReplaceThisInProduction',
             { expiresIn: '7d' }
         );
 
@@ -73,6 +73,21 @@ async function registerHandler(req, res) {
             await sendWelcomeEmail(email, full_name, user_id);
         } catch (err) {
             console.error('[REGISTER] Welcome email failed:', err && err.message ? err.message : err);
+        }
+
+        // Insert in-app welcome notification
+        try {
+            await pool.execute(
+                `INSERT INTO notifications (user_id, title, message, type, read_status, notification_date) 
+                 VALUES (?, ?, ?, 'system', 0, CURDATE())`,
+                [
+                    user_id,
+                    'Welcome to UniHive! 🎓',
+                    `Welcome aboard, ${full_name.split(' ')[0] || 'Student'}! Your account is verified. Start by exploring verified hostels near your campus, connecting with verified roommates, or saving your favorite rooms.`
+                ]
+            );
+        } catch (notifErr) {
+            console.warn('[REGISTER] In-app welcome notification warning:', notifErr.message);
         }
 
         res.json({

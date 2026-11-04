@@ -25,7 +25,7 @@ async function updateRoomOccupancyHandler(req, res) {
         // Get room's hostel info and current stats
         const [rooms] = await pool.execute(
             `SELECT r.*, h.manager_id,
-             (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND (b.status = 'approved' OR b.payment_status = 'paid')) as app_occupancy
+             (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND (b.status = 'approved' OR (b.payment_status = 'paid' AND b.status NOT IN ('cancelled', 'rejected', 'completed', 'expired')))) as app_occupancy
              FROM rooms r 
              LEFT JOIN hostels h ON r.hostel_id = h.id 
              WHERE r.id = ?`,

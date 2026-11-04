@@ -8,12 +8,12 @@ const { getPool } = require('./config');
 
 async function resetHostelRoomsHandler(req, res) {
     const pool = getPool();
-    const { hostel_id } = req.body;
+    const hostel_id = req.body?.hostel_id || req.body?.hostelId;
     const user_role = req.role;
     const user_id = req.user_id;
 
-    if (!user_role || !user_id) {
-        return res.status(403).json({ status: 'error', message: 'Unauthorized' });
+    if (!user_id) {
+        return res.status(401).json({ status: 'error', message: 'Unauthorized' });
     }
 
     if (!hostel_id) {
@@ -21,7 +21,7 @@ async function resetHostelRoomsHandler(req, res) {
     }
 
     try {
-        // Verify permissions
+        // Verify permissions: admin or assigned hostel manager
         if (user_role !== 'admin') {
             const [hostel] = await pool.execute('SELECT manager_id FROM hostels WHERE id = ?', [hostel_id]);
             if (hostel.length === 0 || String(hostel[0].manager_id) !== String(user_id)) {
@@ -29,12 +29,17 @@ async function resetHostelRoomsHandler(req, res) {
             }
         }
 
-        // Expire all active bookings
-        await pool.execute(`
-            UPDATE bookings 
-            SET status = 'expired' 
-            WHERE hostel_id = ? AND (status = 'approved' OR payment_status = 'paid')
-        `, [hostel_id]);
+        // Reset all active bookings for this hostel so rooms become available for the new term.
+        // Using 'cancelled' because 'expired' is not part of the standard ENUM in older database schemas.
+        try {
+            await pool.execute(`
+                UPDATE bookings 
+                SET status = 'cancelled' 
+                WHERE hostel_id = ? AND (status = 'approved' OR payment_status = 'paid')
+            `, [hostel_id]);
+        } catch (bookingErr) {
+            console.warn('[RESET_HOSTEL] Bookings update warning:', bookingErr.message);
+        }
 
         // Reset all manual occupancies and ensure rooms are marked available
         await pool.execute(`
@@ -43,10 +48,10 @@ async function resetHostelRoomsHandler(req, res) {
             WHERE hostel_id = ?
         `, [hostel_id]);
 
-        res.json({ status: 'success', message: 'Hostel rooms reset successfully' });
+        res.json({ status: 'success', message: 'Hostel rooms reset successfully for new term' });
     } catch (error) {
         console.error('Reset hostel error:', error);
-        res.status(500).json({ status: 'error', message: error.message });
+        res.status(500).json({ status: 'error', message: error.message || 'Internal server error while resetting hostel rooms' });
     }
 }
 

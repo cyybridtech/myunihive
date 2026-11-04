@@ -431,24 +431,6 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  {devOtpCode && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs text-emerald-800">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Your Code: <strong className="font-mono text-sm tracking-widest text-emerald-900">{devOtpCode}</strong></span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const digits = devOtpCode.split('');
-                          setOtpValues(digits);
-                        }}
-                        className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-                      >
-                        Auto-Fill
-                      </button>
-                    </div>
-                  )}
 
                   <div>
                     <div className="flex items-center justify-between mb-3">

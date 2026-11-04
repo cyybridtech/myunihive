@@ -11,7 +11,7 @@ async function getRoomsHandler(req, res) {
     try {
         const [rooms] = await pool.execute(`
             SELECT r.*, 
-            (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND (b.status = 'approved' OR b.payment_status = 'paid')) as app_occupancy
+            (SELECT COUNT(*) FROM bookings b WHERE b.room_id = r.id AND (b.status = 'approved' OR (b.payment_status = 'paid' AND b.status NOT IN ('cancelled', 'rejected', 'completed', 'expired')))) as app_occupancy
             FROM rooms r
         `);
 

@@ -8,6 +8,8 @@ const EMAIL_SUPPORT = process.env.EMAIL_SUPPORT || EMAIL_FROM;
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_TLS_REJECT_UNAUTHORIZED = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
 
+const BASE_APP_URL = process.env.APP_URL || 'https://testhive-zeta.vercel.app';
+
 const FROM_ADDRESS = (EMAIL_USER && EMAIL_FROM && EMAIL_FROM.toLowerCase() !== EMAIL_USER.toLowerCase())
     ? EMAIL_USER
     : EMAIL_FROM;
@@ -45,7 +47,7 @@ if (!process.env.BREVO_API_KEY) {
             console.error('[EMAIL] Error message:', error?.message || error);
             console.error('[EMAIL] Error code:', error?.code);
             console.error('[EMAIL] Error command:', error?.command);
-            console.error('[EMAIL] Note: If you are hosted on Render free tier, SMTP ports are blocked. Please configure BREVO_API_KEY to use the HTTP API fallback.');
+            console.error('[EMAIL] Note: If SMTP ports are blocked, configure BREVO_API_KEY to use the HTTP API fallback.');
         });
 } else {
     console.log('[EMAIL] BREVO_API_KEY detected. Bypassing SMTP transporter verification.');
@@ -196,7 +198,7 @@ async function sendMail(options) {
         }
     }
 
-    // Fallback to Nodemailer for local testing or custom SMTP providers (like SMTP2GO on port 2525)
+    // Fallback to Nodemailer for local testing or custom SMTP providers
     if (!EMAIL_USER || !EMAIL_PASS) {
         console.log('[EMAIL] Email delivery skipped because credentials/API keys are not configured.');
         return false;
@@ -222,58 +224,106 @@ async function sendMail(options) {
     }
 }
 
-
 /**
  * Send welcome email to new user
  */
 async function sendWelcomeEmail(email, full_name, user_id) {
-    const subject = 'Welcome to UniHive — Your Verified Student Housing Journey Starts Here';
-    const text = `Hi ${full_name},\n\nWelcome to UniHive! Your student account is active.\n\nAccount ID: ${user_id}\n\nYou can now browse verified hostels near your university, connect with roommates, and book rooms with zero landlord scams.\n\nVisit: https://unihive-9k0l.onrender.com/dashboard\n\nBest regards,\nUniHive Team`;
+    const firstName = (full_name && full_name.split(' ')[0]) || 'Student';
+    const subject = `Welcome to UniHive, ${firstName}! Your Verified Student Account is Ready 🎓`;
+    const text = `Hi ${full_name},\n\nWelcome to UniHive! Your student account is active.\n\nAccount ID: ${user_id}\nRegistered Email: ${email}\n\nYou can now browse verified hostels near your university, connect with roommates, and book rooms with zero landlord scams.\n\nVisit: ${BASE_APP_URL}/dashboard\n\nBest regards,\nUniHive Team`;
     
     const html = buildHtmlEmail(
-        'Welcome to UniHive, ' + (full_name.split(' ')[0] || 'Student') + '! 🎓',
-        `We are thrilled to welcome you to <strong>UniHive</strong> — Ghana's most trusted student accommodation platform. Your account is verified and ready.`,
-        `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 24px; margin-bottom: 28px;">
+        `Welcome to UniHive, ${firstName}! 🎓`,
+        `We are thrilled to welcome you to <strong>UniHive</strong> — Ghana's most trusted, verified student accommodation platform. Your account is fully active and ready to use.`,
+        `<!-- Student ID Badge Banner -->
+          <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 20px; padding: 24px 28px; margin-bottom: 28px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15); border: 1px solid #334155;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">
-                  <span style="color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase;">Your Student ID</span>
-                  <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: 800; color: #0f172a; font-family: monospace;">${user_id}</p>
+                <td style="vertical-align: middle;">
+                  <span style="color: #fbbf24; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 4px;">Verified Student Member</span>
+                  <h3 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">${full_name}</h3>
+                  <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 13px;">${email}</p>
                 </td>
-              </tr>
-              <tr>
-                <td style="padding-top: 16px;">
-                  <p style="margin: 0 0 12px 0; color: #0f172a; font-size: 14px; font-weight: 700;">What you can do right now:</p>
-                  <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td width="28" style="vertical-align: top; padding-bottom: 8px;">✅</td>
-                      <td style="color: #475569; font-size: 14px; padding-bottom: 8px;">Explore 100% verified hostels near your university</td>
-                    </tr>
-                    <tr>
-                      <td width="28" style="vertical-align: top; padding-bottom: 8px;">✅</td>
-                      <td style="color: #475569; font-size: 14px; padding-bottom: 8px;">Reserve your room securely using Mobile Money or Card</td>
-                    </tr>
-                    <tr>
-                      <td width="28" style="vertical-align: top; padding-bottom: 8px;">✅</td>
-                      <td style="color: #475569; font-size: 14px; padding-bottom: 8px;">Chat directly with hostel managers on WhatsApp</td>
-                    </tr>
-                    <tr>
-                      <td width="28" style="vertical-align: top;">✅</td>
-                      <td style="color: #475569; font-size: 14px;">Find compatible roommates with lifestyle compatibility scores</td>
-                    </tr>
-                  </table>
+                <td align="right" style="vertical-align: middle;">
+                  <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 14px; padding: 10px 16px; display: inline-block; text-align: center;">
+                    <span style="color: #94a3b8; font-size: 10px; font-weight: 700; text-transform: uppercase; display: block;">Student ID</span>
+                    <span style="color: #f59e0b; font-size: 18px; font-weight: 900; font-family: monospace;">#${user_id}</span>
+                  </div>
                 </td>
               </tr>
             </table>
           </div>
 
-          <div style="text-align: center; margin: 32px 0 16px 0;">
-            <a href="https://unihive-9k0l.onrender.com/hostels?university=all" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; padding: 15px 36px; text-decoration: none; border-radius: 14px; font-weight: 800; display: inline-block; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35); font-size: 15px; letter-spacing: 0.2px;">
-              Explore Verified Hostels →
-            </a>
+          <!-- Feature Cards -->
+          <p style="margin: 0 0 14px 0; color: #0f172a; font-size: 15px; font-weight: 800;">Here is how UniHive protects &amp; empowers your campus life:</p>
+          
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+            <tr>
+              <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; display: block; margin-bottom: 10px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="36" style="vertical-align: top; font-size: 22px;">🏢</td>
+                    <td style="vertical-align: top; padding-left: 10px;">
+                      <strong style="color: #0f172a; font-size: 14px; display: block; margin-bottom: 2px;">100% Physically Verified Hostels</strong>
+                      <span style="color: #64748b; font-size: 13px; line-height: 1.4;">Accurate room photos, live prices, direct manager WhatsApp contacts, and verified campus walking distance.</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="height: 10px;"></td>
+            </tr>
+            <tr>
+              <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; display: block; margin-bottom: 10px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="36" style="vertical-align: top; font-size: 22px;">👥</td>
+                    <td style="vertical-align: top; padding-left: 10px;">
+                      <strong style="color: #0f172a; font-size: 14px; display: block; margin-bottom: 2px;">Smart Roommate Matching</strong>
+                      <span style="color: #64748b; font-size: 13px; line-height: 1.4;">Match with fellow students based on lifestyle compatibility, sleep schedule, study habits, and campus major.</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="height: 10px;"></td>
+            </tr>
+            <tr>
+              <td style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 18px; display: block;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="36" style="vertical-align: top; font-size: 22px;">🔒</td>
+                    <td style="vertical-align: top; padding-left: 10px;">
+                      <strong style="color: #0f172a; font-size: 14px; display: block; margin-bottom: 2px;">Scam-Free Payments &amp; Auth Passcodes</strong>
+                      <span style="color: #64748b; font-size: 13px; line-height: 1.4;">Your reservation is secured instantly via Mobile Money/Card and confirmed with a unique tamper-proof check-in code.</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Action Buttons -->
+          <div style="text-align: center; margin: 32px 0 20px 0;">
+            <table align="center" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding: 0 6px;">
+                  <a href="${BASE_APP_URL}/hostels?university=all" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; padding: 15px 32px; text-decoration: none; border-radius: 14px; font-weight: 800; display: inline-block; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35); font-size: 14px; letter-spacing: 0.2px;">
+                    Browse Verified Hostels →
+                  </a>
+                </td>
+                <td style="padding: 0 6px;">
+                  <a href="${BASE_APP_URL}/roommate-finder" style="background: #0f172a; color: #ffffff; padding: 15px 26px; text-decoration: none; border-radius: 14px; font-weight: 700; display: inline-block; font-size: 14px;">
+                    Find Roommates
+                  </a>
+                </td>
+              </tr>
+            </table>
           </div>`,
-        'Need anything? Simply reply directly to this email or reach our student concierge on WhatsApp.',
-        'WELCOME ABOARD'
+        'Have questions or need help finding a hostel? Simply reply directly to this email or reach our student concierge on WhatsApp.',
+        'ACCOUNT ACTIVATED'
     );
 
     return sendMail({ to: email, subject, text, html });
@@ -326,7 +376,7 @@ async function sendBookingEmail(email, full_name, booking_id, room_number, hoste
           </div>
 
           <div style="text-align: center; margin: 28px 0 12px 0;">
-            <a href="https://unihive-9k0l.onrender.com/dashboard" style="background: #0f172a; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; display: inline-block; font-size: 14px;">
+            <a href="${BASE_APP_URL}/dashboard" style="background: #0f172a; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; display: inline-block; font-size: 14px;">
               View in Student Dashboard →
             </a>
           </div>`,
