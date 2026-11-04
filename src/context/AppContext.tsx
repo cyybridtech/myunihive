@@ -72,6 +72,18 @@ function mapBooking(b: any): Booking {
     roomNumber: b.roomNumber || b.room_number || undefined,
     roomType: b.room_type || b.roomType || undefined,
     hostelName: b.hostel_name || b.hostelName || undefined,
+    userEmail: b.user_email || b.userEmail || undefined,
+    userPhone: b.user_phone || b.userPhone || undefined,
+    userAvatar: b.user_avatar || b.userAvatar || undefined,
+    universityName: b.university_name || b.universityName || undefined,
+    studentIdNumber: b.student_id_number || b.studentIdNumber || undefined,
+    level: b.level || undefined,
+    programOfStudy: b.program_of_study || b.programOfStudy || undefined,
+    emergencyContactName: b.emergency_contact_name || b.emergencyContactName || undefined,
+    emergencyContactPhone: b.emergency_contact_phone || b.emergencyContactPhone || undefined,
+    emergencyContactRelation: b.emergency_contact_relation || b.emergencyContactRelation || undefined,
+    expectedCheckInDate: b.expected_check_in_date || b.expectedCheckInDate || undefined,
+    specialRequests: b.special_requests || b.specialRequests || undefined,
   };
 }
 

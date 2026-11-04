@@ -40,6 +40,7 @@ const { pushHandler } = require('./api/push');
 const bookingsHandler = require('./api/bookings');
 const getAllBookingsHandler = require('./api/getAllBookings');
 const getUserBookingsHandler = require('./api/getUserBookings');
+const updateBookingDetailsHandler = require('./api/updateBookingDetails');
 const approveBookingHandler = require('./api/approveBooking');
 const verifyPaymentHandler = require('./api/verifyPayment');
 const updateRoomStatusHandler = require('./api/updateRoomStatus');
@@ -189,6 +190,7 @@ app.post('/api/bookings', wrapHandler(bookingsHandler));
 app.get('/api/getAllBookings', wrapHandler(getAllBookingsHandler));
 app.get('/api/getUserBookings', wrapHandler(getUserBookingsHandler));
 app.post('/api/getUserBookings', wrapHandler(getUserBookingsHandler));
+app.post('/api/updateBookingDetails', wrapHandler(updateBookingDetailsHandler));
 
 // Approve Booking
 app.post('/api/approveBooking', wrapHandler(approveBookingHandler));

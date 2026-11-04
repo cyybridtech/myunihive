@@ -87,6 +87,24 @@ async function initSchema() {
         try {
             await p.execute("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending','approved','completed','cancelled','expired','rejected') DEFAULT 'pending'");
         } catch(e) { console.warn('Could not modify bookings status enum:', e.message); }
+
+        // Resident intake & emergency contact columns on bookings
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS student_id_number VARCHAR(50) DEFAULT NULL");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS level VARCHAR(20) DEFAULT NULL");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS program_of_study VARCHAR(100) DEFAULT NULL");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS emergency_contact_name VARCHAR(100) DEFAULT NULL");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(30) DEFAULT NULL");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS emergency_contact_relation VARCHAR(50) DEFAULT NULL");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS expected_check_in_date DATE DEFAULT NULL");
+        await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS special_requests TEXT DEFAULT NULL");
+
+        // Resident profile defaults on users
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS student_id_number VARCHAR(50) DEFAULT NULL");
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS level VARCHAR(20) DEFAULT NULL");
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS program_of_study VARCHAR(100) DEFAULT NULL");
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_name VARCHAR(100) DEFAULT NULL");
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(30) DEFAULT NULL");
+        await p.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_relation VARCHAR(50) DEFAULT NULL");
         await p.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE");
 
         // Saved cards for one-click re-charge

@@ -18,7 +18,8 @@ export declare const forgotPassword: (email: string) => Promise<any>;
 export declare const resetPassword: (email: string, otp: string, newPassword: string) => Promise<any>;
 export declare const logoutUser: () => Promise<any>;
 
-export declare const createBooking: (roomId: string, hostelId: string, bookingDate: string) => Promise<any>;
+export declare const createBooking: (roomId: string, hostelId: string, bookingDate: string, extraDetails?: any) => Promise<any>;
+export declare const updateBookingDetails: (bookingId: string | number, details: any) => Promise<any>;
 export declare const getUserBookings: () => Promise<any>;
 export declare const getAllBookings: () => Promise<any>;
 export declare const deleteBooking: (bookingId: string | number) => Promise<any>;

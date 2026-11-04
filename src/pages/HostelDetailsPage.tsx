@@ -912,7 +912,7 @@ export default function HostelDetailsPage() {
                   <CheckCircle className="w-8 h-8 text-green-500" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Booking Submitted!</h3>
-                <p className="text-gray-500 text-sm mb-6">Your booking request has been submitted. If you closed the payment window, please pay the rent from your dashboard to secure your room.</p>
+                <p className="text-gray-500 text-sm mb-6">Your booking has been registered. You can fill or update your resident check-in info (Student ID &amp; Emergency Contact) on your dashboard anytime.</p>
                 <div className="flex gap-3">
                   <button onClick={() => { setShowBookingModal(false); setBookingSuccess(false); }} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">Close</button>
                   <button onClick={() => navigate('/dashboard')} className="flex-1 py-3 bg-amber-500 rounded-xl text-sm font-bold text-white hover:bg-amber-600">Go to Dashboard</button>

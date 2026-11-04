@@ -283,7 +283,7 @@ export const deleteUniversity = async (universityId) => {
 
 // ============ BOOKING APIS ============
 
-export const createBooking = async (roomId, hostelId, bookingDate) => {
+export const createBooking = async (roomId, hostelId, bookingDate, extraDetails = {}) => {
   if (!roomId || !hostelId) {
     throw new Error('Booking requires a selected room and hostel.');
   }
@@ -299,7 +299,16 @@ export const createBooking = async (roomId, hostelId, bookingDate) => {
       room_id: String(roomId),
       hostel_id: String(hostelId),
       booking_date: normalizedBookingDate,
+      ...extraDetails,
     }),
+  });
+};
+
+export const updateBookingDetails = async (bookingId, details) => {
+  return fetchJson(`${BASE_URL}/updateBookingDetails`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ booking_id: bookingId, ...details }),
   });
 };
 

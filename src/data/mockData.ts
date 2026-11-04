@@ -66,6 +66,18 @@ export interface Booking {
   roomNumber?: string;
   roomType?: string;
   hostelName?: string;
+  userEmail?: string;
+  userPhone?: string;
+  userAvatar?: string;
+  universityName?: string;
+  studentIdNumber?: string;
+  level?: string;
+  programOfStudy?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelation?: string;
+  expectedCheckInDate?: string;
+  specialRequests?: string;
 }
 
 export interface Review {

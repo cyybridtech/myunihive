@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock, Users, Sparkles, Star, MapPin, Trash2, ExternalLink, Download } from 'lucide-react';
+import { User, CheckCircle, XCircle, Calendar, CreditCard, Bell, Heart, Clock, Users, Sparkles, Star, MapPin, Trash2, ExternalLink, Download, GraduationCap, Phone, ShieldCheck, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { verifyPayment, subscribeToPush, getSavedCard, chargeCard } from '../api/api.js';
+import { verifyPayment, subscribeToPush, getSavedCard, chargeCard, updateBookingDetails } from '../api/api.js';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
 const VAPID_PUBLIC_KEY = 'BEE90AIGS9HcdCmGywp5CXHdNlELSVjR93xMop7gQbKP34yjYCKnS1MKa7HVTemmxvKmloDdDvxNSU31NBJ3S3s';
@@ -28,6 +28,54 @@ export default function StudentDashboard() {
   const [pushEnabled, setPushEnabled] = useState(Notification.permission === 'granted');
   const [savedCard, setSavedCard] = useState<{ card_type: string; last4: string; exp_month: string; exp_year: string } | null | undefined>(undefined);
   const [isChargingCard, setIsChargingCard] = useState<string | null>(null);
+
+  // Resident Intake Modal State
+  const [residentModalBooking, setResidentModalBooking] = useState<any | null>(null);
+  const [residentFormData, setResidentFormData] = useState({
+    studentIdNumber: '',
+    level: '100',
+    programOfStudy: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyContactRelation: 'Parent',
+    expectedCheckInDate: '',
+    specialRequests: ''
+  });
+  const [isSavingResident, setIsSavingResident] = useState(false);
+
+  const handleOpenResidentModal = (booking: any) => {
+    setResidentModalBooking(booking);
+    setResidentFormData({
+      studentIdNumber: booking.studentIdNumber || (user as any)?.student_id_number || '',
+      level: booking.level || (user as any)?.level || '100',
+      programOfStudy: booking.programOfStudy || (user as any)?.program_of_study || '',
+      emergencyContactName: booking.emergencyContactName || (user as any)?.emergency_contact_name || '',
+      emergencyContactPhone: booking.emergencyContactPhone || (user as any)?.emergency_contact_phone || '',
+      emergencyContactRelation: booking.emergencyContactRelation || (user as any)?.emergency_contact_relation || 'Parent',
+      expectedCheckInDate: booking.expectedCheckInDate ? String(booking.expectedCheckInDate).split('T')[0] : '',
+      specialRequests: booking.specialRequests || ''
+    });
+  };
+
+  const handleSaveResidentDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!residentModalBooking) return;
+    setIsSavingResident(true);
+    try {
+      const res: any = await updateBookingDetails(residentModalBooking.id, residentFormData);
+      if (res.status === 'success') {
+        alert('Resident check-in details saved and shared with your hostel manager! 🎉');
+        setResidentModalBooking(null);
+        refreshBookings();
+      } else {
+        alert(res.message || 'Failed to save resident details');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error saving resident details');
+    } finally {
+      setIsSavingResident(false);
+    }
+  };
 
   useEffect(() => {
     refreshBookings();
@@ -337,28 +385,71 @@ export default function StudentDashboard() {
                 const hostel = hostels.find(h => h.id === booking.hostelId);
                 const room = rooms.find(r => r.id === booking.roomId);
                 return (
-                  <div key={booking.id} className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col sm:flex-row sm:justify-between shadow-sm gap-4">
-                    <div>
-                      <h3 className="font-bold text-gray-900">{hostel?.name || 'Unknown Hostel'}</h3>
-                      <p className="text-sm text-gray-500">Booking ID: #{booking.id.slice(-6)}</p>
-                      <p className="text-sm text-gray-500 mt-2">Room {room?.roomNumber || booking.roomNumber || 'N/A'} • {room?.type || booking.roomType || 'Standard'}</p>
+                  <div key={booking.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:border-gray-200 transition-all flex flex-col sm:flex-row sm:justify-between gap-6">
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-lg font-extrabold text-gray-900">{hostel?.name || 'Unknown Hostel'}</h3>
+                          <span className="text-xs text-gray-400 font-mono">#{booking.id.slice(-6)}</span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          Room <span className="font-bold text-gray-800">{room?.roomNumber || booking.roomNumber || 'N/A'}</span> • {room?.type || booking.roomType || 'Standard'}
+                        </p>
+                      </div>
+
                       {booking.authCode && (
-                        <p className="text-sm text-amber-700 mt-2">Your check-in code: <span className="font-semibold">{booking.authCode}</span></p>
+                        <div className="bg-amber-50 border border-amber-200/70 rounded-xl px-3.5 py-2 inline-block">
+                          <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Official Check-in Passcode</span>
+                          <span className="font-mono text-base font-black text-amber-950 tracking-wider">{booking.authCode}</span>
+                          <span className="text-[11px] text-amber-700 block mt-0.5">Show this to the hostel manager when checking in.</span>
+                        </div>
                       )}
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium mt-3 ${statusColor(booking.status)}`}>
-                        {statusIcon(booking.status)} {booking.status.toUpperCase()}
-                      </span>
+
+                      <div className="flex items-center gap-2 flex-wrap pt-1">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${statusColor(booking.status)}`}>
+                          {statusIcon(booking.status)} {booking.status.toUpperCase()}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${statusColor(booking.paymentStatus)}`}>
+                          {booking.paymentStatus.toUpperCase()}
+                        </span>
+                        
+                        {/* Resident KYC status badge */}
+                        {booking.emergencyContactPhone ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Resident Info On File
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            ⚠️ Complete Check-in Info
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-gray-900 mb-2">GH₵{booking.totalPrice}</p>
-                      <div className="flex flex-col gap-2">
+
+                    <div className="flex flex-col sm:items-end justify-between gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 shrink-0">
+                      <div>
+                        <span className="text-xs text-gray-400 block sm:text-right">Total Rent</span>
+                        <p className="text-2xl font-black text-gray-900 sm:text-right">GH₵{booking.totalPrice}</p>
+                      </div>
+
+                      <div className="flex flex-col gap-2 w-full sm:w-auto">
+                        {/* Resident Info button */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenResidentModal(booking)}
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <GraduationCap className="w-4 h-4 text-amber-600" />
+                          {booking.emergencyContactPhone ? 'Edit Check-In Details' : 'Fill Check-In Details'}
+                        </button>
+
                         {booking.paymentStatus === 'unpaid' && (
-                          <button onClick={() => handlePayBooking(booking, hostel)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                            Pay Now
+                          <button onClick={() => handlePayBooking(booking, hostel)} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition-all cursor-pointer">
+                            Pay Now with MoMo / Card
                           </button>
                         )}
                         {booking.paymentStatus === 'unpaid' && booking.status === 'pending' && (
-                          <button onClick={() => handleCancelBooking(booking)} className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors">
+                          <button onClick={() => handleCancelBooking(booking)} className="bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-gray-50 transition-colors cursor-pointer">
                             Cancel Booking
                           </button>
                         )}
@@ -623,6 +714,168 @@ export default function StudentDashboard() {
         )}
 
       </div>
+{/* RESIDENT INTAKE & CHECK-IN MODAL */}
+      {residentModalBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 relative my-8 border border-gray-100">
+            <button
+              onClick={() => setResidentModalBooking(null)}
+              className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900">Resident Check-In Registration</h3>
+                <p className="text-xs text-gray-500">Shared directly with your hostel manager for key handover & records.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveResidentDetails} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1">
+                    Student ID / Index No. *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={residentFormData.studentIdNumber}
+                    onChange={e => setResidentFormData({ ...residentFormData, studentIdNumber: e.target.value })}
+                    placeholder="e.g. 10982341"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1">
+                    Academic Level *
+                  </label>
+                  <select
+                    value={residentFormData.level}
+                    onChange={e => setResidentFormData({ ...residentFormData, level: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                  >
+                    <option value="100">Level 100 (Freshman)</option>
+                    <option value="200">Level 200 (Sophomore)</option>
+                    <option value="300">Level 300 (Junior)</option>
+                    <option value="400">Level 400 (Senior)</option>
+                    <option value="Postgraduate">Postgraduate / Masters</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1">
+                  Program / Course of Study *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={residentFormData.programOfStudy}
+                  onChange={e => setResidentFormData({ ...residentFormData, programOfStudy: e.target.value })}
+                  placeholder="e.g. BSc Computer Science, BA Economics"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-gray-100">
+                <span className="text-xs font-extrabold text-amber-900 uppercase tracking-wider block mb-2.5">
+                  Emergency Contact (Parent / Guardian)
+                </span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Contact Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={residentFormData.emergencyContactName}
+                      onChange={e => setResidentFormData({ ...residentFormData, emergencyContactName: e.target.value })}
+                      placeholder="e.g. Mr. Emmanuel Mensah"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Relationship *</label>
+                    <select
+                      value={residentFormData.emergencyContactRelation}
+                      onChange={e => setResidentFormData({ ...residentFormData, emergencyContactRelation: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                    >
+                      <option value="Parent">Parent</option>
+                      <option value="Guardian">Guardian</option>
+                      <option value="Sibling">Brother / Sister</option>
+                      <option value="Other">Other Relative</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-1">Emergency Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={residentFormData.emergencyContactPhone}
+                    onChange={e => setResidentFormData({ ...residentFormData, emergencyContactPhone: e.target.value })}
+                    placeholder="e.g. 0244123456"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1">
+                    Expected Arrival Date
+                  </label>
+                  <input
+                    type="date"
+                    value={residentFormData.expectedCheckInDate}
+                    onChange={e => setResidentFormData({ ...residentFormData, expectedCheckInDate: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1">
+                    Special Requests / Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={residentFormData.specialRequests}
+                    onChange={e => setResidentFormData({ ...residentFormData, specialRequests: e.target.value })}
+                    placeholder="e.g. Arriving late afternoon"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setResidentModalBooking(null)}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingResident}
+                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-extrabold shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {isSavingResident ? 'Saving Details...' : 'Save & Share with Manager'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

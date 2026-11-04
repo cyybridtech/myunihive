@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell, Pencil, Trash2, X, TrendingUp, Clock, ArrowUpRight, Landmark, CreditCard } from 'lucide-react';
+import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell, Pencil, Trash2, X, TrendingUp, Clock, ArrowUpRight, Landmark, CreditCard, Download, Phone, MessageSquare, User, Mail, GraduationCap, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking, updateRoom as updateRoomApi, updateHostel as updateHostelApi, getPayoutStats } from '../api/api.js';
@@ -236,12 +236,93 @@ export default function ManagerDashboard() {
     return (
       booking.authCode?.toLowerCase().includes(query) ||
       booking.userName?.toLowerCase().includes(query) ||
+      booking.userPhone?.toLowerCase().includes(query) ||
+      booking.userEmail?.toLowerCase().includes(query) ||
+      booking.studentIdNumber?.toLowerCase().includes(query) ||
       booking.userGender?.toLowerCase().includes(query) ||
       booking.roomNumber?.toLowerCase().includes(query) ||
       room?.roomNumber?.toLowerCase().includes(query) ||
       hostel?.name.toLowerCase().includes(query)
     );
   });
+
+  const handleExportCSV = () => {
+    if (visibleBookings.length === 0) {
+      alert('No bookings to export.');
+      return;
+    }
+
+    const headers = [
+      'Booking ID',
+      'Hostel Name',
+      'Room Number',
+      'Room Type',
+      'Student Full Name',
+      'Gender',
+      'Phone Number',
+      'Email',
+      'University',
+      'Student ID / Index No.',
+      'Academic Level',
+      'Program of Study',
+      'Total Rent (GHS)',
+      'Payment Status',
+      'Booking Status',
+      'Check-in Code',
+      'Emergency Contact Name',
+      'Emergency Contact Phone',
+      'Emergency Contact Relation',
+      'Expected Check-in Date',
+      'Special Requests',
+      'Booking Date'
+    ];
+
+    const escapeCsv = (val: any) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = visibleBookings.map(b => {
+      const hostel = hostels.find(h => String(h.id) === String(b.hostelId));
+      const room = rooms.find(r => String(r.id) === String(b.roomId));
+      return [
+        b.id,
+        hostel?.name || b.hostelName || '',
+        room?.roomNumber || b.roomNumber || '',
+        room?.type || b.roomType || '',
+        b.userName || '',
+        b.userGender || '',
+        b.userPhone || '',
+        b.userEmail || '',
+        b.universityName || '',
+        b.studentIdNumber || '',
+        b.level || '',
+        b.programOfStudy || '',
+        b.totalPrice || b.reservationFee || 0,
+        b.paymentStatus || '',
+        b.status || '',
+        b.authCode || '',
+        b.emergencyContactName || '',
+        b.emergencyContactPhone || '',
+        b.emergencyContactRelation || '',
+        b.expectedCheckInDate || '',
+        b.specialRequests || '',
+        b.bookingDate || ''
+      ].map(escapeCsv).join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    const hostelNameSlug = (managerHostels[0]?.name || 'Hostel').replace(/\s+/g, '_');
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `UniHive_Resident_Roster_${hostelNameSlug}_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const tabs: { id: ManagerTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
@@ -664,7 +745,20 @@ export default function ManagerDashboard() {
 
         {activeTab === 'bookings' && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Bookings for your hostel(s)</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Bookings & Resident Roster</h2>
+                <p className="text-xs text-gray-500 mt-0.5">View student resident details, emergency contacts, and export to your database or Excel.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all shrink-0 cursor-pointer"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Export Resident Roster (CSV)
+              </button>
+            </div>
             <div className="mb-6 max-w-xl">
               <label htmlFor="bookingSearch" className="text-sm font-medium text-gray-700 mb-2 block">Search by student name, room or confirmation code</label>
               <div className="relative">
@@ -690,38 +784,144 @@ export default function ManagerDashboard() {
                   const hostel = hostels.find(h => h.id === booking.hostelId);
                   const room = rooms.find(r => r.id === booking.roomId);
                   return (
-                    <div key={booking.id} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">Booking #{booking.id}</p>
-                          <p className="text-sm text-gray-500">{hostel?.name} • Room {room?.roomNumber || booking.roomNumber} ({room?.type || booking.roomType})</p>
-                          <p className="text-sm text-gray-500 mt-1">Student: {booking.userName || 'Unknown'} • {booking.userGender ? booking.userGender.charAt(0).toUpperCase() + booking.userGender.slice(1) : 'N/A'}</p>
-                          {booking.authCode && (
-                            <p className="text-sm text-amber-700 mt-2">Confirmation code: <span className="font-semibold">{booking.authCode}</span></p>
+                    <div key={booking.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:border-gray-200 transition-all">
+                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                        
+                        {/* Student Main & Contact Info */}
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-start gap-3.5">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black text-lg shrink-0 border border-amber-200/60">
+                              {booking.userName ? booking.userName[0].toUpperCase() : 'S'}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-extrabold text-gray-900 text-base">{booking.userName || 'Student'}</h3>
+                                {booking.userGender && (
+                                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">
+                                    {booking.userGender}
+                                  </span>
+                                )}
+                                <span className="text-xs text-gray-400 font-mono">#{booking.id.slice(-6)}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {hostel?.name || booking.hostelName} • <span className="font-semibold text-gray-800">Room {room?.roomNumber || booking.roomNumber}</span> ({room?.type || booking.roomType})
+                              </p>
+                              {booking.universityName && (
+                                <p className="text-xs text-amber-700 font-medium flex items-center gap-1 mt-1">
+                                  <GraduationCap className="w-3.5 h-3.5" /> {booking.universityName}
+                                  {booking.level && <span>• Level {booking.level}</span>}
+                                  {booking.programOfStudy && <span>• {booking.programOfStudy}</span>}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Student Details Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2 border-t border-gray-50 text-xs">
+                            {/* Direct Contact */}
+                            <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100 space-y-1">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Student Contact</span>
+                              {booking.userPhone ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <a
+                                    href={`tel:${booking.userPhone}`}
+                                    className="font-bold text-gray-800 hover:text-amber-600 flex items-center gap-1"
+                                  >
+                                    <Phone className="w-3 h-3 text-amber-500" /> {booking.userPhone}
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${booking.userPhone.replace(/\D/g, '').replace(/^0/, '233')}?text=${encodeURIComponent(`Hello ${booking.userName || ''}, this is the manager of ${hostel?.name || ''} regarding your UniHive booking for Room ${room?.roomNumber || booking.roomNumber || ''}.`)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-2 py-0.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-[10px] font-bold inline-flex items-center gap-1"
+                                  >
+                                    WhatsApp
+                                  </a>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">Phone not provided</span>
+                              )}
+                              {booking.userEmail && (
+                                <p className="text-[11px] text-gray-500 truncate">{booking.userEmail}</p>
+                              )}
+                            </div>
+
+                            {/* Academic KYC */}
+                            <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100 space-y-1">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Student Identification</span>
+                              <p className="font-semibold text-gray-800">
+                                ID: {booking.studentIdNumber || 'Pending check-in'}
+                              </p>
+                              <p className="text-[11px] text-gray-500">
+                                Expected: {booking.expectedCheckInDate || 'Start of term'}
+                              </p>
+                            </div>
+
+                            {/* Emergency Contact */}
+                            <div className="bg-gray-50/80 p-2.5 rounded-xl border border-gray-100 space-y-1 sm:col-span-2 md:col-span-1">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Emergency Contact</span>
+                              {booking.emergencyContactName ? (
+                                <div>
+                                  <p className="font-semibold text-gray-800 truncate">
+                                    {booking.emergencyContactName} {booking.emergencyContactRelation ? `(${booking.emergencyContactRelation})` : ''}
+                                  </p>
+                                  {booking.emergencyContactPhone && (
+                                    <a href={`tel:${booking.emergencyContactPhone}`} className="text-amber-600 hover:underline flex items-center gap-1 font-mono text-[11px]">
+                                      <Phone className="w-2.5 h-2.5" /> {booking.emergencyContactPhone}
+                                    </a>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">Not provided yet</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {booking.specialRequests && (
+                            <div className="text-xs text-gray-600 bg-amber-50/60 border border-amber-100 rounded-xl p-2.5">
+                              <strong className="text-amber-900">Student Note / Request:</strong> {booking.specialRequests}
+                            </div>
                           )}
                         </div>
-                        <div className="flex flex-col items-start sm:items-end gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusColor(booking.status)}`}>{booking.status}</span>
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusColor(booking.paymentStatus)}`}>{booking.paymentStatus}</span>
+
+                        {/* Status, Pricing & Action */}
+                        <div className="flex flex-col items-start lg:items-end justify-between gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-100 min-w-[200px]">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusColor(booking.status)}`}>{booking.status.toUpperCase()}</span>
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusColor(booking.paymentStatus)}`}>{booking.paymentStatus.toUpperCase()}</span>
                           </div>
-                          <p className="text-sm text-gray-600">Reservation fee: GH₵{booking.reservationFee}</p>
+
+                          <div className="text-left lg:text-right">
+                            <span className="text-[11px] text-gray-400 block">Total Rent</span>
+                            <span className="text-xl font-black text-gray-900">GH₵{booking.totalPrice || booking.reservationFee}</span>
+                          </div>
+
+                          {booking.authCode && (
+                            <div className="text-left lg:text-right bg-amber-50/80 border border-amber-200/60 rounded-xl px-3 py-1.5">
+                              <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Check-in Code</span>
+                              <span className="font-mono text-sm font-black text-amber-950 tracking-wider">{booking.authCode}</span>
+                            </div>
+                          )}
+
                           {booking.status === 'approved' && booking.authCode && booking.paymentStatus === 'paid' && (
                             <button
                               onClick={() => handleConfirmCode(booking)}
                               disabled={isConfirmingBooking}
-                              className="px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-60"
+                              className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 disabled:opacity-60 shadow-md shadow-amber-500/20 cursor-pointer"
                             >
-                              {isConfirmingBooking ? 'Confirming...' : 'Confirm arrival'}
+                              {isConfirmingBooking ? 'Confirming...' : 'Confirm Arrival & Keys'}
                             </button>
                           )}
                           {booking.status === 'completed' && (
-                            <span className="text-sm font-semibold text-green-700">Arrival confirmed</span>
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
+                              ✓ Resident Checked In
+                            </span>
                           )}
                           {booking.status === 'pending' && (
-                            <p className="text-sm text-amber-700">Pending approval from admin.</p>
+                            <p className="text-xs text-amber-700 font-medium">Awaiting payment / approval</p>
                           )}
                         </div>
+
                       </div>
                     </div>
                   );
