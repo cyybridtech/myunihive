@@ -53,6 +53,36 @@ export default function ProfilePage() {
     }
   };
 
+  const formatGhanaCard = (input: string): string => {
+    let raw = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!raw) return '';
+
+    if (raw.startsWith('GHA')) {
+      raw = raw.slice(3);
+    } else if (raw.startsWith('GH')) {
+      raw = raw.slice(2);
+    } else if (raw.startsWith('G')) {
+      raw = raw.slice(1);
+    }
+
+    const digits = raw.replace(/[^0-9]/g, '').slice(0, 10);
+    if (!digits) return 'GHA-';
+
+    if (digits.length <= 9) {
+      return `GHA-${digits}`;
+    }
+    return `GHA-${digits.slice(0, 9)}-${digits.slice(9, 10)}`;
+  };
+
+  const handleGhanaCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (!val || val === 'GHA' || val === 'GHA-') {
+      setGhanaCard('');
+      return;
+    }
+    setGhanaCard(formatGhanaCard(val));
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileSuccess('');
@@ -89,8 +119,10 @@ export default function ProfilePage() {
           ghana_card_number: payload.ghana_card_number,
           avatar: payload.avatar,
         });
-        setProfileSuccess('Profile information saved successfully!');
-        setTimeout(() => setProfileSuccess(''), 4000);
+        setProfileSuccess('Profile updated successfully! Closing...');
+        setTimeout(() => {
+          navigate(-1);
+        }, 1200);
       } else {
         setProfileError(response.message || 'Failed to update profile');
       }
@@ -344,44 +376,41 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-                      Ghana Card Number
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Ghana Card Number (NIA)
+                      </label>
+                      {ghanaCard && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          /^GHA-\d{9}-\d$/.test(ghanaCard) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {/^GHA-\d{9}-\d$/.test(ghanaCard) ? 'Valid NIA Format' : 'GHA-XXXXXXXXX-X'}
+                        </span>
+                      )}
+                    </div>
                     <div className="relative">
                       <CreditCard className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={ghanaCard}
-                        onChange={e => setGhanaCard(e.target.value)}
-                        placeholder="e.g. GHA-123456789-0"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm text-gray-800 font-mono uppercase"
+                        onChange={handleGhanaCardChange}
+                        maxLength={15}
+                        placeholder="GHA-123456789-0"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm text-gray-800 font-mono font-bold tracking-wider uppercase"
                       />
                     </div>
+                    <p className="text-[11px] text-gray-400 mt-1">GHA- prefix and hyphens are formatted automatically as you type numbers.</p>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-                    Profile Avatar URL (Optional)
-                  </label>
-                  <input
-                    type="url"
-                    value={avatar}
-                    onChange={e => setAvatar(e.target.value)}
-                    placeholder="https://example.com/avatar.jpg"
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm text-gray-800"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-1">Or click on your picture above to upload an image directly.</p>
-                </div>
-
-                <div className="pt-3">
+                <div className="pt-2">
                   <button
                     type="submit"
                     disabled={profileLoading}
-                    className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-xl text-sm shadow-md shadow-amber-500/20 transition-all"
+                    className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-xl text-sm shadow-md shadow-amber-500/20 transition-all cursor-pointer"
                   >
                     <Save className="w-4 h-4" />
-                    {profileLoading ? 'Saving changes...' : 'Save Profile Details'}
+                    {profileLoading ? 'Updating Profile...' : 'Update Profile'}
                   </button>
                 </div>
               </form>
