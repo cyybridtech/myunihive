@@ -497,3 +497,12 @@ export const updateUniversity = async (id, uniData) => {
   });
 };
 
+
+
+export const verifyIdentity = async (verificationData) => {
+  return fetchJson(`${BASE_URL}/verify-identity`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(verificationData)
+  });
+};

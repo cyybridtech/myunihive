@@ -11,6 +11,10 @@ interface User {
   gender?: 'male' | 'female';
   avatar?: string;
   ghana_card_number?: string;
+  passport_number?: string;
+  id_type?: 'ghana_card' | 'passport';
+  selfie_photo?: string;
+  verification_status?: 'unverified' | 'pending' | 'verified' | 'rejected';
   created_at?: string;
   verified?: boolean | number;
   token?: string;

@@ -17,7 +17,7 @@ async function userHandler(req, res) {
 
     try {
         const [users] = await pool.execute(
-            'SELECT id, full_name, email, role, avatar, university_id, phone, gender, ghana_card_number, created_at, verified FROM users WHERE id = ?',
+            'SELECT id, full_name, email, role, avatar, university_id, phone, gender, ghana_card_number, passport_number, id_type, selfie_photo, created_at, verified, verification_status FROM users WHERE id = ?',
             [user_id]
         );
 
@@ -52,7 +52,7 @@ async function updateProfileHandler(req, res) {
         return res.status(401).json({ status: 'error', message: 'Authentication required' });
     }
 
-    const { full_name, phone, gender, avatar, university_id, ghana_card_number } = req.body || {};
+    const { full_name, phone, gender, avatar, university_id, ghana_card_number, passport_number, id_type } = req.body || {};
     const pool = getPool();
 
     try {
@@ -68,7 +68,9 @@ async function updateProfileHandler(req, res) {
         }
         if (avatar !== undefined) { updates.push('avatar = ?'); values.push(avatar); }
         if (university_id !== undefined) { updates.push('university_id = ?'); values.push(university_id || null); }
+        if (id_type !== undefined) { updates.push('id_type = ?'); values.push(id_type); }
         if (ghana_card_number !== undefined) { updates.push('ghana_card_number = ?'); values.push(ghana_card_number.trim()); }
+        if (passport_number !== undefined) { updates.push('passport_number = ?'); values.push(passport_number.trim().toUpperCase()); }
 
         if (updates.length === 0) {
             return res.status(400).json({ status: 'error', message: 'No fields provided to update' });
@@ -79,7 +81,7 @@ async function updateProfileHandler(req, res) {
 
         // Fetch updated user to return to client
         const [rows] = await pool.execute(
-            'SELECT id, full_name, email, role, avatar, university_id, phone, gender, ghana_card_number, created_at, verified FROM users WHERE id = ?',
+            'SELECT id, full_name, email, role, avatar, university_id, phone, gender, ghana_card_number, passport_number, id_type, selfie_photo, created_at, verified, verification_status FROM users WHERE id = ?',
             [user_id]
         );
 

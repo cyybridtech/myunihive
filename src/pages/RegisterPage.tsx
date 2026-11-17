@@ -212,7 +212,7 @@ export default function RegisterPage() {
         formData.gender,
         fullOtp
       );
-      setStep('welcome');
+      navigate('/verify-identity');
     } catch (err: any) {
       setError(err.message || 'Registration failed. The code may be incorrect or expired.');
     } finally {

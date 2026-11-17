@@ -60,6 +60,7 @@ const getSavedCardHandler = require('./api/getSavedCard');
 const chargeCardHandler = require('./api/chargeCard');
 const getPayoutStatsHandler = require('./api/getPayoutStats');
 const paystackWebhookHandler = require('./api/paystackWebhook');
+const verifyIdentityHandler = require('./api/verifyIdentity');
 const auth = require('./api/auth');
 const { getPool, initSchema } = require('./api/config');
 
@@ -231,6 +232,7 @@ app.get('/api/user', wrapHandler(userHandler));
 app.post('/api/user', wrapHandler(userHandler));
 app.post('/api/user/update', wrapHandler(updateProfileHandler));
 app.post('/api/user/change-password', wrapHandler(changePasswordHandler));
+app.post('/api/verify-identity', wrapHandler(verifyIdentityHandler));
 app.get('/api/stats', wrapHandler(statsHandler));
 
 // Hostels
