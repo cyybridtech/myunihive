@@ -5,6 +5,7 @@
  */
 
 const { getPool } = require('./config');
+const { getBankNameByCode } = require('./paystackBanks');
 
 async function getPayoutStatsHandler(req, res) {
     const user_id = req.user_id;
@@ -130,6 +131,7 @@ async function getPayoutStatsHandler(req, res) {
                 name: h.name,
                 subaccount_code: h.subaccount_code,
                 bank_name: h.bank_name,
+                bank_display_name: getBankNameByCode(h.bank_name),
                 account_number: h.account_number ? '••••' + String(h.account_number).slice(-4) : null,
                 commission_type: h.commission_type,
                 platform_fee: h.platform_fee,

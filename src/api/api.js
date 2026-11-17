@@ -506,3 +506,12 @@ export const verifyIdentity = async (verificationData) => {
     body: JSON.stringify(verificationData)
   });
 };
+
+
+export const linkHostelPayout = async (payoutData) => {
+  return fetchJson(`${BASE_URL}/hostel/link-payout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payoutData)
+  });
+};

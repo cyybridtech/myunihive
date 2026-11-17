@@ -523,22 +523,31 @@ export default function AddHostelPage() {
                     <option value="">Select Option</option>
                     <optgroup label="Mobile Money">
                       <option value="MTN">MTN Mobile Money</option>
-                      <option value="VOD">Vodafone Cash</option>
-                      <option value="TGO">AirtelTigo</option>
+                      <option value="VOD">Vodafone Cash / Telecel</option>
+                      <option value="ATL">AirtelTigo Money</option>
                     </optgroup>
-                    <optgroup label="Traditional Banks">
-                      <option value="014">Ecobank Ghana</option>
-                      <option value="044">Access Bank</option>
-                      <option value="053">Zenith Bank</option>
-                      <option value="090115">Fidelity Bank</option>
-                      <option value="114">GCB Bank</option>
-                      <option value="039">Stanbic Bank</option>
-                      <option value="068">Standard Chartered Bank</option>
-                      <option value="010">Absa Bank Ghana</option>
-                      <option value="CBG">Consolidated Bank Ghana</option>
-                      <option value="058">GTBank Ghana</option>
-                      <option value="033">United Bank for Africa (UBA)</option>
-                      <option value="028">Republic Bank</option>
+                    <optgroup label="Traditional Banks (Ghana GHIPSS)">
+                      <option value="130100">Ecobank Ghana Limited</option>
+                      <option value="040100">GCB Bank Limited</option>
+                      <option value="240100">Fidelity Bank Ghana Limited</option>
+                      <option value="030100">Absa Bank Ghana Ltd</option>
+                      <option value="190100">Stanbic Bank Ghana Limited</option>
+                      <option value="280100">Access Bank Ghana</option>
+                      <option value="230100">Guaranty Trust Bank (GTBank)</option>
+                      <option value="120100">Zenith Bank Ghana</option>
+                      <option value="060100">United Bank for Africa (UBA)</option>
+                      <option value="140100">CalBank PLC</option>
+                      <option value="340100">Consolidated Bank Ghana (CBG)</option>
+                      <option value="020100">Standard Chartered Bank Ghana</option>
+                      <option value="080100">ADB Bank Limited</option>
+                      <option value="110100">Republic Bank (GH) Limited</option>
+                      <option value="170100">First Atlantic Bank Limited</option>
+                      <option value="330100">First National Bank Ghana</option>
+                      <option value="090100">Société Générale Ghana</option>
+                      <option value="180100">Prudential Bank Limited</option>
+                      <option value="200100">FBNBank Ghana Limited</option>
+                      <option value="210100">Bank of Africa Ghana</option>
+                      <option value="360100">OmniBSIC Bank Ghana</option>
                     </optgroup>
                   </select>
                 </div>

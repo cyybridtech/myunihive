@@ -5,6 +5,7 @@
  */
 
 const { getPool, PAYSTACK_SECRET_KEY } = require('./config');
+const { resolveGhanaBankCode } = require('./paystackBanks');
 const https = require('https');
 
 async function createHostelHandler(req, res) {
@@ -36,26 +37,29 @@ async function createHostelHandler(req, res) {
     let paystack_data = { success: false, message: 'No bank details provided' };
 
     try {
+        const cleanBankCode = resolveGhanaBankCode(bank_code);
+
         // Create Paystack subaccount if bank details provided
-        if (bank_code && account_number) {
+        if (cleanBankCode && account_number) {
             const subData = JSON.stringify({
                 business_name: name,
-                settlement_bank: bank_code,
-                account_number: account_number,
+                settlement_bank: cleanBankCode,
+                account_number: String(account_number).trim(),
                 percentage_charge: 5
             });
 
             try {
                 const paystackResult = await makePaystackRequest('/subaccount', 'POST', subData);
-                if (paystackResult.status) {
+                if (paystackResult && paystackResult.status) {
                     subaccount_code = paystackResult.data.subaccount_code;
-                    paystack_data = { success: true, message: 'Subaccount created' };
+                    paystack_data = { success: true, message: 'Subaccount created', subaccount_code };
+                    console.log(`[CREATE_HOSTEL] Successfully created Paystack subaccount ${subaccount_code} for ${name}`);
                 } else {
-                    console.error('Paystack subaccount rejection:', paystackResult.message);
-                    paystack_data = { success: false, message: paystackResult.message };
+                    console.error('[CREATE_HOSTEL] Paystack subaccount rejection:', paystackResult ? paystackResult.message : 'Unknown rejection');
+                    paystack_data = { success: false, message: paystackResult ? paystackResult.message : 'Paystack subaccount creation rejected' };
                 }
             } catch (paystackError) {
-                console.error('Paystack network error:', paystackError.message);
+                console.error('[CREATE_HOSTEL] Paystack network error:', paystackError.message);
                 paystack_data = { success: false, message: paystackError.message };
             }
         }
@@ -135,7 +139,7 @@ async function createHostelHandler(req, res) {
             1,
             manager_id,
             subaccount_code,
-            bank_code || '',
+            cleanBankCode || bank_code || '',
             account_number || '',
             req.body.commission_type || 'split',
             req.body.platform_fee != null ? req.body.platform_fee : 0,

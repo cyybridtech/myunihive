@@ -61,6 +61,7 @@ const chargeCardHandler = require('./api/chargeCard');
 const getPayoutStatsHandler = require('./api/getPayoutStats');
 const paystackWebhookHandler = require('./api/paystackWebhook');
 const verifyIdentityHandler = require('./api/verifyIdentity');
+const linkPayoutHandler = require('./api/linkPayout');
 const auth = require('./api/auth');
 const { getPool, initSchema } = require('./api/config');
 
@@ -237,6 +238,7 @@ app.get('/api/stats', wrapHandler(statsHandler));
 
 // Hostels
 app.get('/api/getHostels', wrapHandler(getHostelsHandler));
+app.post('/api/hostel/link-payout', wrapHandler(linkPayoutHandler));
 
 // Rooms
 app.get('/api/getRooms', wrapHandler(getRoomsHandler));

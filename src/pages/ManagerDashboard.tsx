@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Building2, Calendar, Star, BarChart3, Plus, DoorOpen, Search, Bell, Pencil, Trash2, X, TrendingUp, Clock, ArrowUpRight, Landmark, CreditCard, Download, Phone, MessageSquare, User, Mail, GraduationCap, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking, updateRoom as updateRoomApi, updateHostel as updateHostelApi, getPayoutStats } from '../api/api.js';
+import { createRoom, updateRoomStatus, updateRoomOccupancy, approveBooking, updateRoom as updateRoomApi, updateHostel as updateHostelApi, getPayoutStats, linkHostelPayout } from '../api/api.js';
 import { Booking } from '../data/mockData';
 
 type ManagerTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'notifications' | 'payouts';
@@ -37,6 +37,47 @@ export default function ManagerDashboard() {
   const [roomViewMode, setRoomViewMode] = useState<'card' | 'list'>('card');
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [payoutStats, setPayoutStats] = useState<any>(null);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [selectedHostelForPayout, setSelectedHostelForPayout] = useState<any>(null);
+  const [payoutBankCode, setPayoutBankCode] = useState('');
+  const [payoutAccountNumber, setPayoutAccountNumber] = useState('');
+  const [payoutSubmitting, setPayoutSubmitting] = useState(false);
+  const [payoutError, setPayoutError] = useState('');
+  const [payoutSuccess, setPayoutSuccess] = useState('');
+
+  const handleLinkPayoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedHostelForPayout || !payoutBankCode || !payoutAccountNumber.trim()) {
+      setPayoutError('Please select a bank/MoMo network and enter your account number');
+      return;
+    }
+    setPayoutSubmitting(true);
+    setPayoutError('');
+    setPayoutSuccess('');
+    try {
+      const res = await linkHostelPayout({
+        hostel_id: selectedHostelForPayout.id,
+        bank_code: payoutBankCode,
+        account_number: payoutAccountNumber.trim()
+      });
+      if (res && res.status === 'success') {
+        setPayoutSuccess(res.message || 'Payout subaccount successfully linked!');
+        // Refresh payout stats
+        const refreshed = await getPayoutStats();
+        setPayoutStats(refreshed);
+        setTimeout(() => {
+          setPayoutModalOpen(false);
+          setPayoutSuccess('');
+        }, 1500);
+      } else {
+        setPayoutError(res?.message || 'Failed to link payout account');
+      }
+    } catch (err: any) {
+      setPayoutError(err.message || 'Error linking payout account');
+    } finally {
+      setPayoutSubmitting(false);
+    }
+  };
   const [isLoadingPayouts, setIsLoadingPayouts] = useState(false);
 
   // Close notification dropdown when clicking outside
@@ -1058,21 +1099,50 @@ export default function ManagerDashboard() {
                 {/* Bank Account Info */}
                 {payoutStats.hostels?.length > 0 && (
                   <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2"><Landmark className="w-4 h-4 text-amber-500" /> Linked Bank Accounts</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <Landmark className="w-4 h-4 text-amber-500" /> Paystack Payout &amp; Settlement Accounts
+                      </h3>
+                      <span className="text-xs text-gray-400">Direct Room Booking Payouts</span>
+                    </div>
                     <div className="space-y-3">
                       {payoutStats.hostels.map((h: any) => (
-                        <div key={h.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={h.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-gray-800">{h.name}</p>
-                            <p className="text-xs text-gray-500">{h.bank_name || 'Bank on file'} {h.account_number ? `• ${h.account_number}` : ''}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-1 rounded-full">
-                              {h.subaccount_code ? 'Subaccount Active' : 'No Subaccount'}
-                            </span>
-                            {h.commission_type === 'flat' && (
-                              <p className="text-xs text-gray-400 mt-1">Flat fee: GH₵{h.platform_fee}</p>
+                            <p className="text-sm font-bold text-gray-900">{h.name}</p>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              <span className="font-semibold text-gray-800">{h.bank_display_name || h.bank_name || 'No bank on file'}</span> {h.account_number ? `• ${h.account_number}` : ''}
+                            </p>
+                            {h.subaccount_code && (
+                              <p className="text-[11px] text-gray-400 font-mono mt-0.5">
+                                Subaccount Code: <span className="text-gray-700 font-semibold">{h.subaccount_code}</span>
+                              </p>
                             )}
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            {h.subaccount_code ? (
+                              <span className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold px-3 py-1 rounded-full inline-flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Active Subaccount
+                              </span>
+                            ) : (
+                              <span className="text-xs bg-amber-100 text-amber-800 border border-amber-200 font-bold px-3 py-1 rounded-full">
+                                No Subaccount Linked
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedHostelForPayout(h);
+                                setPayoutBankCode(h.bank_name || '130100');
+                                setPayoutAccountNumber('');
+                                setPayoutError('');
+                                setPayoutSuccess('');
+                                setPayoutModalOpen(true);
+                              }}
+                              className="text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors cursor-pointer bg-white hover:bg-gray-50 text-gray-700 border-gray-200"
+                            >
+                              {h.subaccount_code ? 'Change Account' : 'Connect Account'}
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -1232,6 +1302,119 @@ export default function ManagerDashboard() {
           </div>
         </div>
       )}
-    </div>
+    
+      {/* Payout Subaccount Setup Modal */}
+      {payoutModalOpen && selectedHostelForPayout && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-gray-100 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Landmark className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Connect Paystack Payout</h3>
+                  <p className="text-xs text-gray-500">{selectedHostelForPayout.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPayoutModalOpen(false)}
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleLinkPayoutSubmit} className="mt-5 space-y-4">
+              {payoutError && (
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                  {payoutError}
+                </div>
+              )}
+              {payoutSuccess && (
+                <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700 font-semibold">
+                  {payoutSuccess}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Bank Name or Mobile Money Network *
+                </label>
+                <select
+                  value={payoutBankCode}
+                  onChange={e => setPayoutBankCode(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium"
+                >
+                  <option value="">-- Choose Bank or MoMo --</option>
+                  <optgroup label="Mobile Money">
+                    <option value="MTN">MTN Mobile Money</option>
+                    <option value="VOD">Vodafone Cash / Telecel</option>
+                    <option value="ATL">AirtelTigo Money</option>
+                  </optgroup>
+                  <optgroup label="Traditional Banks (Ghana GHIPSS)">
+                    <option value="130100">Ecobank Ghana Limited</option>
+                    <option value="040100">GCB Bank Limited</option>
+                    <option value="240100">Fidelity Bank Ghana Limited</option>
+                    <option value="030100">Absa Bank Ghana Ltd</option>
+                    <option value="190100">Stanbic Bank Ghana Limited</option>
+                    <option value="280100">Access Bank Ghana</option>
+                    <option value="230100">Guaranty Trust Bank (GTBank)</option>
+                    <option value="120100">Zenith Bank Ghana</option>
+                    <option value="060100">United Bank for Africa (UBA)</option>
+                    <option value="140100">CalBank PLC</option>
+                    <option value="340100">Consolidated Bank Ghana (CBG)</option>
+                    <option value="020100">Standard Chartered Bank Ghana</option>
+                    <option value="080100">ADB Bank Limited</option>
+                    <option value="110100">Republic Bank (GH) Limited</option>
+                    <option value="170100">First Atlantic Bank Limited</option>
+                    <option value="330100">First National Bank Ghana</option>
+                    <option value="090100">Société Générale Ghana</option>
+                    <option value="180100">Prudential Bank Limited</option>
+                    <option value="200100">FBNBank Ghana Limited</option>
+                    <option value="210100">Bank of Africa Ghana</option>
+                    <option value="360100">OmniBSIC Bank Ghana</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Account Number / MoMo Number *
+                </label>
+                <input
+                  type="text"
+                  value={payoutAccountNumber}
+                  onChange={e => setPayoutAccountNumber(e.target.value)}
+                  placeholder="e.g. 1441005100386 or 0540000000"
+                  className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono"
+                />
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Paystack will verify this account with your bank to ensure direct automated settlements.
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPayoutModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-800 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={payoutSubmitting}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  {payoutSubmitting ? 'Verifying with Paystack...' : 'Verify & Activate Subaccount'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+</div>
   );
 }
