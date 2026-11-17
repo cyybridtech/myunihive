@@ -10,6 +10,8 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 require('./api/loadEnv');
@@ -63,10 +65,67 @@ const { getPool, initSchema } = require('./api/config');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Security Hardening: Disable Express fingerprinting
+app.disable('x-powered-by');
+
+// Security Hardening: Helmet HTTP Headers
+app.use(helmet({
+    contentSecurityPolicy: false, // Handled via vercel.json & HTML headers to prevent breaking dynamic CDN maps/Paystack
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Security Hardening: Restrict CORS to trusted origins
+const allowedOrigins = [
+    'https://www.myunihive.com',
+    'https://myunihive.com',
+    'https://testhive-zeta.vercel.app'
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (origin.endsWith('.vercel.app')) return callback(null, true);
+        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS policy violation: origin not permitted'));
+    },
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
+// Security Hardening: Rate Limiters
+const generalApiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 180, // 180 requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { status: 'error', message: 'Too many requests, please slow down.' }
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 25, // 25 attempts per 15 minutes
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { status: 'error', message: 'Too many authentication attempts. Please try again after 15 minutes.' }
+});
+
+const otpLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 6, // 6 code requests per 10 minutes
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { status: 'error', message: 'Too many verification code requests. Please wait 10 minutes.' }
+});
+
 // Middleware
-app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use('/api', generalApiLimiter);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Lazy schema initialization for serverless / local environments
 let schemaInitialized = false;
@@ -83,8 +142,8 @@ app.use(async (req, res, next) => {
     next();
 });
 
-// Debug route for OTP checking, enabled only when DEBUG_EMAIL=true
-if (process.env.DEBUG_EMAIL === 'true') {
+// Debug route for OTP checking, strictly disabled in production
+if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_EMAIL === 'true') {
     app.get('/api/debug-otp/:email', async (req, res) => {
         const { email } = req.params;
         if (!email) {
@@ -155,12 +214,12 @@ function wrapHandler(handler) {
 
 // API Routes
 
-// Auth
-app.post('/api/login', wrapHandler(loginHandler));
-app.post('/api/request-otp', wrapHandler(requestOtpHandler));
-app.post('/api/register', wrapHandler(registerHandler));
-app.post('/api/forgot-password', wrapHandler(forgotPasswordHandler));
-app.post('/api/reset-password', wrapHandler(resetPasswordHandler));
+// Auth (Protected with rate limiters against brute-force attacks)
+app.post('/api/login', authLimiter, wrapHandler(loginHandler));
+app.post('/api/request-otp', otpLimiter, wrapHandler(requestOtpHandler));
+app.post('/api/register', authLimiter, wrapHandler(registerHandler));
+app.post('/api/forgot-password', authLimiter, wrapHandler(forgotPasswordHandler));
+app.post('/api/reset-password', authLimiter, wrapHandler(resetPasswordHandler));
 app.post('/api/logout', wrapHandler(logoutHandler));
 app.get('/api/user', wrapHandler(userHandler));
 app.post('/api/user', wrapHandler(userHandler));

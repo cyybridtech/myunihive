@@ -27,19 +27,37 @@ async function loginHandler(req, res) {
 
         const user = users[0];
 
-        // 1. Verify via OTP if provided
+        // 1. Verify via OTP if provided (with brute-force attempt throttling)
         if (otp) {
             const cleanOtp = String(otp).trim();
             const [otpRows] = await pool.execute(
-                'SELECT * FROM otps WHERE LOWER(email) = ? AND otp_code = ? AND expires_at > NOW()',
-                [email, cleanOtp]
+                'SELECT * FROM otps WHERE LOWER(email) = ? AND expires_at > NOW()',
+                [email]
             );
 
             if (otpRows.length === 0) {
                 return res.status(401).json({ status: 'error', message: 'Invalid or expired verification code' });
             }
 
-            // Consume the OTP
+            const otpRecord = otpRows[0];
+            const currentAttempts = (otpRecord.attempts || 0) + 1;
+
+            if (otpRecord.otp_code !== cleanOtp) {
+                if (currentAttempts >= 5) {
+                    await pool.execute('DELETE FROM otps WHERE LOWER(email) = ?', [email]);
+                    return res.status(429).json({
+                        status: 'error',
+                        message: 'Too many incorrect attempts. This verification code has been invalidated for security. Please request a new code.'
+                    });
+                }
+                await pool.execute('UPDATE otps SET attempts = ? WHERE LOWER(email) = ?', [currentAttempts, email]);
+                return res.status(401).json({
+                    status: 'error',
+                    message: `Invalid verification code. ${5 - currentAttempts} attempt(s) remaining.`
+                });
+            }
+
+            // Consume the OTP immediately upon success
             await pool.execute('DELETE FROM otps WHERE LOWER(email) = ?', [email]);
         } else {
             // 2. Verify via Password

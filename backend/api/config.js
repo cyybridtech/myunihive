@@ -88,6 +88,8 @@ async function initSchema() {
             await p.execute("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending','approved','completed','cancelled','expired','rejected') DEFAULT 'pending'");
         } catch(e) { console.warn('Could not modify bookings status enum:', e.message); }
 
+        await p.execute("ALTER TABLE otps ADD COLUMN IF NOT EXISTS attempts INT DEFAULT 0");
+
         // Resident intake & emergency contact columns on bookings
         await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS student_id_number VARCHAR(50) DEFAULT NULL");
         await p.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS level VARCHAR(20) DEFAULT NULL");

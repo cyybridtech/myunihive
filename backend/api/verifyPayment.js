@@ -7,6 +7,7 @@
 const { getPool, PAYSTACK_SECRET_KEY } = require('./config');
 const { sendBookingEmail } = require('./sendEmail');
 const https = require('https');
+const crypto = require('crypto');
 
 async function verifyPaymentHandler(req, res) {
     const { reference, booking_id } = req.body || {};
@@ -120,7 +121,7 @@ async function verifyPaymentHandler(req, res) {
                 authCode = null;
             } else {
                 if (!authCode) {
-                    authCode = 'UNH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                    authCode = 'UNH-' + crypto.randomBytes(3).toString('hex').toUpperCase();
                 }
             }
 

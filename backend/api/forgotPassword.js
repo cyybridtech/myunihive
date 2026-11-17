@@ -5,6 +5,7 @@
 
 const { getPool } = require('./config');
 const { sendPasswordResetEmail } = require('./sendEmail');
+const crypto = require('crypto');
 
 async function forgotPasswordHandler(req, res) {
     const { email } = req.body || {};
@@ -30,8 +31,8 @@ async function forgotPasswordHandler(req, res) {
 
         const user = users[0];
 
-        // Generate a 6-digit OTP
-        const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate a cryptographically secure 6-digit OTP (CSPRNG)
+        const otp_code = crypto.randomInt(100000, 1000000).toString();
         
         // Calculate expiration (15 minutes from now)
         const expires_at = new Date();

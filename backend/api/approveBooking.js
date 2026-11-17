@@ -5,6 +5,7 @@
  */
 
 const { getPool } = require('./config');
+const crypto = require('crypto');
 
 async function approveBookingHandler(req, res) {
     const { booking_id, status } = req.body || {};
@@ -101,8 +102,8 @@ async function approveBookingHandler(req, res) {
                     return res.status(400).json({ status: 'error', message: 'Cannot approve booking: Room has reached full capacity.' });
                 }
 
-                // Generate auth code if it doesn't exist
-                const authCode = 'UNH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                // Generate cryptographically secure auth code if it doesn't exist
+                const authCode = 'UNH-' + crypto.randomBytes(3).toString('hex').toUpperCase();
                 
                 await connection.execute(
                     `UPDATE bookings SET status = ?, auth_code = COALESCE(auth_code, ?) WHERE id = ?`,

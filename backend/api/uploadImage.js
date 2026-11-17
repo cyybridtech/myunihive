@@ -8,6 +8,7 @@ const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { loadEnv } = require('./loadEnv');
+const auth = require('./auth');
 loadEnv();
 
 // Configure Cloudinary
@@ -34,6 +35,12 @@ const upload = multer({
 }).single('image');
 
 async function uploadImageHandler(req, res) {
+  // Enforce authentication to prevent arbitrary unauthenticated media uploads
+  const authData = auth.getRequestAuth(req);
+  if (!authData || !authData.id) {
+    return res.status(401).json({ status: 'error', message: 'Authentication required to upload media' });
+  }
+
   upload(req, res, function (err) {
     if (err) {
       console.error('Upload error:', err);

@@ -5,6 +5,7 @@
 
 const { getPool } = require('./config');
 const { sendOtpEmail } = require('./sendEmail');
+const crypto = require('crypto');
 
 async function requestOtpHandler(req, res) {
     const { email, full_name, type } = req.body || {};
@@ -34,8 +35,8 @@ async function requestOtpHandler(req, res) {
             }
         }
 
-        // Generate a 6-digit OTP
-        const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate a cryptographically secure 6-digit OTP (CSPRNG)
+        const otp_code = crypto.randomInt(100000, 1000000).toString();
         
         // Calculate expiration (15 minutes from now)
         const expires_at = new Date();

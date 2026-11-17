@@ -4,8 +4,15 @@
  */
 
 const { sendWelcomeEmail } = require('./sendEmail');
+const auth = require('./auth');
 
 async function testEmailHandler(req, res) {
+    // Restrict test email endpoint to authenticated administrators only
+    const authData = req.auth || auth.getRequestAuth(req);
+    if (!authData || authData.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Admin authorization required' });
+    }
+
     const { email, full_name } = req.body || {};
 
     if (!email || typeof email !== 'string') {
