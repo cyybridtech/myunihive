@@ -59,6 +59,7 @@ const roommateHandler = require('./api/roommate');
 const getSavedCardHandler = require('./api/getSavedCard');
 const chargeCardHandler = require('./api/chargeCard');
 const getPayoutStatsHandler = require('./api/getPayoutStats');
+const paystackWebhookHandler = require('./api/paystackWebhook');
 const auth = require('./api/auth');
 const { getPool, initSchema } = require('./api/config');
 
@@ -124,7 +125,12 @@ const otpLimiter = rateLimit({
 
 // Middleware
 app.use('/api', generalApiLimiter);
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Lazy schema initialization for serverless / local environments
@@ -260,6 +266,7 @@ app.post('/api/approveBooking', wrapHandler(approveBookingHandler));
 
 // Verify Payment
 app.post('/api/verifyPayment', wrapHandler(verifyPaymentHandler));
+app.post('/api/webhook/paystack', paystackWebhookHandler);
 
 // Upload images
 app.post('/api/uploadImage', uploadImageHandler);

@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell, Car, Footprints, Navigation, Clock } from 'lucide-react';
+import { Star, MapPin, CheckCircle, Heart, ChevronLeft, ChevronRight, Wifi, Shield, Zap, Droplets, BookOpen, X, Users, DoorOpen, ArrowLeft, Share, MessageSquare, Bell, Car, Footprints, Navigation, Clock, Lock, Phone } from 'lucide-react';
 import Map, { Marker, Source, Layer } from 'react-map-gl/mapbox';
 import { updateMetaTags, injectJsonLd } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN, MAPBOX_SATELLITE_STYLE, OSM_FALLBACK_STYLE, fetchWalkingRoute } from '../utils/mapConfig';
 import { useApp } from '../context/AppContext';
 import { createBooking, verifyPayment, submitReview, deleteBooking, resetHostelRooms } from '../api/api.js';
+import { optimizeImageUrl } from '../utils/imageOptimizer';
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_f8ea7f2de573926d15775e4fae12d7cdc020b7ee';
 
@@ -426,7 +427,7 @@ export default function HostelDetailsPage() {
         </button>
         <div className="max-w-7xl mx-auto">
           <div className="relative h-[300px] md:h-[450px] overflow-hidden cursor-pointer" onClick={() => setShowGallery(true)}>
-            <img src={typeof hostel.gallery[activeImage] === 'string' ? hostel.gallery[activeImage] : (hostel.gallery[activeImage] as any)?.url} alt={hostel.name} className="w-full h-full object-cover" />
+            <img src={optimizeImageUrl(typeof hostel.gallery[activeImage] === 'string' ? hostel.gallery[activeImage] : (hostel.gallery[activeImage] as any)?.url, 1200)} alt={hostel.name} className="w-full h-full object-cover" />
             {(typeof hostel.gallery[activeImage] === 'object' && (hostel.gallery[activeImage] as any)?.desc) && (
               <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm shadow-lg z-10">
                 {(hostel.gallery[activeImage] as any).desc}
@@ -444,7 +445,7 @@ export default function HostelDetailsPage() {
           <div className="flex gap-2 p-2 bg-gray-900 overflow-x-auto">
             {hostel.gallery.map((img, i) => (
               <button key={i} aria-label={`View image ${i + 1}`} onClick={() => setActiveImage(i)} className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-colors relative group ${i === activeImage ? 'border-amber-500' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                <img src={typeof img === 'string' ? img : (img as any).url} alt={`Gallery image ${i + 1}`} className="w-full h-full object-cover" />
+                <img src={optimizeImageUrl(typeof img === 'string' ? img : (img as any).url, 200)} alt={`Gallery image ${i + 1}`} className="w-full h-full object-cover" />
                 {(typeof img === 'object' && (img as any).desc) && (
                   <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-[10px] py-0.5 px-1 truncate opacity-0 group-hover:opacity-100 transition-opacity">
                     {(img as any).desc}
@@ -703,7 +704,7 @@ export default function HostelDetailsPage() {
                   <div key={room.id} className={`border rounded-xl p-4 transition-all ${selectedRoom === room.id ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200' : 'border-gray-200 hover:border-gray-300'} ${!room.available ? 'opacity-50' : 'cursor-pointer'}`}
                     onClick={() => { if (room.available) navigate(`/rooms/${room.id}`); }}>
                     <div className="flex flex-col sm:flex-row gap-4">
-                      <img src={room.image} alt={room.type} className="w-full sm:w-32 h-24 object-cover rounded-lg" />
+                      <img src={optimizeImageUrl(room.image, 400)} alt={room.type} className="w-full sm:w-32 h-24 object-cover rounded-lg" />
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
@@ -855,28 +856,50 @@ export default function HostelDetailsPage() {
                 <p className="text-sm text-gray-600 mb-4">Have questions about rooms, water/light supply, or viewing times?</p>
                 
                 <div className="space-y-2.5">
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold transition-all shadow-md shadow-[#25D366]/20 text-sm flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                    </svg>
-                    Chat on WhatsApp
-                  </a>
-
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) { navigate('/login'); return; }
-                      if (!hostel.managerId) { alert('This hostel has not been claimed by a manager yet.'); return; }
-                      navigate('/messages', { state: { startChatWith: hostel.managerId } });
-                    }}
-                    className="w-full py-3 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
-                  >
-                    <MessageSquare className="w-4 h-4" /> UniHive Message
-                  </button>
+                  {(hostel as any).managerPhone ? (
+                    <>
+                      <div className="bg-emerald-50 border border-emerald-200/80 rounded-xl p-3 flex items-center gap-2 mb-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="text-xs font-semibold text-emerald-800">Booking Confirmed: Direct Manager Access Unlocked</span>
+                      </div>
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold transition-all shadow-md shadow-[#25D366]/20 text-sm flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                        </svg>
+                        Chat on WhatsApp
+                      </a>
+                      <a
+                        href={`tel:${managerPhoneNumber}`}
+                        className="w-full py-3 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-800 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
+                      >
+                        <Phone className="w-4 h-4 text-emerald-600" /> Call Manager
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (!isAuthenticated) { navigate('/login'); return; }
+                          if (!hostel.managerId) { alert('This hostel has not been claimed by a manager yet.'); return; }
+                          navigate('/messages', { state: { startChatWith: hostel.managerId } });
+                        }}
+                        className="w-full py-3 bg-navy-900 hover:bg-navy-800 text-white rounded-xl font-bold transition-all shadow-md text-sm flex items-center justify-center gap-2"
+                      >
+                        <MessageSquare className="w-4 h-4 text-amber-400" /> Chat via UniHive Messages
+                      </button>
+                      <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3 flex items-start gap-2.5">
+                        <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                        <div className="text-[12px] text-amber-900 leading-relaxed">
+                          <strong className="font-semibold">Fee Protected &amp; Verified:</strong> Direct WhatsApp contact, phone call, and check-in security codes are unlocked automatically once your room reservation is confirmed.
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -961,7 +984,7 @@ export default function HostelDetailsPage() {
         <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
           <button aria-label="Close gallery" onClick={() => setShowGallery(false)} className="absolute top-4 right-4 bg-white/20 p-2 rounded-full hover:bg-white/30 z-10"><X className="w-6 h-6 text-white" /></button>
           <button aria-label="Previous gallery image" onClick={() => setActiveImage(prev => (prev - 1 + hostel.gallery.length) % hostel.gallery.length)} className="absolute left-4 bg-white/20 p-3 rounded-full hover:bg-white/30"><ChevronLeft className="w-6 h-6 text-white" /></button>
-          <img src={typeof hostel.gallery[activeImage] === 'string' ? hostel.gallery[activeImage] : (hostel.gallery[activeImage] as any)?.url} alt="Hostel gallery" className="max-w-full max-h-full object-contain" />
+          <img src={optimizeImageUrl(typeof hostel.gallery[activeImage] === 'string' ? hostel.gallery[activeImage] : (hostel.gallery[activeImage] as any)?.url, 1600)} alt="Hostel gallery" className="max-w-full max-h-full object-contain" />
           {(typeof hostel.gallery[activeImage] === 'object' && (hostel.gallery[activeImage] as any)?.desc) && (
             <div className="absolute bottom-12 text-white bg-black/60 px-4 py-2 rounded-xl text-lg font-medium shadow-lg">
               {(hostel.gallery[activeImage] as any).desc}

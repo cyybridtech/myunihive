@@ -6,6 +6,7 @@ import Map, { Marker, Popup, Layer } from 'react-map-gl/mapbox';
 import { updateMetaTags } from '../utils/seo';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN, MAPBOX_SATELLITE_STYLE, OSM_FALLBACK_STYLE } from '../utils/mapConfig';
+import { optimizeImageUrl } from '../utils/imageOptimizer';
 export default function HostelListingPage() {
   const { hostels, universities, filteredRooms, selectedUniversity, setSelectedUniversity, savedHostels, toggleSaveHostel, isAuthenticated, user } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -343,7 +344,7 @@ export default function HostelListingPage() {
                 >
                   <div className="p-0 rounded-2xl overflow-hidden shadow-2xl min-w-[240px]">
                     <div className="relative h-32">
-                      <img src={popupInfo.mainImage} alt={popupInfo.name} className="w-full h-full object-cover" />
+                      <img src={optimizeImageUrl(popupInfo.mainImage, 400)} alt={popupInfo.name} className="w-full h-full object-cover" />
                       <button onClick={() => setPopupInfo(null)} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/80">
                         <X className="w-4 h-4" />
                       </button>
@@ -370,7 +371,7 @@ export default function HostelListingPage() {
                 <div key={hostel.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group">
                   <div className="relative h-52 overflow-hidden">
                     <Link to={`/hostels/${hostel.id}`}>
-                      <img src={hostel.mainImage} alt={hostel.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={optimizeImageUrl(hostel.mainImage, 600)} alt={hostel.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     </Link>
                     {hostel.verified && (
                       <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg">

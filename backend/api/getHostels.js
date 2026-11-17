@@ -7,8 +7,20 @@ const { getPool } = require('./config');
 
 async function getHostelsHandler(req, res) {
     const pool = getPool();
+    const user_id = req.user_id;
+    const user_role = req.role;
 
     try {
+        let paidHostelIds = new Set();
+        if (user_id) {
+            const [userBookings] = await pool.execute(
+                `SELECT DISTINCT hostel_id FROM bookings WHERE user_id = ? AND (payment_status = 'paid' OR status = 'approved')`,
+                [user_id]
+            );
+            userBookings.forEach(b => paidHostelIds.add(String(b.hostel_id)));
+        }
+        const isStaff = user_role === 'admin' || user_role === 'manager' || user_role === 'hostel_manager';
+
         const [hostels] = await pool.query(`
             SELECT 
                 h.*,
@@ -41,6 +53,9 @@ async function getHostelsHandler(req, res) {
                 }
             }
 
+            const hasConfirmedBooking = paidHostelIds.has(String(h.id));
+            const showDirectContact = isStaff || hasConfirmedBooking;
+
             return {
             id: h.id,
             name: h.name,
@@ -56,7 +71,8 @@ async function getHostelsHandler(req, res) {
             mainImage: h.main_image,
             gallery: galleryImages,
             managerId: h.manager_id || null,
-            managerPhone: h.manager_phone || null,
+            managerPhone: showDirectContact ? (h.manager_phone || null) : null,
+            hasConfirmedBooking,
             subaccountCode: h.subaccount_code || null,
             commissionType: h.commission_type || 'split',
             platformFee: parseFloat(h.platform_fee) || 0,

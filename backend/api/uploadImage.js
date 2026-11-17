@@ -18,12 +18,15 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Configure Multer to use Cloudinary
+// Configure Multer to use Cloudinary with automatic optimization
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'unihive_uploads',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
+    transformation: [
+      { width: 1400, height: 1000, crop: 'limit', quality: 'auto:good', fetch_format: 'auto' }
+    ]
   },
 });
 

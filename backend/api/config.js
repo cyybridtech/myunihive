@@ -15,8 +15,12 @@ const dbConfig = {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASS || '',
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: process.env.VERCEL ? 3 : 10,
+    maxIdle: 2,
+    idleTimeout: 30000,
     queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
     charset: 'utf8',
     ssl: process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com') ? {
         minVersion: 'TLSv1.2',
