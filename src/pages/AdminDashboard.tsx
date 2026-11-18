@@ -20,7 +20,8 @@ import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MAPBOX_TOKEN, MAPBOX_STREETS_STYLE, OSM_FALLBACK_STYLE } from '../utils/mapConfig';
 import { GHANA_PRESET_UNIVERSITIES } from '../data/ghanaUniversities';
-type AdminTab = 'overview' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'universities' | 'notifications';
+import AdminUsersTab from '../components/AdminUsersTab';
+type AdminTab = 'overview' | 'users' | 'hostels' | 'rooms' | 'bookings' | 'reviews' | 'universities' | 'notifications';
 
 const COMMON_FACILITIES = [
   'Wi-Fi', '24/7 Water Supply', 'Backup Generator', '24/7 Security / CCTV', 
@@ -499,6 +500,7 @@ export default function AdminDashboard() {
 
   const tabs: { id: AdminTab; label: string; icon: typeof Users }[] = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'users', label: 'Users & KYC', icon: Users },
     { id: 'hostels', label: 'Hostels', icon: Building2 },
     { id: 'rooms', label: 'Rooms', icon: DoorOpen },
     { id: 'bookings', label: 'Bookings', icon: Calendar },
@@ -931,6 +933,11 @@ export default function AdminDashboard() {
 
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* USERS & IDENTITY (KYC) TAB */}
+        {/* ========================================================================= */}
+        {activeTab === 'users' && <AdminUsersTab />}
 
         {/* ========================================================================= */}
         {/* 2. HOSTELS TAB */}

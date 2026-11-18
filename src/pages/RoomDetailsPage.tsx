@@ -141,7 +141,9 @@ export default function RoomDetailsPage() {
         throw new Error('Payment system not available. Refresh the page and try again.');
       }
 
-      const totalAmount = room.price + (hostel.platformFee || 0);
+      const platformFee = hostel.platformFee || 0;
+      const totalAmount = room.price + platformFee;
+      const paymentRef = response.paystack_reference || ('BK_' + bookingId + '_' + Date.now());
 
       const handler = (window as any).PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
@@ -149,8 +151,8 @@ export default function RoomDetailsPage() {
         amount: totalAmount * 100,
         currency: 'GHS',
         ...(hostel.subaccountCode ? { subaccount: hostel.subaccountCode } : {}),
-        ...(hostel.platformFee ? { transaction_charge: hostel.platformFee * 100 } : {}),
-        reference: 'BK_' + Math.floor((Math.random() * 1000000000) + 1).toString(),
+        ...(platformFee > 0 ? { transaction_charge: platformFee * 100 } : {}),
+        reference: paymentRef,
         callback: function (paystackResponse: any) {
           verifyPayment(paystackResponse.reference, bookingId)
             .then(verification => {

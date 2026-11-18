@@ -126,8 +126,8 @@ async function verifyPaymentHandler(req, res) {
             }
 
             await connection.execute(
-                `UPDATE bookings SET payment_status = 'paid', status = ?, auth_code = ? WHERE id = ?`,
-                [finalStatus, authCode, booking_id]
+                `UPDATE bookings SET payment_status = 'paid', status = ?, auth_code = ?, paystack_reference = COALESCE(paystack_reference, ?) WHERE id = ?`,
+                [finalStatus, authCode, reference, booking_id]
             );
 
             // Sync room availability

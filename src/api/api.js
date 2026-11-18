@@ -515,3 +515,16 @@ export const linkHostelPayout = async (payoutData) => {
     body: JSON.stringify(payoutData)
   });
 };
+
+
+export const getAdminUsers = async () => {
+  return fetchJson(`${BASE_URL}/admin/users`);
+};
+
+export const updateAdminUser = async (updateData) => {
+  return fetchJson(`${BASE_URL}/admin/users/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updateData)
+  });
+};

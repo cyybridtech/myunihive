@@ -239,6 +239,7 @@ export default function HostelDetailsPage() {
 
       const platformFee = hostel.platformFee || 0;
       const totalAmount = room.price + platformFee;
+      const paymentRef = response.paystack_reference || ('BK_' + bookingId + '_' + Date.now());
 
       const handler = (window as any).PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
@@ -247,10 +248,10 @@ export default function HostelDetailsPage() {
         currency: 'GHS',
         ...(hostel.subaccountCode ? { 
           subaccount: hostel.subaccountCode,
-          transaction_charge: platformFee * 100, // Admin takes this exact fee
-          bearer: 'account' // Admin bears Paystack processing fees so manager gets exactly the room price
+          ...(platformFee > 0 ? { transaction_charge: platformFee * 100 } : {}),
+          bearer: 'account'
         } : {}),
-        reference: 'BK_' + Math.floor((Math.random() * 1000000000) + 1).toString(),
+        reference: paymentRef,
         callback: function(paystackResponse: any) {
           verifyPayment(paystackResponse.reference, bookingId as string)
             .then(verification => {

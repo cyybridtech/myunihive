@@ -62,6 +62,7 @@ const getPayoutStatsHandler = require('./api/getPayoutStats');
 const paystackWebhookHandler = require('./api/paystackWebhook');
 const verifyIdentityHandler = require('./api/verifyIdentity');
 const linkPayoutHandler = require('./api/linkPayout');
+const { getAdminUsersHandler, updateAdminUserHandler } = require('./api/adminUsers');
 const auth = require('./api/auth');
 const { getPool, initSchema } = require('./api/config');
 
@@ -234,6 +235,8 @@ app.post('/api/user', wrapHandler(userHandler));
 app.post('/api/user/update', wrapHandler(updateProfileHandler));
 app.post('/api/user/change-password', wrapHandler(changePasswordHandler));
 app.post('/api/verify-identity', wrapHandler(verifyIdentityHandler));
+app.get('/api/admin/users', wrapHandler(getAdminUsersHandler));
+app.post('/api/admin/users/update', wrapHandler(updateAdminUserHandler));
 app.get('/api/stats', wrapHandler(statsHandler));
 
 // Hostels

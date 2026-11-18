@@ -57,7 +57,16 @@ async function paystackWebhookHandler(req, res) {
     try {
         await connection.beginTransaction();
 
-        // 2. Locate booking by reference or ID
+        // 2. Locate booking by reference, metadata, or embedded ID
+        let candidateId = 0;
+        if (data.metadata?.booking_id) {
+            candidateId = data.metadata.booking_id;
+        } else if (reference.includes('-')) {
+            candidateId = reference.split('-')[1] || 0;
+        } else if (reference.startsWith('BK_')) {
+            candidateId = reference.split('_')[1] || 0;
+        }
+
         const [bookings] = await connection.execute(
             `SELECT b.id, b.user_id, b.room_id, b.hostel_id, b.payment_status, b.status, b.auth_code, b.total_price,
                     u.email as user_email, u.full_name, u.gender as user_gender,
@@ -70,7 +79,7 @@ async function paystackWebhookHandler(req, res) {
              WHERE b.paystack_reference = ? OR b.id = ?
              LIMIT 1
              FOR UPDATE`,
-            [reference, reference.split('-')[1] || 0]
+            [reference, candidateId]
         );
 
         if (bookings.length === 0) {
