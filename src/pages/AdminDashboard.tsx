@@ -500,7 +500,7 @@ export default function AdminDashboard() {
 
   const tabs: { id: AdminTab; label: string; icon: typeof Users }[] = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'users', label: 'Users & KYC', icon: Users },
+    { id: 'users', label: 'Users', icon: Users },
     { id: 'hostels', label: 'Hostels', icon: Building2 },
     { id: 'rooms', label: 'Rooms', icon: DoorOpen },
     { id: 'bookings', label: 'Bookings', icon: Calendar },

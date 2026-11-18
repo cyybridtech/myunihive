@@ -23,7 +23,6 @@ import InstallPWA from './components/InstallPWA';
 import RoommateFinderPage from './pages/RoommateFinderPage';
 import MaintenancePage from './pages/MaintenancePage';
 import ProfilePage from './pages/ProfilePage';
-import VerifyIdentityPage from './pages/VerifyIdentityPage';
 
 // 🚧 Set to true for live under-development / maintenance mode
 const MAINTENANCE_MODE = false;
@@ -135,15 +134,8 @@ function AppLayout() {
           }
         />
 
-        {/* ✅ IDENTITY & FACE VERIFICATION ROUTE */}
-        <Route
-          path="/verify-identity"
-          element={
-            <ProtectedRoute>
-              <VerifyIdentityPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Inactive verification route - redirects to dashboard */}
+        <Route path="/verify-identity" element={<Navigate to="/dashboard" replace />} />
 
         <Route
           path="/admin"

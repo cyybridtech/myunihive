@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { updateUserProfile, changeUserPassword, uploadImage } from '../api/api.js';
-import { User, Lock, Phone, GraduationCap, Shield, CheckCircle, AlertCircle, Save, KeyRound, ArrowLeft, Camera, CreditCard, FileText, Sparkles } from 'lucide-react';
+import { User, Lock, Phone, GraduationCap, Shield, CheckCircle, AlertCircle, Save, KeyRound, ArrowLeft, Camera, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProfilePage() {
@@ -15,11 +15,6 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState(user?.phone || '');
   const [gender, setGender] = useState<'male' | 'female'>((user?.gender as 'male' | 'female') || 'male');
   const [universityId, setUniversityId] = useState(user?.university_id || '');
-  const [idType, setIdType] = useState<'ghana_card' | 'passport'>(
-    user?.id_type || (user?.passport_number ? 'passport' : 'ghana_card')
-  );
-  const [ghanaCard, setGhanaCard] = useState(user?.ghana_card_number || '');
-  const [passportNumber, setPassportNumber] = useState(user?.passport_number || '');
   const [avatar, setAvatar] = useState(user?.avatar || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
@@ -44,9 +39,6 @@ export default function ProfilePage() {
         setGender(user.gender);
       }
       setUniversityId(user.university_id || '');
-      setGhanaCard(user.ghana_card_number || '');
-      setPassportNumber(user.passport_number || '');
-      if (user.id_type) setIdType(user.id_type);
       setAvatar(user.avatar || '');
     }
   }, [user]);
@@ -57,48 +49,6 @@ export default function ProfilePage() {
       setAvatarFile(file);
       setAvatar(URL.createObjectURL(file));
     }
-  };
-
-  const formatGhanaCard = (input: string): string => {
-    let raw = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (!raw) return '';
-
-    if (raw.startsWith('GHA')) {
-      raw = raw.slice(3);
-    } else if (raw.startsWith('GH')) {
-      raw = raw.slice(2);
-    } else if (raw.startsWith('G')) {
-      raw = raw.slice(1);
-    }
-
-    const digits = raw.replace(/[^0-9]/g, '').slice(0, 10);
-    if (!digits) return 'GHA-';
-
-    if (digits.length <= 9) {
-      return `GHA-${digits}`;
-    }
-    return `GHA-${digits.slice(0, 9)}-${digits.slice(9, 10)}`;
-  };
-
-  const formatPassport = (input: string): string => {
-    const clean = input.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (!clean) return '';
-    const firstLetter = clean.charAt(0).replace(/[^A-Z]/g, 'G');
-    const digits = clean.slice(1).replace(/\D/g, '').slice(0, 8);
-    return `${firstLetter}${digits}`;
-  };
-
-  const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassportNumber(formatPassport(e.target.value));
-  };
-
-  const handleGhanaCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (!val || val === 'GHA' || val === 'GHA-') {
-      setGhanaCard('');
-      return;
-    }
-    setGhanaCard(formatGhanaCard(val));
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -122,9 +72,6 @@ export default function ProfilePage() {
         phone: phone.trim(),
         gender,
         university_id: universityId,
-        id_type: idType,
-        ghana_card_number: ghanaCard.trim(),
-        passport_number: passportNumber.trim(),
         avatar: finalAvatarUrl,
       };
 
@@ -136,9 +83,6 @@ export default function ProfilePage() {
           phone: payload.phone,
           gender: payload.gender,
           university_id: payload.university_id,
-          id_type: payload.id_type,
-          ghana_card_number: payload.ghana_card_number,
-          passport_number: payload.passport_number,
           avatar: payload.avatar,
         });
         setProfileSuccess('Profile updated successfully! Closing...');
@@ -397,106 +341,7 @@ export default function ProfilePage() {
                     </select>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Official Identification Document
-                      </label>
-                      {user?.verified ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                          <CheckCircle className="w-3 h-3" /> Identity Verified
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => navigate('/verify-identity')}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer"
-                        >
-                          <Sparkles className="w-3 h-3 text-amber-600" /> Complete Face & ID Scan
-                        </button>
-                      )}
-                    </div>
 
-                    {/* ID Type Switcher */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIdType('ghana_card')}
-                        className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                          idType === 'ghana_card'
-                            ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm'
-                            : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-gray-50'
-                        }`}
-                      >
-                        <CreditCard className="w-3.5 h-3.5" /> Ghana Card (NIA)
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setIdType('passport')}
-                        className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                          idType === 'passport'
-                            ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm'
-                            : 'border-gray-200 hover:border-gray-300 text-gray-600 bg-gray-50'
-                        }`}
-                      >
-                        <FileText className="w-3.5 h-3.5" /> Passport
-                      </button>
-                    </div>
-
-                    {/* Document Input */}
-                    {idType === 'ghana_card' ? (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[11px] font-medium text-gray-500">Ghana Card Number</span>
-                          {ghanaCard && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              /^GHA-\d{9}-\d$/.test(ghanaCard) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {/^GHA-\d{9}-\d$/.test(ghanaCard) ? 'Valid NIA Format' : 'GHA-XXXXXXXXX-X'}
-                            </span>
-                          )}
-                        </div>
-                        <div className="relative">
-                          <CreditCard className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={ghanaCard}
-                            onChange={handleGhanaCardChange}
-                            maxLength={15}
-                            placeholder="GHA-123456789-0"
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm text-gray-800 font-mono font-bold tracking-wider uppercase"
-                          />
-                        </div>
-                        <p className="text-[11px] text-gray-400 mt-1">Hyphens and GHA- prefix format automatically as you type.</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[11px] font-medium text-gray-500">Passport Number</span>
-                          {passportNumber && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              /^[A-Z]\d{7,8}$/.test(passportNumber) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {/^[A-Z]\d{7,8}$/.test(passportNumber) ? 'Valid Passport Format' : 'e.g. G1234567'}
-                            </span>
-                          )}
-                        </div>
-                        <div className="relative">
-                          <FileText className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            value={passportNumber}
-                            onChange={handlePassportChange}
-                            maxLength={9}
-                            placeholder="G1234567"
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm text-gray-800 font-mono font-bold tracking-wider uppercase"
-                          />
-                        </div>
-                        <p className="text-[11px] text-gray-400 mt-1">1 capital letter followed by 7 or 8 digits (e.g. G1234567).</p>
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="pt-2">
@@ -611,12 +456,6 @@ export default function ProfilePage() {
                 <div className="flex justify-between py-1 border-b border-gray-100">
                   <span className="text-gray-400">User ID</span>
                   <span className="font-mono text-gray-800">#{user?.id}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-gray-400">Ghana Card Status</span>
-                  <span className={`font-semibold ${user?.ghana_card_number ? 'text-green-600' : 'text-amber-600'}`}>
-                    {user?.ghana_card_number ? 'Linked' : 'Not Linked'}
-                  </span>
                 </div>
               </div>
             </div>

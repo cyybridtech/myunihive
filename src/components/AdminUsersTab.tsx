@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Check, X, ShieldCheck, UserCheck, RefreshCw } from 'lucide-react';
+import { Search, Check, RefreshCw } from 'lucide-react';
 import { getAdminUsers, updateAdminUser } from '../api/api.js';
 
 export default function AdminUsersTab() {
@@ -8,7 +8,6 @@ export default function AdminUsersTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedSelfieModal, setSelectedSelfieModal] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -63,9 +62,7 @@ export default function AdminUsersTab() {
     const matchesSearch =
       (u.full_name || '').toLowerCase().includes(term) ||
       (u.email || '').toLowerCase().includes(term) ||
-      (u.phone || '').includes(term) ||
-      (u.ghana_card_number || '').toLowerCase().includes(term) ||
-      (u.passport_number || '').toLowerCase().includes(term);
+      (u.phone || '').includes(term);
 
     const matchesRole =
       roleFilter === 'all' ||
@@ -84,9 +81,9 @@ export default function AdminUsersTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">User Accounts &amp; Identity Verification</h2>
+          <h2 className="text-xl font-bold text-gray-900">User Accounts</h2>
           <p className="text-sm text-gray-500">
-            Manage student accounts, manager permissions, and verify student Ghana Card &amp; Passport face scans.
+            Manage student accounts, manager permissions, and account statuses.
           </p>
         </div>
         <button
@@ -108,7 +105,7 @@ export default function AdminUsersTab() {
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search by name, email, phone, or Ghana Card / Passport number..."
+            placeholder="Search by name, email, or phone number..."
             className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
@@ -131,8 +128,8 @@ export default function AdminUsersTab() {
             onChange={e => setStatusFilter(e.target.value)}
             className="px-3.5 py-2.5 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
-            <option value="all">All KYC Status</option>
-            <option value="verified">Verified Students</option>
+            <option value="all">All Statuses</option>
+            <option value="verified">Verified Accounts</option>
             <option value="unverified">Unverified Accounts</option>
           </select>
         </div>
@@ -152,8 +149,6 @@ export default function AdminUsersTab() {
                   <th className="px-5 py-3.5">User</th>
                   <th className="px-5 py-3.5">University</th>
                   <th className="px-5 py-3.5">Role</th>
-                  <th className="px-5 py-3.5">Identity Document</th>
-                  <th className="px-5 py-3.5">Face Scan</th>
                   <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
@@ -198,47 +193,6 @@ export default function AdminUsersTab() {
                       </select>
                     </td>
 
-                    {/* ID Document */}
-                    <td className="px-5 py-4">
-                      {u.ghana_card_number ? (
-                        <div>
-                          <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                            Ghana Card
-                          </span>
-                          <p className="text-xs font-mono font-semibold text-gray-800 mt-1">{u.ghana_card_number}</p>
-                        </div>
-                      ) : u.passport_number ? (
-                        <div>
-                          <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                            Passport
-                          </span>
-                          <p className="text-xs font-mono font-semibold text-gray-800 mt-1">{u.passport_number}</p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">Not Linked</span>
-                      )}
-                    </td>
-
-                    {/* Face Scan Photo */}
-                    <td className="px-5 py-4">
-                      {u.selfie_photo || u.id_photo ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedSelfieModal(u.selfie_photo || u.id_photo)}
-                          className="group relative w-10 h-10 rounded-xl overflow-hidden border border-gray-200 hover:ring-2 hover:ring-amber-500 transition-all cursor-pointer shadow-sm"
-                          title="Click to view full photo"
-                        >
-                          <img
-                            src={u.selfie_photo || u.id_photo}
-                            alt="Face Scan"
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                          />
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-400">No Photo</span>
-                      )}
-                    </td>
-
                     {/* Verification Status */}
                     <td className="px-5 py-4">
                       {u.verified ? (
@@ -273,40 +227,6 @@ export default function AdminUsersTab() {
           </div>
         )}
       </div>
-
-      {/* Selfie Preview Modal */}
-      {selectedSelfieModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl animate-in fade-in duration-200 text-center">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Biometric Face Scan
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedSelfieModal(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="rounded-2xl overflow-hidden aspect-[4/3] bg-gray-950 mb-4 border border-gray-100">
-              <img
-                src={selectedSelfieModal}
-                alt="Enlarged Face Scan"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedSelfieModal(null)}
-              className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-            >
-              Close Preview
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
