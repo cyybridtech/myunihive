@@ -1,6 +1,6 @@
 import { useState, useContext, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Hexagon, CheckCircle2, ArrowRight, Sparkles, KeyRound, RefreshCw } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Hexagon, CheckCircle2, ArrowRight, Sparkles, KeyRound, RefreshCw, ShieldCheck } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { requestOtp } from '../api/api.js';
 import { updateMetaTags } from '../utils/seo';
@@ -226,20 +226,12 @@ export default function LoginPage() {
           ))}
         </div>
 
-        {/* Social Proof Quote */}
-        <div className="relative z-10 pt-6 border-t border-white/10">
-          <p className="text-sm italic text-gray-300 leading-relaxed">
-            &ldquo;Finding my room near Legon Main Gate took under 10 minutes on UniHive without dealing with unreliable middleman agents.&rdquo;
+        {/* Platform Security Guarantee */}
+        <div className="relative z-10 pt-6 border-t border-white/10 flex items-center gap-3">
+          <ShieldCheck className="w-8 h-8 text-amber-400 shrink-0" />
+          <p className="text-xs text-gray-300">
+            100% verified campus listings. Direct reservations and scam-free student housing across Ghana.
           </p>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
-              KB
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white">Kofi Boateng</p>
-              <p className="text-[11px] text-gray-400">Level 300, University of Ghana</p>
-            </div>
-          </div>
         </div>
       </div>
 
