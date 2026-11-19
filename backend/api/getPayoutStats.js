@@ -21,11 +21,15 @@ async function getPayoutStatsHandler(req, res) {
     const pool = getPool();
 
     try {
-        // Get all hostels managed by this user
-        const [hostels] = await pool.execute(
-            `SELECT id, name, subaccount_code, bank_name, account_number, platform_fee, commission_type FROM hostels WHERE manager_id = ?`,
-            [user_id]
-        );
+        // Get all hostels managed by this user (or all hostels if admin)
+        const [hostels] = role === 'admin'
+            ? await pool.execute(
+                `SELECT id, name, subaccount_code, bank_name, account_number, platform_fee, commission_type FROM hostels ORDER BY name ASC`
+            )
+            : await pool.execute(
+                `SELECT id, name, subaccount_code, bank_name, account_number, platform_fee, commission_type FROM hostels WHERE manager_id = ?`,
+                [String(user_id)]
+            );
 
         if (hostels.length === 0) {
             return res.json({

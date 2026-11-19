@@ -208,13 +208,15 @@ async function createHostelHandler(req, res) {
  */
 function makePaystackRequest(endpoint, method, data) {
     return new Promise((resolve, reject) => {
+        const postData = typeof data === 'string' ? data : (data ? JSON.stringify(data) : null);
         const options = {
             hostname: 'api.paystack.co',
             path: endpoint,
             method: method,
             headers: {
                 'Authorization': 'Bearer ' + PAYSTACK_SECRET_KEY,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {})
             }
         };
 
@@ -232,7 +234,7 @@ function makePaystackRequest(endpoint, method, data) {
         });
 
         req.on('error', reject);
-        if (data) req.write(data);
+        if (postData) req.write(postData);
         req.end();
     });
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { updateUserProfile, changeUserPassword, uploadImage } from '../api/api.js';
-import { User, Lock, Phone, GraduationCap, Shield, CheckCircle, AlertCircle, Save, KeyRound, ArrowLeft, Camera, CreditCard } from 'lucide-react';
+import { User, Lock, Phone, GraduationCap, Shield, CheckCircle, AlertCircle, Save, KeyRound, ArrowLeft, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProfilePage() {
